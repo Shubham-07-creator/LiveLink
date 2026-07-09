@@ -31,11 +31,15 @@ app.use(express.json({ limit: "40kb" }));
 app.use(express.urlencoded({ limit: "40kb", extended: true }));
 
 app.get("/", (req, res) => {
-  res.send("Backend Running");
+  res.send("Backend OK");
 });
 
 app.get("/test", (req, res) => {
-  res.send("TEST OK");
+  res.send("Test OK");
+});
+
+app.post("/hello", (req, res) => {
+  res.json({ message: "Hello" });
 });
 app.use("/api/v1/users", userRoutes);
 
