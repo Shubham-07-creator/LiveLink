@@ -1,3 +1,13 @@
+app.get("/", (req, res) => {
+  res.send("Backend Running");
+});
+
+app.get("/test", (req, res) => {
+  res.send("TEST OK");
+}); 
+
+
+
 import express from "express";
 import { createServer } from "node:http";
 import mongoose from "mongoose";
