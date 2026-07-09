@@ -1,13 +1,3 @@
-app.get("/", (req, res) => {
-  res.send("Backend Running");
-});
-
-app.get("/test", (req, res) => {
-  res.send("TEST OK");
-}); 
-
-
-
 import express from "express";
 import { createServer } from "node:http";
 import mongoose from "mongoose";
@@ -40,6 +30,13 @@ app.use(
 app.use(express.json({ limit: "40kb" }));
 app.use(express.urlencoded({ limit: "40kb", extended: true }));
 
+app.get("/", (req, res) => {
+  res.send("Backend Running");
+});
+
+app.get("/test", (req, res) => {
+  res.send("TEST OK");
+});
 app.use("/api/v1/users", userRoutes);
 
 const start = async () => {
