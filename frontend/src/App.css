@@ -1,0 +1,155 @@
+.landingPageContainer {
+  width: 100vw;
+  height: 100vh;
+  background: #ffffff;   /* smoke white */
+  color: #111111;
+  overflow: hidden;
+}
+
+/* Navbar */
+.landingPageContainer nav {
+  padding-inline: 2.5rem;
+  padding-block: 1.4rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Logo Section */
+.logoSection {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.videoIcon {
+  width: 58px;
+  height: 58px;
+}
+
+.liveLinkText {
+  margin: 0;
+  font-size: 2.3rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.blackText {
+  color: #111111;
+}
+
+.orangeText {
+  color: #ff7a00;
+}
+
+/* Nav Right */
+.landingPageContainer nav .navlist {
+  display: flex;
+  align-items: center;
+  gap: 1.8rem;
+  cursor: pointer;
+}
+
+.landingPageContainer nav .navlist p {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #111111;
+}
+
+.landingPageContainer nav .navlist div[role="button"] {
+  background: #ff7a00;
+  padding: 10px 18px;
+  border-radius: 10px;
+}
+
+.landingPageContainer nav .navlist div[role="button"] p {
+  color: white;
+  font-weight: 600;
+}
+
+/* Hero Section */
+.landingMainContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-inline: 4rem;
+  height: 82vh;
+}
+
+/* Left Side */
+.landingMainContainer > div:nth-child(1) {
+  width: 50%;
+}
+
+.landingMainContainer > div:nth-child(1) h1 {
+  font-size: 3.6rem;
+  color: #111111;
+  line-height: 1.2;
+  margin-bottom: 18px;
+}
+
+.landingMainContainer > div:nth-child(1) p {
+  font-size: 1.3rem;
+  color: #555555;
+}
+
+.landingMainContainer > div:nth-child(1) div[role="button"] {
+  background: #ff7a00;
+  width: fit-content;
+  padding: 14px 24px;
+  border-radius: 12px;
+  margin-top: 2rem;
+}
+
+.landingMainContainer > div:nth-child(1) div[role="button"] a {
+  text-decoration: none;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* Right Side */
+.landingMainContainer > div:nth-child(2) {
+  width: 50%;
+  display: flex;
+  justify-content: center;
+}
+
+.landingMainContainer > div:nth-child(2) img {
+  height: 72vh;
+  width: auto;
+}
+
+/* Other Pages */
+.navBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: 20px;
+}
+
+.meetContainer {
+  display: flex;
+  padding-inline: 20px;
+  height: 80vh;
+  gap: 10vw;
+  justify-content: center;
+}
+
+.leftPanel {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.rightPanel {
+  display: flex;
+  align-items: center;
+}
+
+.rightPanel > img {
+  width: 30vw;
+  height: auto;
+  border-radius: 20px;
+}
+
