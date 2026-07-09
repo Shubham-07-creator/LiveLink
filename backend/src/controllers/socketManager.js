@@ -8,11 +8,13 @@ let userNames = {}
 export const connectToSocket = (server) => {
     const io = new Server(server, {
         cors: {
-            origin: "*",
-            methods: ["GET", "POST"],
-            allowedHeaders: ["*"],
-            credentials: true
-        }
+    origin: [
+        "http://localhost:3000",
+        "https://livelink-svqx.onrender.com"
+    ],
+    methods: ["GET", "POST"],
+    credentials: true
+}
     });
 
     io.on("connection", (socket) => {
