@@ -248,7 +248,10 @@ export default function VideoMeetComponent() {
     }
 
     let connectToSocketServer = () => {
-        socketRef.current = io.connect(server_url, { secure: false })
+        socketRef.current = io(server_url, {
+    transports: ["websocket", "polling"],
+    withCredentials: true,
+});
 
         socketRef.current.on('signal', gotMessageFromServer)
 
