@@ -32,7 +32,7 @@ export default function VideoMeetComponent() {
     let socketIdRef = useRef();
     let localVideoref = useRef();
     let miniLocalVideoRef = useRef(); 
-    const messageInputRef = useRef(null); // फ़िक्स: टाइपिंग करते समय स्क्रीन का ब्लिंक होना इससे बंद होगा
+    const messageInputRef = useRef(null); 
 
     let [videoAvailable, setVideoAvailable] = useState(true);
     let [audioAvailable, setAudioAvailable] = useState(true);
@@ -248,10 +248,7 @@ export default function VideoMeetComponent() {
     }
 
     let connectToSocketServer = () => {
-        socketRef.current = io(server_url, {
-    transports: ["websocket", "polling"],
-    withCredentials: true,
-});
+        socketRef.current = io.connect(server_url, { secure: false })
 
         socketRef.current.on('signal', gotMessageFromServer)
 
