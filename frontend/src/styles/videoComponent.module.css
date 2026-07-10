@@ -62,3 +62,66 @@
 
 
 
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* --- RESPONSIVE FIXES FOR YOUR EXISTING CLASSES --- */
+
+/* 1. Mobile par Chat aur Video adjust karne ke liye */
+@media (max-width: 768px) {
+    /* Chatroom ko mobile par full width aur screen ke niche shift karne ke liye */
+    .chatRoom {
+        width: 100vw;
+        height: 50vh;
+        position: relative; /* Fixed se relative kiya taaki flow bane */
+    }
+
+    /* Conference view mein videos ko stack karna */
+    .conferenceView {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .conferenceView video {
+        width: 90vw; /* Mobile par width 90% */
+        height: auto;
+    }
+
+    /* Bottom buttons mobile par touch-friendly */
+    .buttonContainers svg {
+        font-size: 2.5rem;
+        padding: 5px;
+    }
+}
+
+/* 2. Global Responsiveness Fixes */
+.meetVideoContainer {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Chatroom responsiveness */
+@media (min-width: 769px) {
+    .chatRoom {
+        width: 300px; /* Desktop par fixed size better rehta hai */
+    }
+}
+
+/* Video tile scaling */
+.meetUserVideo {
+    max-width: 90%; /* Mobile par video bahar na nikle */
+}
