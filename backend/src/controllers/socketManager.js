@@ -231,7 +231,13 @@ export const connectToSocket = (server) => {
         socket.on("chat-message", (data, sender) => {
             if (typeof data !== "string" || !data.trim()) return;
 
-            const safeData = data.trim().slice(0, 2000);
+            let safeData;
+            if (data.startsWith("data:image/")) {
+                if (data.length > 3 * 1024 * 1024) return; // Max ~2MB image
+                safeData = data;
+            } else {
+                safeData = data.trim().slice(0, 2000);
+            }
             const safeSender = typeof sender === "string" 
                 ? sender.trim().slice(0, 50).replace(/[<>]/g, "") 
                 : (userNames[socket.id] || "User");

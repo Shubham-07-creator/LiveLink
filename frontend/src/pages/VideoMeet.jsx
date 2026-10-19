@@ -68,6 +68,9 @@ import PictureInPictureAltIcon from '@mui/icons-material/PictureInPictureAlt';
 import ClosedCaptionIcon from '@mui/icons-material/ClosedCaption';
 import ClosedCaptionDisabledIcon from '@mui/icons-material/ClosedCaptionDisabled';
 import SettingsIcon from '@mui/icons-material/Settings';
+import ImageIcon from '@mui/icons-material/Image';
+import BlurOnIcon from '@mui/icons-material/BlurOn';
+import BlurOffIcon from '@mui/icons-material/BlurOff';
 
 import server from '../environment';
 
@@ -209,6 +212,7 @@ export default function VideoMeetComponent() {
     const localVideoref = useRef();
     const miniLocalVideoRef = useRef(); 
     const messageInputRef = useRef(null); 
+    const chatFileInputRef = useRef(null);
     const videoRef = useRef([]);
     const roomNamesRef = useRef({});
     const statsIntervalRef = useRef(null);
@@ -224,6 +228,7 @@ export default function VideoMeetComponent() {
     const [audio, setAudio] = useState(true);
     const [screen, setScreen] = useState();
     const [screenAvailable, setScreenAvailable] = useState(false);
+    const [isBackgroundBlur, setIsBackgroundBlur] = useState(false);
 
     // Device Enumeration
     const [videoDevices, setVideoDevices] = useState([]);
@@ -852,6 +857,14 @@ export default function VideoMeetComponent() {
         connect();
     };
 
+    // Background Blur (Soft focus depth-of-field)
+    const handleToggleBlur = () => {
+        const nextState = !isBackgroundBlur;
+        setIsBackgroundBlur(nextState);
+        setToastMsg(nextState ? "Background blur effect enabled" : "Background blur effect disabled");
+        setToastOpen(true);
+    };
+
     // Emergency Privacy Shield
     const handlePrivacyShield = () => {
         if (window.localStream) {
@@ -1477,6 +1490,30 @@ export default function VideoMeetComponent() {
 
     const renderMessageContent = (text) => {
         if (!text) return "";
+        if (typeof text === 'string' && text.startsWith("data:image/")) {
+            return (
+                <Box
+                    component="img"
+                    src={text}
+                    alt="Chat attachment"
+                    sx={{
+                        maxWidth: '100%',
+                        maxHeight: 220,
+                        borderRadius: '10px',
+                        mt: 0.5,
+                        display: 'block',
+                        cursor: 'pointer',
+                        border: '1px solid rgba(0,0,0,0.1)'
+                    }}
+                    onClick={() => {
+                        const win = window.open();
+                        if (win) {
+                            win.document.write(`<img src="${text}" style="max-width:100%;height:auto;margin:auto;display:block;" />`);
+                        }
+                    }}
+                />
+            );
+        }
         const urlRegex = /(https?:\/\/[^\s]+)/g;
         const parts = String(text).split(urlRegex);
         return parts.map((part, index) => {
@@ -1495,6 +1532,43 @@ export default function VideoMeetComponent() {
             }
             return part;
         });
+    };
+
+    const handleChatImageUpload = (file) => {
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            setToastMsg("Only image files are allowed.");
+            setToastOpen(true);
+            return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+            setToastMsg("Image size exceeds 2MB limit.");
+            setToastOpen(true);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const base64Data = e.target.result;
+            if (socketRef.current && base64Data) {
+                socketRef.current.emit('chat-message', base64Data, username);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleChatPaste = (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    e.preventDefault();
+                    handleChatImageUpload(file);
+                }
+            }
+        }
     };
 
     // Live Captions (Web Speech API)
@@ -1765,7 +1839,7 @@ export default function VideoMeetComponent() {
                                             autoPlay
                                             muted
                                             playsInline
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isBackgroundBlur ? 'contrast(1.08) drop-shadow(0 0 16px rgba(0,0,0,0.5))' : 'none' }}
                                         />
                                     ) : (
                                         <Box
@@ -1848,6 +1922,20 @@ export default function VideoMeetComponent() {
                                                     {audio ? <MicIcon /> : <MicOffIcon />}
                                                 </IconButton>
                                             </span>
+                                        </Tooltip>
+
+                                        <Tooltip title={isBackgroundBlur ? "Turn off background blur" : "Turn on background blur (Soft focus)"}>
+                                            <IconButton
+                                                onClick={handleToggleBlur}
+                                                aria-label="Toggle background blur"
+                                                sx={{
+                                                    backgroundColor: isBackgroundBlur ? '#2563eb' : 'rgba(255,255,255,0.2)',
+                                                    color: '#ffffff',
+                                                    '&:hover': { backgroundColor: isBackgroundBlur ? '#1d4ed8' : 'rgba(255,255,255,0.3)' }
+                                                }}
+                                            >
+                                                {isBackgroundBlur ? <BlurOnIcon /> : <BlurOffIcon />}
+                                            </IconButton>
                                         </Tooltip>
                                     </Box>
                                 </Paper>
@@ -2484,7 +2572,7 @@ export default function VideoMeetComponent() {
                                         }}
                                     >
                                         {video ? (
-                                            <video ref={localVideoref} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            <video ref={localVideoref} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', filter: isBackgroundBlur ? 'contrast(1.08) drop-shadow(0 0 16px rgba(0,0,0,0.5))' : 'none' }} />
                                         ) : (
                                             <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                                                 <Avatar sx={{ width: 96, height: 96, fontSize: '2.4rem', fontWeight: 800, backgroundColor: getAvatarColor(username || "You"), border: '2px solid rgba(255,255,255,0.1)' }}>
@@ -2522,7 +2610,7 @@ export default function VideoMeetComponent() {
                                             >
                                                 {isSpotlightLocal ? (
                                                     video ? (
-                                                        <video ref={localVideoref} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                                                        <video ref={localVideoref} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'contain', filter: isBackgroundBlur ? 'contrast(1.08) drop-shadow(0 0 16px rgba(0,0,0,0.5))' : 'none' }} />
                                                     ) : (
                                                         <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                                                             <Avatar sx={{ width: 96, height: 96, fontSize: '2.4rem', fontWeight: 800, backgroundColor: getAvatarColor(username || "You") }}>
@@ -3258,13 +3346,36 @@ export default function VideoMeetComponent() {
                                         </Typography>
                                     )}
 
-                                    <Box sx={{ display: 'flex', gap: 1, pt: 1, borderTop: '1px solid #f1f5f9' }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: 1, borderTop: '1px solid #f1f5f9' }}>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            ref={chatFileInputRef}
+                                            style={{ display: 'none' }}
+                                            onChange={(e) => {
+                                                if (e.target.files?.[0]) {
+                                                    handleChatImageUpload(e.target.files[0]);
+                                                    e.target.value = '';
+                                                }
+                                            }}
+                                        />
+                                        <Tooltip title="Send Image (max 2MB or paste)">
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => chatFileInputRef.current?.click()}
+                                                sx={{ color: '#64748b' }}
+                                                aria-label="Upload image to chat"
+                                            >
+                                                <ImageIcon sx={{ fontSize: 20 }} />
+                                            </IconButton>
+                                        </Tooltip>
                                         <TextField
                                             fullWidth
                                             size="small"
-                                            placeholder="Type a message..."
+                                            placeholder="Type a message or paste image..."
                                             inputRef={messageInputRef}
                                             onChange={handleChatInputChange}
+                                            onPaste={handleChatPaste}
                                             onKeyDown={(e) => { if (e.key === 'Enter') sendMessage(); }}
                                         />
                                         <Button variant="contained" onClick={sendMessage} sx={{ backgroundColor: '#2563eb', fontWeight: 700 }}>
@@ -3626,14 +3737,29 @@ export default function VideoMeetComponent() {
                             </Select>
                         </FormControl>
 
-                        <Button
-                            variant="outlined"
-                            startIcon={<VolumeUpIcon />}
-                            onClick={handleTestSpeaker}
-                            sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', alignSelf: 'flex-start' }}
-                        >
-                            Test speaker
-                        </Button>
+                        <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                            <Button
+                                variant="outlined"
+                                startIcon={<VolumeUpIcon />}
+                                onClick={handleTestSpeaker}
+                                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px' }}
+                            >
+                                Test speaker
+                            </Button>
+                            <Button
+                                variant={isBackgroundBlur ? "contained" : "outlined"}
+                                startIcon={isBackgroundBlur ? <BlurOnIcon /> : <BlurOffIcon />}
+                                onClick={handleToggleBlur}
+                                sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 700,
+                                    borderRadius: '12px',
+                                    backgroundColor: isBackgroundBlur ? '#2563eb' : undefined
+                                }}
+                            >
+                                {isBackgroundBlur ? "Background Blur: On" : "Background Blur: Off"}
+                            </Button>
+                        </Box>
                     </Box>
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>

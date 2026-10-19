@@ -9,6 +9,7 @@ import dns from "node:dns";
 
 import { connectToSocket } from "./controllers/socketManager.js";
 import userRoutes from "./routes/users.routes.js";
+import logger from "./utils/logger.js";
 
 dotenv.config();
 
@@ -46,6 +47,20 @@ app.use(cookieParser());
 app.use(express.json({ limit: "40kb" }));
 app.use(express.urlencoded({ limit: "40kb", extended: true }));
 
+// Structured Request Logging Middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    logger.info({
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Date.now() - start
+    });
+  });
+  next();
+});
+
 app.get("/", (req, res) => {
   res.send("LiveLink API Service is Operational");
 });
@@ -64,17 +79,25 @@ const start = async () => {
   try {
     const connectionDb = await mongoose.connect(process.env.MONGO_URI);
 
-    console.log(
-      `✅ MongoDB Connected: ${connectionDb.connection.host}`
-    );
+    logger.info({
+      event: "mongodb_connected",
+      host: connectionDb.connection.host,
+      message: `MongoDB Connected: ${connectionDb.connection.host}`
+    });
 
     server.listen(app.get("port"), () => {
-      console.log(`🚀 LiveLink Server Running on Port ${app.get("port")}`);
+      logger.info({
+        event: "server_started",
+        port: app.get("port"),
+        message: `LiveLink Server Running on Port ${app.get("port")}`
+      });
     });
 
   } catch (error) {
-    console.error("❌ MongoDB Connection Failed");
-    console.error(error.message);
+    logger.error({
+      event: "mongodb_connection_failed",
+      error: error.message
+    });
     process.exit(1);
   }
 };
