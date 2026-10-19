@@ -286,6 +286,7 @@ export default function VideoMeetComponent() {
     // Meeting View Modes & Pinning
     const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'speaker'
     const [pinnedUser, setPinnedUser] = useState(null); // socketId or 'local'
+    const [spotlightUser, setSpotlightUser] = useState(null); // socketId
     const [isPipActive, setIsPipActive] = useState(false);
 
     // Chat Typing Indicator
@@ -1124,8 +1125,17 @@ export default function VideoMeetComponent() {
                 setToastOpen(true);
             });
 
-            socketRef.current.on('host-changed', ({ hostSocketId: newHostId, hostName }) => {
+            socketRef.current.on('host-changed', (arg1, arg2) => {
+                let newHostId, hostName;
+                if (typeof arg1 === 'object' && arg1 !== null) {
+                    newHostId = arg1.hostSocketId;
+                    hostName = arg1.hostName;
+                } else {
+                    newHostId = arg1;
+                    hostName = arg2;
+                }
                 setHostSocketId(newHostId);
+                playChime('join');
                 setToastMsg(`👑 ${hostName || 'A participant'} is now the host.`);
                 setToastOpen(true);
             });
@@ -1153,6 +1163,16 @@ export default function VideoMeetComponent() {
             socketRef.current.on('admission-denied', () => {
                 setAdmissionDenied(true);
                 cleanUpSession();
+            });
+
+            socketRef.current.on('spotlight-changed', ({ spotlightId, spotlightName }) => {
+                setSpotlightUser(spotlightId);
+                if (spotlightId) {
+                    setToastMsg(`🌟 ${spotlightName || 'A participant'} is spotlighted for everyone.`);
+                } else {
+                    setToastMsg("Spotlight removed.");
+                }
+                setToastOpen(true);
             });
 
             socketRef.current.on('force-mute', () => {
@@ -1394,6 +1414,13 @@ export default function VideoMeetComponent() {
     const handleRemoveParticipant = (targetId) => {
         if (socketRef.current && isHost) {
             socketRef.current.emit('remove-participant', targetId);
+        }
+    };
+
+    const handleSpotlightParticipant = (targetId) => {
+        if (socketRef.current && isHost) {
+            const nextSpotlight = spotlightUser === targetId ? null : targetId;
+            socketRef.current.emit('spotlight-participant', nextSpotlight);
         }
     };
 
@@ -2472,10 +2499,10 @@ export default function VideoMeetComponent() {
                                         </Box>
                                     </Box>
                                 </Box>
-                            ) : (viewMode === 'speaker' || pinnedUser || screen) ? (
+                            ) : (viewMode === 'speaker' || pinnedUser || spotlightUser || screen) ? (
                                 /* SPEAKER / SPOTLIGHT / SCREEN SHARE VIEW */
                                 (() => {
-                                    const spotlightTarget = pinnedUser || (screen ? 'local' : (videos[0] ? videos[0].socketId : 'local'));
+                                    const spotlightTarget = pinnedUser || spotlightUser || (screen ? 'local' : (videos[0] ? videos[0].socketId : 'local'));
                                     const isSpotlightLocal = spotlightTarget === 'local';
                                     const spotlightPeer = !isSpotlightLocal ? videos.find(v => v.socketId === spotlightTarget) || videos[0] : null;
 
@@ -2527,8 +2554,19 @@ export default function VideoMeetComponent() {
                                                     {isSpotlightLocal ? `${username || "You"} (You)` : spotlightPeer?.name}
                                                     {spotlightPeer && hostSocketId === spotlightPeer.socketId ? " • Host" : ""}
                                                     {isSpotlightLocal && hostSocketId === socketIdRef.current ? " • Host" : ""}
-                                                    {pinnedUser ? " 📌 Pinned" : ""}
+                                                    {pinnedUser ? " 📌 Pinned" : (spotlightUser === (isSpotlightLocal ? socketIdRef.current : spotlightPeer?.socketId) ? " 🌟 Spotlighted" : "")}
                                                 </Typography>
+
+                                                {isHost && (
+                                                    <Tooltip title={spotlightUser === (isSpotlightLocal ? socketIdRef.current : spotlightPeer?.socketId) ? "Remove spotlight for everyone" : "Spotlight for everyone"}>
+                                                        <IconButton
+                                                            onClick={() => handleSpotlightParticipant(isSpotlightLocal ? socketIdRef.current : spotlightPeer?.socketId)}
+                                                            sx={{ position: 'absolute', top: 12, right: 54, color: spotlightUser === (isSpotlightLocal ? socketIdRef.current : spotlightPeer?.socketId) ? '#eab308' : '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.5)', '&:hover': { backgroundColor: 'rgba(0,0,0,0.8)' } }}
+                                                        >
+                                                            <PushPinIcon sx={{ fontSize: 18, transform: 'rotate(45deg)' }} />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                )}
 
                                                 <Tooltip title={pinnedUser ? "Unpin participant" : "Pin participant"}>
                                                     <IconButton
@@ -3348,6 +3386,11 @@ export default function VideoMeetComponent() {
                                                             <Tooltip title="Remove participant">
                                                                 <IconButton size="small" onClick={() => handleRemoveParticipant(peer.socketId)}>
                                                                     <PersonRemoveIcon sx={{ fontSize: 16, color: '#dc2626' }} />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                            <Tooltip title={spotlightUser === peer.socketId ? "Remove spotlight for everyone" : "Spotlight for everyone"}>
+                                                                <IconButton size="small" onClick={() => handleSpotlightParticipant(peer.socketId)}>
+                                                                    <PushPinIcon sx={{ fontSize: 16, color: spotlightUser === peer.socketId ? '#eab308' : '#94a3b8', transform: 'rotate(45deg)' }} />
                                                                 </IconButton>
                                                             </Tooltip>
                                                         </>

@@ -461,6 +461,23 @@ export const connectToSocket = (server) => {
             });
         });
 
+        // Host Control: Spotlight Participant for Everyone
+        socket.on("spotlight-participant", (targetSocketId) => {
+            const [matchingRoom, found] = getSocketRoom(socket.id);
+            if (!found) return;
+
+            if (roomHosts[matchingRoom] !== socket.id) {
+                return socket.emit("host-action-error", "Only the host can spotlight participants for everyone.");
+            }
+
+            connections[matchingRoom].forEach((elem) => {
+                io.to(elem).emit("spotlight-changed", {
+                    spotlightId: targetSocketId,
+                    spotlightName: targetSocketId ? (userNames[targetSocketId] || "Participant") : null
+                });
+            });
+        });
+
         socket.on("disconnect", () => {
             let key;
 
@@ -486,7 +503,7 @@ export const connectToSocket = (server) => {
                                 roomHosts[key] = connections[key][0];
                                 const newHostName = userNames[roomHosts[key]] || "Host";
                                 connections[key].forEach((elem) => {
-                                    io.to(elem).emit("host-changed", roomHosts[key], newHostName);
+                                    io.to(elem).emit("host-changed", { hostSocketId: roomHosts[key], hostName: newHostName });
                                 });
                             } else {
                                 delete roomHosts[key];
