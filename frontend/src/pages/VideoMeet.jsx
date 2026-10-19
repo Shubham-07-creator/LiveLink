@@ -67,6 +67,7 @@ import ViewStreamIcon from '@mui/icons-material/ViewStream';
 import PictureInPictureAltIcon from '@mui/icons-material/PictureInPictureAlt';
 import ClosedCaptionIcon from '@mui/icons-material/ClosedCaption';
 import ClosedCaptionDisabledIcon from '@mui/icons-material/ClosedCaptionDisabled';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 import server from '../environment';
 
@@ -246,6 +247,10 @@ export default function VideoMeetComponent() {
 
     // Call Reliability: Reconnecting Banner & Network Quality
     const [isReconnecting, setIsReconnecting] = useState(false);
+    const [reconnectFailed, setReconnectFailed] = useState(false);
+    const reconnectTimerRef = useRef(null);
+    const [duplicateTabDetected, setDuplicateTabDetected] = useState(false);
+    const [deviceSettingsOpen, setDeviceSettingsOpen] = useState(false);
     const [networkStats, setNetworkStats] = useState({ quality: 'Good', rtt: 45, loss: '0.0' });
     const [activeSpeakers, setActiveSpeakers] = useState({});
 
@@ -520,6 +525,47 @@ export default function VideoMeetComponent() {
             return () => clearTimeout(timer);
         }
     }, [showMutedSpeakingHint]);
+
+    // Reconnection 45s failure timeout
+    useEffect(() => {
+        if (isReconnecting) {
+            if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = setTimeout(() => {
+                setReconnectFailed(true);
+            }, 45000);
+        } else {
+            if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+            setReconnectFailed(false);
+        }
+        return () => {
+            if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+        };
+    }, [isReconnecting]);
+
+    // Duplicate Tab Warning via BroadcastChannel
+    useEffect(() => {
+        if (typeof window === 'undefined' || !window.BroadcastChannel) return;
+        try {
+            const channelName = `livelink_active_room_${url || 'call'}`;
+            const channel = new BroadcastChannel(channelName);
+
+            channel.onmessage = (event) => {
+                if (event.data === 'ping') {
+                    channel.postMessage('pong');
+                } else if (event.data === 'pong') {
+                    setDuplicateTabDetected(true);
+                }
+            };
+
+            channel.postMessage('ping');
+
+            return () => {
+                try { channel.close(); } catch (e) {}
+            };
+        } catch (e) {
+            console.warn("BroadcastChannel error:", e);
+        }
+    }, [url]);
 
     // Timer for recording
     useEffect(() => {
@@ -2127,8 +2173,55 @@ export default function VideoMeetComponent() {
                     {/* MAIN STAGE */}
                     <Box sx={{ flexGrow: 1, position: 'relative', height: '100%', backgroundColor: '#090d16' }}>
                         
-                        {/* RECONNECTING FLOATING BANNER */}
-                        {isReconnecting && (
+                        {/* RECONNECTING FLOATING BANNER OR 45-SECOND TIMEOUT FAILURE BANNER */}
+                        {reconnectFailed ? (
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    backgroundColor: '#dc2626',
+                                    color: '#ffffff',
+                                    py: 1,
+                                    px: 2,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 2,
+                                    zIndex: 100,
+                                    boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                                    flexWrap: 'wrap'
+                                }}
+                            >
+                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                                    Unable to reconnect to the meeting after 45 seconds. Please check your network connection.
+                                </Typography>
+                                <Button
+                                    size="small"
+                                    variant="contained"
+                                    onClick={() => {
+                                        setReconnectFailed(false);
+                                        if (socketRef.current) socketRef.current.connect();
+                                        for (let id in connections) triggerIceRestart(id);
+                                    }}
+                                    sx={{ backgroundColor: '#ffffff', color: '#dc2626', fontWeight: 800, textTransform: 'none', borderRadius: '10px' }}
+                                >
+                                    Retry Connection
+                                </Button>
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => {
+                                        cleanUpSession();
+                                        navigate('/home');
+                                    }}
+                                    sx={{ color: '#ffffff', borderColor: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'none', borderRadius: '10px' }}
+                                >
+                                    Return to Dashboard
+                                </Button>
+                            </Box>
+                        ) : isReconnecting && (
                             <Box
                                 sx={{
                                     position: 'absolute',
@@ -2159,7 +2252,7 @@ export default function VideoMeetComponent() {
                             <Box
                                 sx={{
                                     position: 'absolute',
-                                    top: isReconnecting ? 48 : 16,
+                                    top: reconnectFailed ? 58 : (isReconnecting ? 48 : 16),
                                     left: '50%',
                                     transform: 'translateX(-50%)',
                                     backgroundColor: '#1e293b',
@@ -2204,7 +2297,7 @@ export default function VideoMeetComponent() {
                             <Box
                                 sx={{
                                     position: 'absolute',
-                                    top: isReconnecting ? 44 : (isHost && waitingUsers.length > 0 ? 64 : 16),
+                                    top: reconnectFailed ? 58 : (isReconnecting ? 44 : (isHost && waitingUsers.length > 0 ? 64 : 16)),
                                     left: '50%',
                                     transform: 'translateX(-50%)',
                                     backgroundColor: 'rgba(239, 68, 68, 0.95)',
@@ -2230,7 +2323,7 @@ export default function VideoMeetComponent() {
                         <Box
                             sx={{
                                 position: 'absolute',
-                                top: isReconnecting ? 48 : 16,
+                                top: reconnectFailed ? 58 : (isReconnecting ? 48 : 16),
                                 left: 20,
                                 right: showModal ? 370 : 20,
                                 zIndex: 10,
@@ -2963,6 +3056,17 @@ export default function VideoMeetComponent() {
                                         </IconButton>
                                     </Tooltip>
 
+                                    {/* Audio & Video Settings */}
+                                    <Tooltip title="Audio & Video Settings">
+                                        <IconButton
+                                            onClick={() => setDeviceSettingsOpen(true)}
+                                            aria-label="Audio and video settings"
+                                            sx={{ color: 'white', minWidth: 44, minHeight: 44, backgroundColor: 'rgba(255,255,255,0.08)', '&:hover': { backgroundColor: 'rgba(255,255,255,0.18)' } }}
+                                        >
+                                            <SettingsIcon sx={{ fontSize: 22 }} />
+                                        </IconButton>
+                                    </Tooltip>
+
                                     {/* Fullscreen Toggle */}
                                     <Tooltip title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
                                         <IconButton
@@ -3037,6 +3141,9 @@ export default function VideoMeetComponent() {
                             </MenuItem>
                             <MenuItem onClick={() => { setMoreMenuAnchor(null); handlePrivacyShield(); }}>
                                 <SecurityIcon sx={{ mr: 1.5, fontSize: 20, color: '#f59e0b' }} /> Privacy Shield
+                            </MenuItem>
+                            <MenuItem onClick={() => { setMoreMenuAnchor(null); setDeviceSettingsOpen(true); }}>
+                                <SettingsIcon sx={{ mr: 1.5, fontSize: 20 }} /> Audio & Video Settings
                             </MenuItem>
                             <MenuItem onClick={() => { setMoreMenuAnchor(null); setMeetingInfoOpen(true); }}>
                                 <InfoOutlinedIcon sx={{ mr: 1.5, fontSize: 20 }} /> Meeting Info
@@ -3409,6 +3516,123 @@ export default function VideoMeetComponent() {
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>
                     <Button onClick={() => setMeetingInfoOpen(false)}>Close</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* In-Call Audio & Video Settings Dialog */}
+            <Dialog 
+                open={deviceSettingsOpen} 
+                onClose={() => setDeviceSettingsOpen(false)}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{ sx: { borderRadius: '20px', p: 1 } }}
+            >
+                <DialogTitle sx={{ fontWeight: 800, color: '#0f172a' }}>
+                    Audio & Video Settings
+                </DialogTitle>
+                <DialogContent>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
+                        <FormControl size="small" fullWidth>
+                            <InputLabel id="incall-camera-select-label">Camera</InputLabel>
+                            <Select
+                                labelId="incall-camera-select-label"
+                                value={selectedCamera}
+                                label="Camera"
+                                onChange={(e) => switchCamera(e.target.value)}
+                            >
+                                {videoDevices.map((d, idx) => (
+                                    <MenuItem key={d.deviceId || idx} value={d.deviceId}>
+                                        {d.label || `Camera ${idx + 1}`}
+                                    </MenuItem>
+                                ))}
+                                {videoDevices.length === 0 && <MenuItem value="">Default Camera</MenuItem>}
+                            </Select>
+                        </FormControl>
+
+                        <FormControl size="small" fullWidth>
+                            <InputLabel id="incall-mic-select-label">Microphone</InputLabel>
+                            <Select
+                                labelId="incall-mic-select-label"
+                                value={selectedMicrophone}
+                                label="Microphone"
+                                onChange={(e) => switchMicrophone(e.target.value)}
+                            >
+                                {audioInputDevices.map((d, idx) => (
+                                    <MenuItem key={d.deviceId || idx} value={d.deviceId}>
+                                        {d.label || `Microphone ${idx + 1}`}
+                                    </MenuItem>
+                                ))}
+                                {audioInputDevices.length === 0 && <MenuItem value="">Default Microphone</MenuItem>}
+                            </Select>
+                        </FormControl>
+
+                        <FormControl size="small" fullWidth>
+                            <InputLabel id="incall-speaker-select-label">Speaker</InputLabel>
+                            <Select
+                                labelId="incall-speaker-select-label"
+                                value={selectedSpeaker}
+                                label="Speaker"
+                                onChange={(e) => switchSpeaker(e.target.value)}
+                            >
+                                {audioOutputDevices.map((d, idx) => (
+                                    <MenuItem key={d.deviceId || idx} value={d.deviceId}>
+                                        {d.label || `Speaker ${idx + 1}`}
+                                    </MenuItem>
+                                ))}
+                                {audioOutputDevices.length === 0 && <MenuItem value="">Default Speaker</MenuItem>}
+                            </Select>
+                        </FormControl>
+
+                        <Button
+                            variant="outlined"
+                            startIcon={<VolumeUpIcon />}
+                            onClick={handleTestSpeaker}
+                            sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '12px', alignSelf: 'flex-start' }}
+                        >
+                            Test speaker
+                        </Button>
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button 
+                        variant="contained" 
+                        onClick={() => setDeviceSettingsOpen(false)}
+                        sx={{ backgroundColor: '#2563eb', textTransform: 'none', borderRadius: '12px', fontWeight: 700 }}
+                    >
+                        Done
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Duplicate Tab Warning Dialog */}
+            <Dialog 
+                open={duplicateTabDetected} 
+                onClose={() => setDuplicateTabDetected(false)}
+                PaperProps={{ sx: { borderRadius: '20px', p: 1, maxWidth: 440, width: '100%' } }}
+            >
+                <DialogTitle sx={{ fontWeight: 800, color: '#dc2626' }}>
+                    ⚠️ Duplicate Tab Warning
+                </DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" sx={{ color: '#64748b', lineHeight: 1.6, fontSize: '0.95rem' }}>
+                        This meeting room is already active in another browser tab or window. Having multiple tabs connected to the same meeting can cause audio echo, microphone feedback, and camera connection conflicts.
+                    </Typography>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2, display: 'flex', gap: 1 }}>
+                    <Button 
+                        onClick={() => setDuplicateTabDetected(false)} 
+                        sx={{ textTransform: 'none', color: '#64748b', fontWeight: 600 }}
+                    >
+                        Dismiss
+                    </Button>
+                    <Button 
+                        variant="contained" 
+                        color="error" 
+                        onClick={() => { cleanUpSession(); navigate('/home'); }}
+                        sx={{ textTransform: 'none', borderRadius: '12px', fontWeight: 700 }}
+                    >
+                        Leave This Tab
+                    </Button>
                 </DialogActions>
             </Dialog>
 
