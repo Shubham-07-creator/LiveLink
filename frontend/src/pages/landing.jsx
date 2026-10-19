@@ -128,6 +128,8 @@ export default function LandingPage() {
             component="img"
             src="/video.svg"
             alt="LiveLink"
+            width="36"
+            height="36"
             sx={{ width: 36, height: 36 }}
           />
           <Typography variant="h5" sx={{ fontWeight: 800, color: "text.primary", letterSpacing: "-0.5px" }}>
@@ -381,6 +383,8 @@ export default function LandingPage() {
                   component="img"
                   src="/mobile.png"
                   alt="LiveLink Video Call Interface"
+                  width="540"
+                  height="480"
                   loading="lazy"
                   decoding="async"
                   sx={{
