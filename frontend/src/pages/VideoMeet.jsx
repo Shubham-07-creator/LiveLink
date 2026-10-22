@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useContext, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Box, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip } from '@mui/material';
+import { Box, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, useMediaQuery } from '@mui/material';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 
 import server from '../environment';
@@ -26,6 +26,7 @@ export default function VideoMeet() {
     const { url } = useParams();
     const navigate = useNavigate();
     const { userData } = useContext(AuthContext);
+    const isMobile = useMediaQuery('(max-width:600px)');
 
     const [isInMeeting, setIsInMeeting] = useState(false);
     const [displayName, setDisplayName] = useState(userData?.name || userData?.username || '');
@@ -72,6 +73,18 @@ export default function VideoMeet() {
     const stats = useStats({ peersRef: peers.peersRef, isCallActive: isInMeeting });
 
     useEffect(() => { if (media.isScreenSharing) setViewMode('speaker'); }, [media.isScreenSharing]);
+
+    // PHASE 2: Dynamic adaptive sender bitrates and resolution scaling
+    useEffect(() => {
+        if (!isInMeeting) return;
+        peers.applyAdaptiveQuality({
+            participantCount: peers.remoteVideos.length + 1,
+            isLocalSpeaker: media.audioVolume > 15 && media.audioEnabled,
+            isScreenSharing: media.isScreenSharing,
+            isMobile,
+            qualityTier: stats.overallQuality
+        });
+    }, [isInMeeting, peers.remoteVideos.length, media.audioVolume, media.audioEnabled, media.isScreenSharing, isMobile, stats.overallQuality, peers]);
 
     useEffect(() => {
         axios.get(`${server}/api/v1/users/ice_servers`, { withCredentials: true })

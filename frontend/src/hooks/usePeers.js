@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { calculateAdaptiveParams } from '../utils/adaptiveQuality';
 
 const DEFAULT_STUN_SERVERS = [
     { urls: "stun:stun.l.google.com:19302" },
@@ -7,27 +8,22 @@ const DEFAULT_STUN_SERVERS = [
 ];
 
 export default function usePeers({ sendSignal, localStream, myId, onPeerStream, onPeerLeft } = {}) {
-    const peersRef = useRef({}); // peerId -> { pc, isPolite, makingOffer, ignoreOffer, isSettingRemoteAnswerPending, iceCandidateQueue, senders, disconnectTimer }
-    const [remoteVideos, setRemoteVideos] = useState([]); // [{ socketId, stream, name, avatar, videoEnabled }]
+    const peersRef = useRef({});
+    const [remoteVideos, setRemoteVideos] = useState([]);
     const [isReconnecting, setIsReconnecting] = useState(false);
     const [reconnectFailed, setReconnectFailed] = useState(false);
     const reconnectTimerRef = useRef(null);
     const iceServersRef = useRef(DEFAULT_STUN_SERVERS);
 
-    // Update ICE servers (e.g. from backend endpoint)
     const setIceServers = useCallback((servers) => {
-        if (Array.isArray(servers) && servers.length) {
-            iceServersRef.current = servers;
-        }
+        if (Array.isArray(servers) && servers.length) iceServersRef.current = servers;
     }, []);
 
-    // 45s Reconnection Failure Watchdog
+    // 45s Reconnection Watchdog
     useEffect(() => {
         if (isReconnecting) {
             if (!reconnectTimerRef.current) {
-                reconnectTimerRef.current = setTimeout(() => {
-                    setReconnectFailed(true);
-                }, 45000);
+                reconnectTimerRef.current = setTimeout(() => setReconnectFailed(true), 45000);
             }
         } else {
             if (reconnectTimerRef.current) {
@@ -36,12 +32,9 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
             }
             setReconnectFailed(false);
         }
-        return () => {
-            if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-        };
+        return () => { if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current); };
     }, [isReconnecting]);
 
-    // Check if any peer is still reconnecting
     const updateReconnectionState = useCallback(() => {
         const peers = Object.values(peersRef.current);
         const hasReconnecting = peers.some(p => 
@@ -50,7 +43,6 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
         setIsReconnecting(hasReconnecting);
     }, []);
 
-    // Close a single peer connection cleanly
     const closePeer = useCallback((peerId) => {
         const peer = peersRef.current[peerId];
         if (peer) {
@@ -70,38 +62,26 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
         updateReconnectionState();
     }, [onPeerLeft, updateReconnectionState]);
 
-    // Create RTCPeerConnection with Perfect Negotiation pattern
+    // Create RTCPeerConnection with Perfect Negotiation
     const createPeer = useCallback((peerId, meta = {}) => {
-        if (peersRef.current[peerId]?.pc) {
-            return peersRef.current[peerId].pc;
-        }
+        if (peersRef.current[peerId]?.pc) return peersRef.current[peerId].pc;
 
         const isPolite = myId ? (myId > peerId) : true;
         const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
 
         const peerEntry = {
-            pc,
-            isPolite,
-            makingOffer: false,
-            ignoreOffer: false,
-            isSettingRemoteAnswerPending: false,
-            iceCandidateQueue: [],
-            senders: {},
-            disconnectTimer: null,
-            name: meta.name || "Participant",
-            avatar: meta.avatar || null
+            pc, isPolite, makingOffer: false, ignoreOffer: false,
+            isSettingRemoteAnswerPending: false, iceCandidateQueue: [], senders: {},
+            disconnectTimer: null, name: meta.name || "Participant", avatar: meta.avatar || null
         };
         peersRef.current[peerId] = peerEntry;
 
-        // Add local tracks to peer connection
         if (localStream) {
             localStream.getTracks().forEach(track => {
-                const sender = pc.addTrack(track, localStream);
-                peerEntry.senders[track.kind] = sender;
+                peerEntry.senders[track.kind] = pc.addTrack(track, localStream);
             });
         }
 
-        // PERFECT NEGOTIATION: onnegotiationneeded
         pc.onnegotiationneeded = async () => {
             try {
                 peerEntry.makingOffer = true;
@@ -114,53 +94,39 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
             }
         };
 
-        // ICE candidate generation
         pc.onicecandidate = (event) => {
-            if (event.candidate) {
-                sendSignal?.(peerId, { candidate: event.candidate });
-            }
+            if (event.candidate) sendSignal?.(peerId, { candidate: event.candidate });
         };
 
-        // Modern ontrack listener
         pc.ontrack = (event) => {
             const [stream] = event.streams;
             const remoteStream = stream || new MediaStream([event.track]);
-
             setRemoteVideos(prev => {
                 const existing = prev.find(v => v.socketId === peerId);
-                if (existing) {
-                    return prev.map(v => v.socketId === peerId ? { ...v, stream: remoteStream } : v);
-                }
+                if (existing) return prev.map(v => v.socketId === peerId ? { ...v, stream: remoteStream } : v);
                 return [...prev, {
-                    socketId: peerId,
-                    stream: remoteStream,
-                    name: peerEntry.name,
-                    avatar: peerEntry.avatar,
+                    socketId: peerId, stream: remoteStream, name: peerEntry.name, avatar: peerEntry.avatar,
                     videoEnabled: event.track.kind === 'video' ? event.track.enabled : true
                 }];
             });
-
             onPeerStream?.(peerId, remoteStream);
         };
 
-        // ConnectionState monitoring & ICE Restart
         const handleStateChange = () => {
             const state = pc.connectionState || pc.iceConnectionState;
-
             if (state === 'disconnected') {
                 setIsReconnecting(true);
                 if (!peerEntry.disconnectTimer) {
                     peerEntry.disconnectTimer = setTimeout(() => {
                         if (pc.connectionState === 'disconnected' || pc.iceConnectionState === 'disconnected') {
-                            console.warn(`[WebRTC] Peer ${peerId} disconnected >5s. Triggering restartIce().`);
-                            try { pc.restartIce(); } catch (e) { console.error("restartIce error:", e); }
+                            try { pc.restartIce(); } catch (e) {}
                         }
                     }, 5000);
                 }
             } else if (state === 'failed') {
                 setIsReconnecting(true);
-                console.warn(`[WebRTC] Peer ${peerId} failed. Recreating peer connection.`);
-                recreatePeer(peerId, meta);
+                closePeer(peerId);
+                createPeer(peerId, meta);
             } else if (state === 'connected') {
                 if (peerEntry.disconnectTimer) {
                     clearTimeout(peerEntry.disconnectTimer);
@@ -172,26 +138,15 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
 
         pc.onconnectionstatechange = handleStateChange;
         pc.oniceconnectionstatechange = handleStateChange;
-
         return pc;
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [myId, localStream, sendSignal, onPeerStream, updateReconnectionState]);
+    }, [myId, localStream, sendSignal, onPeerStream, updateReconnectionState, closePeer]);
 
-    // Recreate a failed peer connection
-    const recreatePeer = useCallback((peerId, meta) => {
-        closePeer(peerId);
-        createPeer(peerId, meta);
-    }, [closePeer, createPeer]);
-
-    // Handle incoming signals (SDP descriptions & ICE candidates)
+    // Signal handling
     const handleSignal = useCallback(async (senderId, signalData) => {
         let peer = peersRef.current[senderId];
-        if (!peer) {
-            createPeer(senderId);
-            peer = peersRef.current[senderId];
-        }
-        if (!peer || !peer.pc) return;
-
+        if (!peer) { createPeer(senderId); peer = peersRef.current[senderId]; }
+        if (!peer?.pc) return;
         const pc = peer.pc;
 
         try {
@@ -199,25 +154,16 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
                 const { description } = signalData;
                 const readyForOffer = !peer.makingOffer && (pc.signalingState === "stable" || peer.isSettingRemoteAnswerPending);
                 const offerCollision = description.type === "offer" && !readyForOffer;
-
                 peer.ignoreOffer = !peer.isPolite && offerCollision;
-                if (peer.ignoreOffer) {
-                    console.warn(`[WebRTC Perfect Negotiation] Impolite peer ignoring colliding offer from ${senderId}`);
-                    return;
-                }
+                if (peer.ignoreOffer) return;
 
                 peer.isSettingRemoteAnswerPending = description.type === "answer";
                 await pc.setRemoteDescription(new RTCSessionDescription(description));
                 peer.isSettingRemoteAnswerPending = false;
 
-                // Drain queued ICE candidates
                 while (peer.iceCandidateQueue.length > 0) {
-                    const candidate = peer.iceCandidateQueue.shift();
-                    try {
-                        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-                    } catch (e) {
-                        if (!peer.ignoreOffer) console.warn("Queued ICE candidate error:", e);
-                    }
+                    const cand = peer.iceCandidateQueue.shift();
+                    try { await pc.addIceCandidate(new RTCIceCandidate(cand)); } catch (e) {}
                 }
 
                 if (description.type === "offer") {
@@ -225,13 +171,9 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
                     sendSignal?.(senderId, { description: pc.localDescription });
                 }
             } else if (signalData.candidate) {
-                const candidate = new RTCIceCandidate(signalData.candidate);
-                if (pc.remoteDescription && pc.remoteDescription.type) {
-                    try {
-                        await pc.addIceCandidate(candidate);
-                    } catch (e) {
-                        if (!peer.ignoreOffer) console.warn("addIceCandidate error:", e);
-                    }
+                const cand = new RTCIceCandidate(signalData.candidate);
+                if (pc.remoteDescription?.type) {
+                    try { await pc.addIceCandidate(cand); } catch (e) {}
                 } else {
                     peer.iceCandidateQueue.push(signalData.candidate);
                 }
@@ -241,29 +183,58 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
         }
     }, [createPeer, sendSignal]);
 
-    // Live track replacement across all active senders
+    // Live track replacement
     const replaceTrackOnPeers = useCallback(async (kind, newTrack) => {
         const promises = Object.values(peersRef.current).map(async (peer) => {
             const sender = peer.senders?.[kind];
             if (sender && typeof sender.replaceTrack === 'function') {
-                try {
-                    await sender.replaceTrack(newTrack);
-                } catch (e) {
-                    console.warn(`Failed to replace ${kind} track on peer:`, e);
-                }
+                try { await sender.replaceTrack(newTrack); } catch (e) {}
             } else if (peer.pc && newTrack) {
-                try {
-                    const newSender = peer.pc.addTrack(newTrack, localStream);
-                    peer.senders[kind] = newSender;
-                } catch (e) {
-                    console.warn("addTrack fallback error:", e);
-                }
+                try { peer.senders[kind] = peer.pc.addTrack(newTrack, localStream); } catch (e) {}
             }
         });
         await Promise.all(promises);
     }, [localStream]);
 
-    // Close all peer connections on leave/unload
+    // PHASE 2: Adaptive sender parameter adjustment
+    const applyAdaptiveQuality = useCallback(async (options) => {
+        const { targetBitrate, targetFps, targetScale } = calculateAdaptiveParams(options);
+        for (const peer of Object.values(peersRef.current)) {
+            const videoSender = peer.senders?.['video'];
+            if (videoSender && typeof videoSender.getParameters === 'function') {
+                try {
+                    const params = videoSender.getParameters();
+                    if (!params.encodings || params.encodings.length === 0) params.encodings = [{}];
+                    params.encodings[0].maxBitrate = targetBitrate;
+                    params.encodings[0].maxFramerate = targetFps;
+                    params.encodings[0].scaleResolutionDownBy = targetScale;
+                    await videoSender.setParameters(params);
+                } catch (e) {}
+            }
+        }
+    }, []);
+
+    // Pause video sends when tab is hidden (Audio stays active)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            const isHidden = document.hidden;
+            Object.values(peersRef.current).forEach(peer => {
+                const videoSender = peer.senders?.['video'];
+                if (videoSender && typeof videoSender.getParameters === 'function') {
+                    try {
+                        const params = videoSender.getParameters();
+                        if (params.encodings?.[0]) {
+                            params.encodings[0].active = !isHidden;
+                            videoSender.setParameters(params).catch(() => {});
+                        }
+                    } catch (e) {}
+                }
+            });
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, []);
+
     const closeAllPeers = useCallback(() => {
         Object.keys(peersRef.current).forEach(id => closePeer(id));
         peersRef.current = {};
@@ -271,7 +242,6 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
         setIsReconnecting(false);
     }, [closePeer]);
 
-    // Clean up on page unload
     useEffect(() => {
         const handleBeforeUnload = () => closeAllPeers();
         window.addEventListener('beforeunload', handleBeforeUnload);
@@ -282,16 +252,8 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
     }, [closeAllPeers]);
 
     return {
-        peersRef,
-        remoteVideos,
-        isReconnecting,
-        reconnectFailed,
-        setRemoteVideos,
-        setIceServers,
-        createPeer,
-        closePeer,
-        closeAllPeers,
-        handleSignal,
-        replaceTrackOnPeers
+        peersRef, remoteVideos, isReconnecting, reconnectFailed, setRemoteVideos,
+        setIceServers, createPeer, closePeer, closeAllPeers, handleSignal,
+        replaceTrackOnPeers, applyAdaptiveQuality
     };
 }
