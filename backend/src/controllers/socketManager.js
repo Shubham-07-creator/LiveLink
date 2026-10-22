@@ -2,7 +2,7 @@ import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "LiveLinkSuperSecretJWTKey12345";
-const MAX_ROOM_PARTICIPANTS = 6;
+const MAX_ROOM_PARTICIPANTS = parseInt(process.env.MAX_ROOM_PARTICIPANTS, 10) || 4;
 
 let connections = {};
 let messages = {};
@@ -164,10 +164,10 @@ export const connectToSocket = (server) => {
                 return;
             }
 
-            // MESH LIMIT: 6 participants maximum
+            // MESH LIMIT: 4 participants maximum (env-configurable)
             if (connections[path].length >= MAX_ROOM_PARTICIPANTS) {
                 socket.emit("room-full", {
-                    message: "This meeting room has reached the maximum capacity of 6 participants for peer-to-peer calling.",
+                    message: `This meeting room has reached the maximum capacity of ${MAX_ROOM_PARTICIPANTS} participants for peer-to-peer mesh calling.`,
                     max: MAX_ROOM_PARTICIPANTS
                 });
                 return;

@@ -779,7 +779,7 @@ const refreshToken = async (req, res) => {
     }
 };
 
-// 15. ICE & TURN CREDENTIALS ENDPOINT
+// 15. ICE & TURN CREDENTIALS ENDPOINT (With support for short-lived credentials via TURN_SECRET)
 const getIceServers = async (req, res) => {
     const servers = [
         { urls: "stun:stun.l.google.com:19302" },
@@ -788,10 +788,25 @@ const getIceServers = async (req, res) => {
     ];
 
     if (process.env.TURN_URL) {
+        let username = process.env.TURN_USER || process.env.TURN_USERNAME || "";
+        let credential = process.env.TURN_PASS || process.env.TURN_CREDENTIAL || "";
+
+        // Ephemeral short-lived credentials using HMAC-SHA1 (RFC 5766 TURN REST API)
+        if (process.env.TURN_SECRET) {
+            const ttl = parseInt(process.env.TURN_TTL_SECONDS, 10) || 86400; // 24 hours
+            const expiryTimestamp = Math.floor(Date.now() / 1000) + ttl;
+            const clientIdentifier = req.user?.username || "livelink-peer";
+            username = `${expiryTimestamp}:${clientIdentifier}`;
+
+            const hmac = crypto.createHmac("sha1", process.env.TURN_SECRET);
+            hmac.update(username);
+            credential = hmac.digest("base64");
+        }
+
         servers.push({
             urls: process.env.TURN_URL,
-            username: process.env.TURN_USER || process.env.TURN_USERNAME || "",
-            credential: process.env.TURN_PASS || process.env.TURN_CREDENTIAL || ""
+            username: username,
+            credential: credential
         });
     }
 
