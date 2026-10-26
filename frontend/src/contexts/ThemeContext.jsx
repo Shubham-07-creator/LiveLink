@@ -2,10 +2,13 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { createAppTheme } from "../theme";
+import { getTokens } from "../tokens";
 import { AuthContext } from "./AuthContext";
 
 export const ThemeModeContext = createContext({
   mode: "light",
+  isDark: false,
+  tokens: getTokens("light"),
   toggleTheme: () => {},
   setMode: () => {}
 });
@@ -51,12 +54,15 @@ export function ThemeCustomProvider({ children }) {
   }, [mode, setMode]);
 
   const theme = useMemo(() => createAppTheme(mode), [mode]);
+  const currentTokens = useMemo(() => getTokens(mode), [mode]);
 
   const contextValue = useMemo(() => ({
     mode,
+    isDark: mode === "dark",
+    tokens: currentTokens,
     toggleTheme,
     setMode
-  }), [mode, toggleTheme, setMode]);
+  }), [mode, currentTokens, toggleTheme, setMode]);
 
   return (
     <ThemeModeContext.Provider value={contextValue}>

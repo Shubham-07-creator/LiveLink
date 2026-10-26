@@ -1,139 +1,161 @@
 import { createTheme } from "@mui/material/styles";
+import { tokens, getTokens } from "./tokens";
 
 /**
  * Central MUI Theme Configuration for LiveLink
- * 
- * Rules & Requirements:
- * - Primary: #2563eb (hover: #1d4ed8), Danger: #ef4444, Success: #16a34a
- * - Call stage background: #090d16, Heading text: #0f172a, Muted text: #64748b
- * - Fonts: Plus Jakarta Sans for headings (700/800), Inter for body
- * - Border radius: cards 16-20px, buttons 10-12px, control dock 24px
- * - Accessible contrast (>= 4.5:1), visible focus rings, aria-labels
+ * Derived directly from strict Design System tokens in tokens.js.
  */
 export const createAppTheme = (mode = "light") => {
-  const isDark = mode === "dark";
+  const t = getTokens(mode);
+  const c = t.colors;
 
   return createTheme({
     palette: {
       mode,
       primary: {
-        main: "#2563eb",
-        dark: "#1d4ed8",
-        light: "#60a5fa",
+        main: c.primary,
+        dark: c.primaryHover,
+        light: c.primaryHover,
         contrastText: "#ffffff"
       },
       error: {
-        main: "#ef4444",
-        dark: "#dc2626",
-        light: "#f87171",
+        main: c.danger,
+        dark: c.dangerHover,
         contrastText: "#ffffff"
       },
       success: {
-        main: "#16a34a",
-        dark: "#15803d",
-        light: "#4ade80",
+        main: c.success,
         contrastText: "#ffffff"
       },
       warning: {
-        main: "#f59e0b",
-        dark: "#d97706",
-        light: "#fbbf24",
-        contrastText: "#0f172a"
+        main: c.warningText,
+        contrastText: t.isDark ? "#ffffff" : "#0f172a"
       },
       background: {
-        default: isDark ? "#0b0f19" : "#f8fafc",
-        paper: isDark ? "#111827" : "#ffffff",
-        stage: "#090d16" // Dedicated call stage background
+        default: c.bg,
+        paper: c.surface,
+        stage: t.call.stageBg
       },
       text: {
-        primary: isDark ? "#f8fafc" : "#0f172a",
-        secondary: isDark ? "#94a3b8" : "#64748b",
-        heading: isDark ? "#f8fafc" : "#0f172a",
-        muted: isDark ? "#94a3b8" : "#64748b"
+        primary: c.textHeading,
+        secondary: c.textBody,
+        heading: c.textHeading,
+        muted: c.textMuted
       },
-      divider: isDark ? "#1f2937" : "#e2e8f0"
+      divider: c.border
     },
     shape: {
       borderRadius: 12
     },
+    spacing: 8, // MUI theme.spacing(1) = 8px, (0.5) = 4px, (1.5) = 12px, (2) = 16px, (3) = 24px, (4) = 32px, (6) = 48px, (8) = 64px, (12) = 96px
     typography: {
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      fontFamily: t.typography.fonts.body,
       h1: {
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        fontWeight: 800,
-        color: isDark ? "#f8fafc" : "#0f172a",
-        letterSpacing: "-0.025em"
+        fontFamily: t.typography.fonts.heading,
+        fontWeight: t.typography.hero.weight,
+        fontSize: t.typography.hero.desktop,
+        lineHeight: t.typography.hero.lineHeight,
+        letterSpacing: t.typography.hero.letterSpacing,
+        color: c.textHeading,
+        "@media (max-width:600px)": {
+          fontSize: t.typography.hero.mobile
+        }
       },
       h2: {
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        fontWeight: 800,
-        color: isDark ? "#f8fafc" : "#0f172a",
-        letterSpacing: "-0.02em"
+        fontFamily: t.typography.fonts.heading,
+        fontWeight: t.typography.pageTitle.weight,
+        fontSize: t.typography.pageTitle.desktop,
+        lineHeight: t.typography.pageTitle.lineHeight,
+        color: c.textHeading,
+        "@media (max-width:600px)": {
+          fontSize: t.typography.pageTitle.mobile
+        }
       },
       h3: {
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        fontWeight: 800,
-        color: isDark ? "#f8fafc" : "#0f172a",
-        letterSpacing: "-0.02em"
+        fontFamily: t.typography.fonts.heading,
+        fontWeight: t.typography.sectionTitle.weight,
+        fontSize: t.typography.sectionTitle.desktop,
+        color: c.textHeading,
+        "@media (max-width:600px)": {
+          fontSize: t.typography.sectionTitle.mobile
+        }
       },
       h4: {
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        fontWeight: 800,
-        color: isDark ? "#f8fafc" : "#0f172a",
-        letterSpacing: "-0.015em"
+        fontFamily: t.typography.fonts.heading,
+        fontWeight: 700,
+        fontSize: "20px",
+        color: c.textHeading
       },
       h5: {
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        fontWeight: 800,
-        color: isDark ? "#f8fafc" : "#0f172a",
-        letterSpacing: "-0.01em"
+        fontFamily: t.typography.fonts.heading,
+        fontWeight: t.typography.cardTitle.weight,
+        fontSize: t.typography.cardTitle.fontSize,
+        color: c.textHeading
       },
       h6: {
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        fontWeight: 700,
-        color: isDark ? "#f8fafc" : "#0f172a"
+        fontFamily: t.typography.fonts.heading,
+        fontWeight: 600,
+        fontSize: "16px",
+        color: c.textHeading
       },
       subtitle1: {
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: t.typography.fonts.body,
         fontWeight: 600,
-        color: isDark ? "#e2e8f0" : "#334155"
+        fontSize: "16px",
+        color: c.textHeading
       },
       subtitle2: {
-        fontFamily: "'Inter', sans-serif",
-        fontWeight: 600,
-        color: isDark ? "#94a3b8" : "#475569"
+        fontFamily: t.typography.fonts.body,
+        fontWeight: t.typography.label.weight,
+        fontSize: t.typography.label.fontSize,
+        color: c.textMuted
       },
       body1: {
-        fontFamily: "'Inter', sans-serif",
-        lineHeight: 1.6,
-        color: isDark ? "#cbd5e1" : "#334155"
+        fontFamily: t.typography.fonts.body,
+        fontWeight: t.typography.body.weight,
+        fontSize: t.typography.body.fontSize,
+        lineHeight: t.typography.body.lineHeight,
+        color: c.textBody
       },
       body2: {
-        fontFamily: "'Inter', sans-serif",
-        lineHeight: 1.55,
-        color: isDark ? "#94a3b8" : "#64748b"
+        fontFamily: t.typography.fonts.body,
+        fontWeight: 400,
+        fontSize: "14px",
+        lineHeight: 1.5,
+        color: c.textMuted
       },
       button: {
-        fontFamily: "'Inter', sans-serif",
-        fontWeight: 700,
-        textTransform: "none"
+        fontFamily: t.typography.fonts.body,
+        fontWeight: t.typography.button.weight,
+        fontSize: t.typography.button.fontSize,
+        textTransform: "none",
+        letterSpacing: t.typography.button.letterSpacing
       },
       caption: {
-        fontFamily: "'Inter', sans-serif",
-        color: isDark ? "#94a3b8" : "#64748b"
+        fontFamily: t.typography.fonts.body,
+        fontWeight: t.typography.caption.weight,
+        fontSize: t.typography.caption.fontSize,
+        color: c.textMuted
       }
     },
     components: {
       MuiCssBaseline: {
         styleOverrides: {
           body: {
-            backgroundColor: isDark ? "#0b0f19" : "#f8fafc",
-            color: isDark ? "#f8fafc" : "#0f172a",
-            transition: "background-color 0.2s ease, color 0.2s ease"
+            backgroundColor: c.bg,
+            color: c.textBody,
+            fontFamily: t.typography.fonts.body,
+            transition: `background-color ${t.motion.micro}, color ${t.motion.micro}`
           },
           ":focus-visible": {
-            outline: "2px solid #2563eb",
+            outline: `2px solid ${c.primary}`,
             outlineOffset: "2px"
+          },
+          "@media (prefers-reduced-motion: reduce)": {
+            "*": {
+              animationDuration: `${t.motion.reduced} !important`,
+              transitionDuration: `${t.motion.reduced} !important`
+            }
           }
         }
       },
@@ -143,20 +165,22 @@ export const createAppTheme = (mode = "light") => {
         },
         styleOverrides: {
           root: {
-            borderRadius: "18px", // cards 16-20px
-            border: `1px solid ${isDark ? "#1f2937" : "#e2e8f0"}`,
-            backgroundColor: isDark ? "#111827" : "#ffffff",
+            borderRadius: t.radii.card,
+            border: `1px solid ${c.border}`,
+            backgroundColor: c.surface,
             backgroundImage: "none",
-            transition: "background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease"
+            boxShadow: c.cardShadow,
+            transition: `background-color ${t.motion.micro}, border-color ${t.motion.micro}, box-shadow ${t.motion.micro}`
           }
         }
       },
       MuiCard: {
         styleOverrides: {
           root: {
-            borderRadius: "18px",
-            border: `1px solid ${isDark ? "#1f2937" : "#e2e8f0"}`,
-            backgroundColor: isDark ? "#111827" : "#ffffff"
+            borderRadius: t.radii.card,
+            border: `1px solid ${c.border}`,
+            backgroundColor: c.surface,
+            boxShadow: c.cardShadow
           }
         }
       },
@@ -166,44 +190,53 @@ export const createAppTheme = (mode = "light") => {
         },
         styleOverrides: {
           root: {
-            borderRadius: "10px", // buttons 10-12px
+            borderRadius: t.radii.button,
             textTransform: "none",
-            fontWeight: 700,
-            padding: "8px 18px",
-            fontSize: "0.92rem",
-            transition: "all 0.15s ease",
+            fontWeight: t.typography.button.weight,
+            fontSize: t.typography.button.fontSize,
+            minHeight: t.buttonHeights.normal,
+            padding: "8px 16px",
+            transition: `all ${t.motion.micro}`,
             "&:focus-visible": {
-              outline: "2px solid #2563eb",
+              outline: `2px solid ${c.primary}`,
               outlineOffset: "2px"
             }
           },
+          sizeLarge: {
+            minHeight: t.buttonHeights.large,
+            padding: "12px 24px"
+          },
+          sizeSmall: {
+            minHeight: t.buttonHeights.small,
+            padding: "4px 12px"
+          },
           containedPrimary: {
-            backgroundColor: "#2563eb",
+            backgroundColor: c.primary,
             color: "#ffffff",
             "&:hover": {
-              backgroundColor: "#1d4ed8"
+              backgroundColor: c.primaryHover
+            },
+            "&:active": {
+              backgroundColor: c.primaryPressed
             }
           },
           containedError: {
-            backgroundColor: "#ef4444",
+            backgroundColor: c.danger,
             color: "#ffffff",
             "&:hover": {
-              backgroundColor: "#dc2626"
+              backgroundColor: c.dangerHover
             }
           },
           containedSuccess: {
-            backgroundColor: "#16a34a",
-            color: "#ffffff",
-            "&:hover": {
-              backgroundColor: "#15803d"
-            }
+            backgroundColor: c.success,
+            color: "#ffffff"
           },
           outlinedPrimary: {
-            borderColor: isDark ? "#2563eb" : "#cbd5e1",
-            color: isDark ? "#60a5fa" : "#2563eb",
+            borderColor: t.isDark ? c.primary : c.border,
+            color: c.primary,
             "&:hover": {
-              borderColor: "#2563eb",
-              backgroundColor: isDark ? "rgba(37, 99, 235, 0.15)" : "rgba(37, 99, 235, 0.05)"
+              borderColor: c.primaryHover,
+              backgroundColor: c.primarySoftBg
             }
           }
         }
@@ -211,10 +244,12 @@ export const createAppTheme = (mode = "light") => {
       MuiIconButton: {
         styleOverrides: {
           root: {
-            borderRadius: "10px",
-            transition: "all 0.15s ease",
+            borderRadius: t.radii.button,
+            transition: `all ${t.motion.micro}`,
+            minWidth: t.buttonHeights.minTouch,
+            minHeight: t.buttonHeights.minTouch,
             "&:focus-visible": {
-              outline: "2px solid #2563eb",
+              outline: `2px solid ${c.primary}`,
               outlineOffset: "2px"
             }
           }
@@ -223,34 +258,46 @@ export const createAppTheme = (mode = "light") => {
       MuiDialog: {
         styleOverrides: {
           paper: {
-            borderRadius: "20px",
-            border: `1px solid ${isDark ? "#1f2937" : "#e2e8f0"}`,
-            backgroundColor: isDark ? "#111827" : "#ffffff"
+            borderRadius: t.radii.modal,
+            border: `1px solid ${c.border}`,
+            backgroundColor: c.surface,
+            boxShadow: c.modalShadow
           }
         }
       },
       MuiChip: {
         styleOverrides: {
           root: {
-            fontWeight: 700,
-            borderRadius: "8px"
+            fontWeight: 600,
+            borderRadius: t.radii.badge,
+            fontSize: t.typography.caption.fontSize
           }
         }
       },
       MuiOutlinedInput: {
         styleOverrides: {
           root: {
-            borderRadius: "10px",
-            backgroundColor: isDark ? "#0f172a" : "#ffffff",
+            borderRadius: t.radii.input,
+            backgroundColor: c.surface,
+            fontSize: t.typography.input.fontSize,
             "& .MuiOutlinedInput-notchedOutline": {
-              borderColor: isDark ? "#334155" : "#cbd5e1"
+              borderColor: c.border
             },
             "&:hover .MuiOutlinedInput-notchedOutline": {
-              borderColor: "#2563eb"
+              borderColor: c.primary
             },
             "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-              borderColor: "#2563eb",
+              borderColor: c.primary,
               borderWidth: "2px"
+            }
+          },
+          input: {
+            padding: "10px 14px",
+            fontSize: t.typography.input.fontSize,
+            color: c.textHeading,
+            "&::placeholder": {
+              color: c.placeholder,
+              opacity: 1
             }
           }
         }
@@ -258,9 +305,9 @@ export const createAppTheme = (mode = "light") => {
       MuiAccordion: {
         styleOverrides: {
           root: {
-            borderRadius: "14px !important",
-            border: `1px solid ${isDark ? "#1f2937" : "#e2e8f0"}`,
-            backgroundColor: isDark ? "#111827" : "#ffffff",
+            borderRadius: `${t.radii.card} !important`,
+            border: `1px solid ${c.border}`,
+            backgroundColor: c.surface,
             marginBottom: "12px",
             "&:before": {
               display: "none"
@@ -271,3 +318,5 @@ export const createAppTheme = (mode = "light") => {
     }
   });
 };
+
+export { tokens, getTokens };
