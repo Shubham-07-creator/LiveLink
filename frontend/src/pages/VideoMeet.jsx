@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef, useContext, useCallback } from 'rea
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import io from 'socket.io-client';
-import { Box, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, useMediaQuery } from '@mui/material';
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+import { Box, useMediaQuery } from '@mui/material';
 
 import server from '../environment';
 import { AuthContext } from '../contexts/AuthContext';
@@ -15,14 +14,17 @@ import useHotkeys from '../hooks/useHotkeys';
 
 import Lobby from '../components/video/Lobby';
 import Stage from '../components/video/Stage';
+import TopBar from '../components/video/TopBar';
 import ControlDock from '../components/video/ControlDock';
 import ChatDrawer from '../components/video/ChatDrawer';
 import PeopleDrawer from '../components/video/PeopleDrawer';
+import FloatingReactions from '../components/video/FloatingReactions';
 import ReconnectingBanner from '../components/video/ReconnectingBanner';
 import DeviceSettingsModal from '../components/video/DeviceSettingsModal';
 import WaitingRoomModal from '../components/video/WaitingRoomModal';
 import CaptionsOverlay from '../components/video/CaptionsOverlay';
 import FeedbackModal from '../components/video/FeedbackModal';
+import { Button, Modal, Toast } from '../components/ui';
 import { MeetingRecorder } from '../utils/meetingRecorder';
 
 export default function VideoMeet() {
@@ -40,6 +42,9 @@ export default function VideoMeet() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [feedbackOpen, setFeedbackOpen] = useState(false);
     const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+    const [controlsVisible, setControlsVisible] = useState(true);
+    const [callDuration, setCallDuration] = useState(0);
+
     const [lobbyParticipants, setLobbyParticipants] = useState([]);
     const [roomFullInfo, setRoomFullInfo] = useState(null);
     const [duplicateTab, setDuplicateTab] = useState(false);
@@ -78,17 +83,13 @@ export default function VideoMeet() {
     const peers = usePeers({ sendSignal: signaling.sendSignal, localStream: media.localStream, myId: signaling.socketId });
     const stats = useStats({ peersRef: peers.peersRef, isCallActive: isInMeeting });
 
-    // Global Hotkeys Hook (M, V, H, C, Esc)
     useHotkeys({
         onToggleAudio: media.toggleAudio,
         onToggleVideo: media.toggleVideo,
         onToggleHand: () => signaling.toggleRaiseHand(displayName),
         onToggleChat: () => setChatOpen(prev => !prev),
         onCloseModals: () => {
-            setChatOpen(false);
-            setPeopleOpen(false);
-            setSettingsOpen(false);
-            setLeaveConfirmOpen(false);
+            setChatOpen(false); setPeopleOpen(false); setSettingsOpen(false); setLeaveConfirmOpen(false);
         },
         enabled: isInMeeting
     });
@@ -114,6 +115,17 @@ export default function VideoMeet() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Call duration timer
+    useEffect(() => {
+        if (!isInMeeting) return;
+        const interval = setInterval(() => {
+            if (callStartTimeRef.current) {
+                setCallDuration(Math.floor((Date.now() - callStartTimeRef.current) / 1000));
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [isInMeeting]);
+
     useEffect(() => {
         if (isInMeeting) return;
         const previewSocket = io.connect(server, { secure: false });
@@ -121,9 +133,7 @@ export default function VideoMeet() {
         previewSocket.on("room-info", (data) => {
             if (data?.participants) setLobbyParticipants(data.participants);
         });
-        return () => {
-            try { previewSocket.disconnect(); } catch (e) {}
-        };
+        return () => { try { previewSocket.disconnect(); } catch (e) {} };
     }, [url, isInMeeting]);
 
     useEffect(() => {
@@ -150,8 +160,7 @@ export default function VideoMeet() {
             return;
         }
         const rec = new SpeechRec();
-        rec.continuous = true;
-        rec.interimResults = true;
+        rec.continuous = true; rec.interimResults = true;
         rec.onresult = (e) => setCaptionText(Array.from(e.results).map(r => r[0].transcript).join(''));
         rec.onerror = () => setCaptionsActive(false);
         rec.start();
@@ -170,7 +179,7 @@ export default function VideoMeet() {
             if (started) {
                 setIsRecording(true);
                 signaling.notifyRecordingStarted(displayName);
-                setToast({ open: true, message: "Recording started. Video will be saved on your device.", severity: 'info' });
+                setToast({ open: true, message: "Recording started. Saved on your device.", severity: 'info' });
             }
         }
     }, [isRecording, media.localStream, peers.remoteVideos, displayName, signaling]);
@@ -214,19 +223,18 @@ export default function VideoMeet() {
                     onJoinWithoutMedia={media.joinWithoutMedia} onJoinMeeting={handleJoin} />
             ) : (
                 <>
-                    {(isRecording || signaling.remoteRecording.isRecording) && (
-                        <Box sx={{ position: 'absolute', top: 16, left: 16, zIndex: 35 }}>
-                            <Chip icon={<FiberManualRecordIcon sx={{ color: '#ef4444 !important' }} />}
-                                label="REC (Saved on device)" size="small"
-                                sx={{ bgcolor: 'rgba(0,0,0,0.75)', color: 'white', fontWeight: 700, backdropFilter: 'blur(4px)' }} />
-                        </Box>
-                    )}
+                    <TopBar roomCode={url} duration={callDuration} participantCount={peers.remoteVideos.length + 1}
+                        isRecording={isRecording || signaling.remoteRecording.isRecording} isVisible={controlsVisible}
+                        onCopyLink={() => { navigator.clipboard.writeText(window.location.href); setToast({ open: true, message: "Meeting link copied", severity: 'success' }); }}
+                        onTogglePeople={() => setPeopleOpen(d => !d)} />
+
                     <Stage localStream={media.localStream} screenStream={media.screenStream} isScreenSharing={media.isScreenSharing}
                         remoteVideos={peers.remoteVideos} localName={displayName} localAvatar={userData?.avatar}
                         videoEnabled={media.videoEnabled} audioEnabled={media.audioEnabled} localSpeaking={media.audioVolume > 15 && media.audioEnabled}
                         activeSpeakingPeers={stats.activeSpeakingPeers} peerQualities={stats.peerQualities} overallQuality={stats.overallQuality}
                         raisedHands={signaling.raisedHands} isLocalHandRaised={signaling.isHandRaised} viewMode={viewMode}
                         pinnedUser={pinnedUser} spotlightUser={signaling.spotlightUser} onPinUser={setPinnedUser} onSpotlightUser={signaling.spotlightParticipant} />
+
                     <ControlDock videoEnabled={media.videoEnabled} audioEnabled={media.audioEnabled} isScreenSharing={media.isScreenSharing}
                         isHandRaised={signaling.isHandRaised} isRecording={isRecording} isHost={signaling.isHost} viewMode={viewMode}
                         captionsActive={captionsActive} unreadMessages={signaling.newMessagesCount} onToggleAudio={media.toggleAudio}
@@ -235,9 +243,10 @@ export default function VideoMeet() {
                         onToggleViewMode={() => setViewMode(v => v === 'grid' ? 'speaker' : 'grid')} onToggleCaptions={toggleCaptions}
                         onToggleChat={() => { setChatOpen(d => !d); signaling.setNewMessagesCount(0); }}
                         onTogglePeople={() => setPeopleOpen(d => !d)} onToggleRecording={toggleRecording}
-                        onOpenSettings={() => setSettingsOpen(true)} onLeaveCall={() => setLeaveConfirmOpen(true)} />
+                        onOpenSettings={() => setSettingsOpen(true)} onLeaveCall={() => setLeaveConfirmOpen(true)}
+                        onActivity={setControlsVisible} />
 
-                    {/* Dedicated Chat and People Drawers */}
+                    <FloatingReactions reactions={signaling.reactions} />
                     <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} messages={signaling.messages}
                         typingUser={signaling.typingUser} currentUserId={signaling.socketId}
                         onSendMessage={(txt) => signaling.sendMessage(txt, displayName)} onSendTyping={signaling.sendTyping} />
@@ -258,25 +267,25 @@ export default function VideoMeet() {
             )}
 
             {/* Leave Meeting Confirmation Dialog */}
-            <Dialog open={leaveConfirmOpen} onClose={() => setLeaveConfirmOpen(false)} PaperProps={{ sx: { bgcolor: '#0f172a', color: 'white', borderRadius: '20px', p: 1.5, maxWidth: 380 } }}>
-                <DialogTitle sx={{ fontWeight: 800 }}>Leave Meeting?</DialogTitle>
-                <DialogContent sx={{ color: '#94a3b8' }}>Are you sure you want to exit this call?</DialogContent>
-                <DialogActions sx={{ gap: 1, pr: 2, pb: 1.5 }}>
-                    <Button onClick={() => setLeaveConfirmOpen(false)} sx={{ color: '#94a3b8' }}>Cancel</Button>
-                    <Button variant="contained" color="error" onClick={confirmLeave} sx={{ borderRadius: '12px' }}>Leave Call</Button>
-                </DialogActions>
-            </Dialog>
+            <Modal open={leaveConfirmOpen} onClose={() => setLeaveConfirmOpen(false)} title="Leave meeting?"
+                description="Are you sure you want to disconnect from this call?"
+                actions={
+                    <>
+                        <Button variant="ghost" size="normal" onClick={() => setLeaveConfirmOpen(false)}>Cancel</Button>
+                        <Button variant="danger" size="normal" onClick={confirmLeave}>Leave call</Button>
+                    </>
+                } />
 
             <FeedbackModal open={feedbackOpen} onSubmit={(d) => axios.post(`${server}/api/v1/users/feedback`, { meetingCode: url, ...d }, { withCredentials: true })} onClose={() => navigate('/')} />
-            <Dialog open={Boolean(roomFullInfo)} PaperProps={{ sx: { bgcolor: '#0f172a', color: 'white', borderRadius: '20px', p: 1.5 } }}>
-                <DialogTitle sx={{ fontWeight: 800 }}>Room Capacity Reached</DialogTitle>
-                <DialogContent sx={{ color: '#94a3b8' }}>{roomFullInfo?.message || "This room has reached the maximum of 4 participants for peer-to-peer mesh calling."}</DialogContent>
-                <DialogActions><Button variant="contained" onClick={() => navigate('/')} sx={{ borderRadius: '12px' }}>Return to Home</Button></DialogActions>
-            </Dialog>
 
-            <Snackbar open={media.showMutedHint} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} autoHideDuration={3000}><Alert severity="info" sx={{ borderRadius: '12px', bgcolor: '#1e293b', color: 'white' }}>You are speaking while muted.</Alert></Snackbar>
-            <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast(t => ({ ...t, open: false }))}><Alert severity={toast.severity} sx={{ borderRadius: '12px' }}>{toast.message}</Alert></Snackbar>
-            <Snackbar open={duplicateTab} autoHideDuration={6000}><Alert severity="warning" sx={{ borderRadius: '12px' }}>You have this meeting open in another tab.</Alert></Snackbar>
+            {/* Room Capacity Reached Modal */}
+            <Modal open={Boolean(roomFullInfo)} onClose={() => navigate('/')} title="Room capacity reached"
+                description={roomFullInfo?.message || "This room has reached the maximum of 4 participants for peer-to-peer calling."}
+                actions={<Button variant="primary" size="normal" onClick={() => navigate('/')}>Return to home</Button>} />
+
+            <Toast open={media.showMutedHint} message="You are speaking while muted" severity="info" />
+            <Toast open={toast.open} message={toast.message} severity={toast.severity} onClose={() => setToast(t => ({ ...t, open: false }))} />
+            <Toast open={duplicateTab} message="You have this meeting open in another tab" severity="warning" />
         </Box>
     );
 }
