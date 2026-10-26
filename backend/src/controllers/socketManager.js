@@ -15,6 +15,18 @@ let roomHosts = {};
 let roomLocked = {};
 let waitingRooms = {};
 
+// Join rate limiter tracking (max 20 join attempts per minute per IP)
+const joinAttempts = new Map();
+const isJoinRateLimited = (ip) => {
+    const now = Date.now();
+    const timestamps = joinAttempts.get(ip) || [];
+    const recent = timestamps.filter(t => now - t < 60000);
+    if (recent.length >= 20) return true;
+    recent.push(now);
+    joinAttempts.set(ip, recent);
+    return false;
+};
+
 export const connectToSocket = (server) => {
     const clientOrigin = process.env.CLIENT_URL || "http://localhost:3000";
 
@@ -105,6 +117,12 @@ export const connectToSocket = (server) => {
         });
 
         socket.on("join-call", (rawPath, username, token, avatar, isAdmitted = false) => {
+            const clientIp = socket.handshake.headers["x-forwarded-for"] || socket.handshake.address || "unknown";
+            if (isJoinRateLimited(clientIp)) {
+                socket.emit("join-error", { message: "Too many join requests. Please slow down and try again in a minute." });
+                return;
+            }
+
             const path = normalizeRoomCode(rawPath);
             if (!isValidRoomCode(path)) {
                 socket.emit("join-error", { message: "Invalid room code format. Please check the meeting link." });
@@ -121,9 +139,9 @@ export const connectToSocket = (server) => {
             }
 
             const safeUsername = typeof username === "string" 
-                ? username.trim().slice(0, 50).replace(/[<>]/g, "") 
+                ? username.replace(/<\/?[^>]+(>|$)/g, "").trim().slice(0, 50) 
                 : (socket.user?.username || "User");
-            const safeAvatar = (typeof avatar === "string" && avatar.startsWith("https://")) ? avatar : null;
+            const safeAvatar = (typeof avatar === "string" && /^https:\/\/[^\s$.?#].[^\s]*$/i.test(avatar)) ? avatar : null;
 
             if (!connections[path]) {
                 connections[path] = [];
@@ -232,14 +250,21 @@ export const connectToSocket = (server) => {
             if (typeof data !== "string" || !data.trim()) return;
 
             let safeData;
+            // Strict image MIME check and 2MB raw (<= 2.8MB base64) limit
             if (data.startsWith("data:image/")) {
-                if (data.length > 3 * 1024 * 1024) return; // Max ~2MB image
+                const imageMimeRegex = /^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=]+$/;
+                if (data.length > 2.8 * 1024 * 1024 || !imageMimeRegex.test(data)) {
+                    socket.emit("chat-error", "Image must be PNG, JPEG, WEBP, or GIF and under 2MB.");
+                    return;
+                }
                 safeData = data;
             } else {
-                safeData = data.trim().slice(0, 2000);
+                safeData = data.replace(/<\/?[^>]+(>|$)/g, "").trim().slice(0, 2000);
             }
+            if (!safeData) return;
+
             const safeSender = typeof sender === "string" 
-                ? sender.trim().slice(0, 50).replace(/[<>]/g, "") 
+                ? sender.replace(/<\/?[^>]+(>|$)/g, "").trim().slice(0, 50) 
                 : (userNames[socket.id] || "User");
 
             const [matchingRoom, found] = getSocketRoom(socket.id);
