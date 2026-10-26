@@ -37,7 +37,7 @@ export default function AppInput({
   inputProps = {},
   ...props
 }) {
-  const { tokens, isDark } = useThemeMode();
+  const { tokens } = useThemeMode();
   const c = tokens.colors;
 
   const inputId = id || (name ? `input-${name}` : undefined);
