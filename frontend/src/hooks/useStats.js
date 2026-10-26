@@ -3,9 +3,10 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 export default function useStats({ peersRef, isCallActive, onQualityAdjustmentNeeded } = {}) {
     const [overallQuality, setOverallQuality] = useState('Good');
     const [statsSummary, setStatsSummary] = useState({ rtt: 45, loss: '0.0', bitrate: 0 });
-    const [peerQualities, setPeerQualities] = useState({}); // peerId -> { quality, rtt, loss }
+    const [peerQualities, setPeerQualities] = useState({}); // peerId -> { quality, rtt, loss, bitrate }
     const [activeSpeakingPeers, setActiveSpeakingPeers] = useState({}); // peerId -> boolean
 
+    const prevBytesRef = useRef({}); // peerId -> { bytes, time }
     const consecutiveGoodCountRef = useRef(0);
     const intervalRef = useRef(null);
 
@@ -31,12 +32,18 @@ export default function useStats({ peersRef, isCallActive, onQualityAdjustmentNe
                 let peerRtt = 0;
                 let peerLost = 0;
                 let peerReceived = 0;
+                let currentBytesSent = 0;
+                let currentTimestamp = 0;
 
                 for (const report of stats.values()) {
                     if (report.type === 'candidate-pair' && report.state === 'succeeded' && report.currentRoundTripTime) {
                         peerRtt = Math.round(report.currentRoundTripTime * 1000);
                         totalRtt += peerRtt;
                         rttCount++;
+                    }
+                    if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                        currentBytesSent = report.bytesSent || 0;
+                        currentTimestamp = report.timestamp || Date.now();
                     }
                     if (report.type === 'inbound-rtp') {
                         if (typeof report.packetsLost === 'number') {
@@ -55,6 +62,15 @@ export default function useStats({ peersRef, isCallActive, onQualityAdjustmentNe
                     }
                 }
 
+                // Compute outgoing bitrate in kbps
+                let peerBitrate = 0;
+                const prev = prevBytesRef.current[peerId];
+                if (prev && currentBytesSent > prev.bytes && currentTimestamp > prev.time) {
+                    const durationSec = (currentTimestamp - prev.time) / 1000;
+                    peerBitrate = Math.round(((currentBytesSent - prev.bytes) * 8) / (durationSec * 1000));
+                }
+                prevBytesRef.current[peerId] = { bytes: currentBytesSent, time: currentTimestamp };
+
                 const peerLossRate = peerReceived > 0 
                     ? ((peerLost / (peerReceived + peerLost)) * 100).toFixed(1) 
                     : '0.0';
@@ -66,7 +82,7 @@ export default function useStats({ peersRef, isCallActive, onQualityAdjustmentNe
                     quality = 'Weak';
                 }
 
-                newPeerQualities[peerId] = { quality, rtt: peerRtt, loss: peerLossRate };
+                newPeerQualities[peerId] = { quality, rtt: peerRtt, loss: peerLossRate, bitrate: peerBitrate };
             } catch (e) {
                 // Ignore stats errors during peer renegotiation/teardown
             }
