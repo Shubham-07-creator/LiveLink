@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useContext, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import io from 'socket.io-client';
 import { Box, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, useMediaQuery } from '@mui/material';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 
@@ -39,6 +40,7 @@ export default function VideoMeet() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [feedbackOpen, setFeedbackOpen] = useState(false);
     const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+    const [lobbyParticipants, setLobbyParticipants] = useState([]);
     const [roomFullInfo, setRoomFullInfo] = useState(null);
     const [duplicateTab, setDuplicateTab] = useState(false);
     const [toast, setToast] = useState({ open: false, message: '', severity: 'info' });
@@ -111,6 +113,18 @@ export default function VideoMeet() {
         media.initMedia();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        if (isInMeeting) return;
+        const previewSocket = io.connect(server, { secure: false });
+        previewSocket.emit("get-room-info", url);
+        previewSocket.on("room-info", (data) => {
+            if (data?.participants) setLobbyParticipants(data.participants);
+        });
+        return () => {
+            try { previewSocket.disconnect(); } catch (e) {}
+        };
+    }, [url, isInMeeting]);
 
     useEffect(() => {
         if (!window.BroadcastChannel) return;
@@ -194,6 +208,7 @@ export default function VideoMeet() {
                     audioVolume={media.audioVolume} videoDevices={media.videoDevices} audioInputDevices={media.audioInputDevices}
                     audioOutputDevices={media.audioOutputDevices} selectedCamera={media.selectedCamera}
                     selectedMicrophone={media.selectedMicrophone} selectedSpeaker={media.selectedSpeaker}
+                    lobbyParticipants={lobbyParticipants}
                     onToggleVideo={media.toggleVideo} onToggleAudio={media.toggleAudio} onSwitchCamera={media.switchCamera}
                     onSwitchMicrophone={media.switchMicrophone} onSwitchSpeaker={media.switchSpeaker}
                     onJoinWithoutMedia={media.joinWithoutMedia} onJoinMeeting={handleJoin} />
