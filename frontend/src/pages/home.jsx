@@ -4,46 +4,41 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { AuthContext } from "../contexts/AuthContext";
-import {
-  Box,
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Paper,
-  Grid,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Snackbar,
-  Alert,
-  InputAdornment,
-  IconButton,
-  Tooltip,
-  Skeleton,
-  Chip,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel
-} from "@mui/material";
-import VideocamIcon from "@mui/icons-material/Videocam";
-import GroupsIcon from "@mui/icons-material/Groups";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import WhatsAppIcon from "@mui/icons-material/WhatsApp";
-import KeyboardIcon from "@mui/icons-material/Keyboard";
-import TuneIcon from "@mui/icons-material/Tune";
-import HistoryIcon from "@mui/icons-material/History";
-import CloseIcon from "@mui/icons-material/Close";
-import ReplayIcon from "@mui/icons-material/Replay";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EventIcon from "@mui/icons-material/Event";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-
+import { useThemeMode } from "../contexts/ThemeContext";
 import { generateRoomCode } from "../utils/roomCode";
+import {
+  Button,
+  IconButton,
+  Card,
+  Input,
+  Badge,
+  Chip,
+  Modal,
+  Toast,
+  Skeleton,
+  EmptyState
+} from "../components/ui";
+
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import FormControl from "@mui/material/FormControl";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+
+import VideoCallOutlinedIcon from "@mui/icons-material/VideoCallOutlined";
+import KeyboardOutlinedIcon from "@mui/icons-material/KeyboardOutlined";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
+import ScreenShareOutlinedIcon from "@mui/icons-material/ScreenShareOutlined";
+import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
+import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
+import ReplayOutlinedIcon from "@mui/icons-material/ReplayOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
+import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
+import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 function HomeComponent() {
   const navigate = useNavigate();
@@ -56,11 +51,14 @@ function HomeComponent() {
     deleteScheduledMeeting
   } = useContext(AuthContext);
 
+  const { isDark, tokens } = useThemeMode();
+  const c = tokens.colors;
+
   const [meetingCode, setMeetingCode] = useState("");
   const [createdRoom, setCreatedRoom] = useState(null);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
-  const [toastOpen, setToastOpen] = useState(false);
-  const [toastMsg, setToastMsg] = useState("");
+  const [joinModalOpen, setJoinModalOpen] = useState(false);
+  const [toast, setToast] = useState({ open: false, message: "", severity: "info" });
 
   // Recent meetings state
   const [recentMeetings, setRecentMeetings] = useState([]);
@@ -76,6 +74,24 @@ function HomeComponent() {
   const [schedDescription, setSchedDescription] = useState("");
   const [schedLoading, setSchedLoading] = useState(false);
 
+  const showToast = (message, severity = "info") => {
+    setToast({ open: true, message, severity });
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
+
+  const todayFormatted = new Intl.DateTimeFormat(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric"
+  }).format(new Date());
+
   const getNextHourString = () => {
     const d = new Date();
     d.setHours(d.getHours() + 1);
@@ -89,7 +105,6 @@ function HomeComponent() {
     try {
       const historyData = await getHistoryOfUser();
       if (Array.isArray(historyData)) {
-        // Sort descending and take latest 4
         const sorted = [...historyData].reverse().slice(0, 5);
         setRecentMeetings(sorted);
       }
@@ -131,13 +146,11 @@ function HomeComponent() {
   const handleCreateScheduledMeeting = async (e) => {
     if (e) e.preventDefault();
     if (!schedTitle.trim()) {
-      setToastMsg("Please enter a meeting title");
-      setToastOpen(true);
+      showToast("Please enter a meeting title", "warning");
       return;
     }
     if (!schedDateTime) {
-      setToastMsg("Please select a date and time");
-      setToastOpen(true);
+      showToast("Please select a date and time", "warning");
       return;
     }
 
@@ -152,12 +165,10 @@ function HomeComponent() {
         meetingCode: code
       });
       setScheduleModalOpen(false);
-      setToastMsg("Meeting scheduled successfully!");
-      setToastOpen(true);
+      showToast("Meeting scheduled successfully", "success");
       fetchScheduled();
     } catch (err) {
-      setToastMsg(err.response?.data?.message || "Could not schedule meeting");
-      setToastOpen(true);
+      showToast(err.response?.data?.message || "Could not schedule meeting", "error");
     } finally {
       setSchedLoading(false);
     }
@@ -166,12 +177,10 @@ function HomeComponent() {
   const handleDeleteScheduled = async (id) => {
     try {
       await deleteScheduledMeeting(id);
-      setToastMsg("Scheduled meeting removed");
-      setToastOpen(true);
+      showToast("Scheduled meeting removed", "success");
       setScheduledMeetings((prev) => prev.filter((m) => m._id !== id));
     } catch (err) {
-      setToastMsg(err.response?.data?.message || "Could not delete meeting");
-      setToastOpen(true);
+      showToast(err.response?.data?.message || "Could not delete meeting", "error");
     }
   };
 
@@ -188,17 +197,10 @@ function HomeComponent() {
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(meeting.title)}&dates=${dates}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(link)}`;
   };
 
-  // Generate secure room code
-  const generateCode = () => {
-    return generateRoomCode();
-  };
-
-  // Join video call by code
   const handleJoinCall = async (codeToJoin) => {
     const code = codeToJoin || meetingCode.trim();
     if (!code) {
-      setToastMsg("Please enter a meeting code or paste a room link");
-      setToastOpen(true);
+      showToast("Please enter a meeting code or paste a room link", "warning");
       return;
     }
     const cleanCode = code.replace(/https?:\/\/[^/]+\//, "").trim();
@@ -210,258 +212,299 @@ function HomeComponent() {
     navigate(`/${cleanCode}`);
   };
 
-  // Create Instant Call
   const handleCreateInstant = () => {
-    const code = generateCode();
+    const code = generateRoomCode();
     navigate(`/${code}`);
   };
 
-  // Create Invite Link
   const handleCreateInvite = () => {
-    const code = generateCode();
+    const code = generateRoomCode();
     setCreatedRoom(code);
     setInviteModalOpen(true);
   };
 
-  // Launch Hardware Test Lobby
-  const handleLaunchLobby = () => {
-    const code = generateCode();
-    navigate(`/${code}`);
+  const handleShareScreenCall = () => {
+    const code = generateRoomCode();
+    navigate(`/${code}?screen=true`);
   };
 
-  // Copy Link
   const copyLink = (customLink) => {
     const link = customLink || `${window.location.origin}/${createdRoom}`;
     navigator.clipboard.writeText(link);
-    setToastMsg("Meeting link copied to clipboard!");
-    setToastOpen(true);
+    showToast("Meeting link copied to clipboard", "success");
   };
 
-  // Share via WhatsApp
   const shareWhatsApp = () => {
     const link = `${window.location.origin}/${createdRoom}`;
     const text = encodeURIComponent(
-      `Hey! Join my secure LiveLink meeting here:\n${link}\n\nFast, private & free video calling.`
+      `Join my video meeting on LiveLink:\n${link}\n\nFast, encrypted peer-to-peer video calling.`
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
   };
 
-  const displayName = userData?.name || userData?.username || "Friend";
+  const firstName = userData?.name ? userData.name.split(" ")[0] : "Friend";
 
   return (
-    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: "background.default" }}>
+    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: c.bg, color: c.textHeading }}>
       <Navbar />
 
-      <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 }, flexGrow: 1 }}>
-        {/* =========================================================================
-            1. CLEAN WELCOME HEADER
-            ========================================================================= */}
+      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 }, flexGrow: 1 }}>
+        {/* 1. Welcome Header (Single H1) */}
         <Box sx={{ mb: 4 }}>
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 800,
-              color: "text.primary",
-              letterSpacing: "-0.5px",
-              fontSize: { xs: "1.75rem", md: "2.2rem" }
-            }}
-          >
-            Welcome, {displayName} 👋
-          </Typography>
-          <Typography variant="body1" sx={{ color: "text.secondary", mt: 0.5, fontSize: "1rem" }}>
-            Start a new video call or enter a code to join an existing room.
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
+            <Box>
+              <Typography
+                component="h1"
+                sx={{
+                  fontFamily: tokens.typography.fonts.heading,
+                  fontWeight: tokens.typography.pageTitle.weight,
+                  fontSize: { xs: tokens.typography.pageTitle.mobile, md: tokens.typography.pageTitle.desktop },
+                  color: c.textHeading,
+                  letterSpacing: "-0.02em"
+                }}
+              >
+                {getGreeting()}, {firstName}
+              </Typography>
+              <Typography variant="body2" sx={{ color: c.textMuted, mt: 0.5 }}>
+                {todayFormatted}
+              </Typography>
+            </Box>
+
+            {/* Profile Pill */}
+            <Box
+              onClick={() => navigate("/profile")}
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 1.5,
+                p: "6px 14px 6px 8px",
+                borderRadius: tokens.radii.badge,
+                backgroundColor: c.surface,
+                border: `1px solid ${c.border}`,
+                cursor: "pointer",
+                transition: `all ${tokens.motion.micro}`,
+                "&:hover": {
+                  borderColor: c.primary,
+                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "#f8fafc"
+                }
+              }}
+            >
+              <Box
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  backgroundColor: c.primarySoftBg,
+                  color: c.primary,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  fontSize: "14px"
+                }}
+              >
+                {firstName.charAt(0).toUpperCase()}
+              </Box>
+              <Box>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: c.textHeading, lineHeight: 1.2 }}>
+                  {userData?.name || "Account"}
+                </Typography>
+                <Typography variant="caption" sx={{ color: c.textMuted, fontSize: "11px", display: "block" }}>
+                  {userData?.email || "Signed in"}
+                </Typography>
+              </Box>
+              {userData?.isEmailVerified && (
+                <Badge variant="success" sx={{ fontSize: "11px", py: "1px", px: "6px" }}>
+                  Verified
+                </Badge>
+              )}
+            </Box>
+          </Box>
         </Box>
 
-        {/* =========================================================================
-            2. TWO CORE ACTION CARDS: START OR JOIN
-            ========================================================================= */}
-        <Grid container spacing={3} sx={{ mb: 5 }}>
-          {/* Card 1: Start a Meeting */}
-          <Grid item xs={12} sm={6}>
-            <Paper
-              elevation={0}
+        {/* 2. Four Quick Action Cards */}
+        <Grid container spacing={2.5} sx={{ mb: 5 }}>
+          {/* Action 1: New meeting (Primary Filled Blue) */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              hoverLift
+              onClick={handleCreateInstant}
+              padding={2.5}
               sx={{
-                p: 3.5,
-                borderRadius: "20px",
-                border: 1,
-                borderColor: "divider",
-                bgcolor: "background.paper",
                 height: "100%",
                 display: "flex",
                 flexDirection: "column",
-                boxShadow: (theme) => theme.palette.mode === "dark" ? "0 4px 20px rgba(0,0,0,0.3)" : "0 4px 20px rgba(0,0,0,0.02)"
+                cursor: "pointer",
+                backgroundColor: c.primary,
+                borderColor: "transparent",
+                color: "#ffffff"
               }}
             >
               <Box
                 sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: "12px",
-                  backgroundColor: "rgba(37, 99, 235, 0.1)",
+                  width: 44,
+                  height: 44,
+                  borderRadius: tokens.radii.button,
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#2563eb",
-                  mb: 2.5
+                  color: "#ffffff",
+                  mb: 2
                 }}
               >
-                <VideocamIcon sx={{ fontSize: 26 }} />
+                <VideoCallOutlinedIcon sx={{ fontSize: 24 }} />
               </Box>
-
-              <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary", mb: 0.8 }}>
-                Start a Meeting
+              <Typography
+                variant="h5"
+                sx={{
+                  fontFamily: tokens.typography.fonts.heading,
+                  fontWeight: tokens.typography.cardTitle.weight,
+                  fontSize: tokens.typography.cardTitle.fontSize,
+                  color: "#ffffff",
+                  mb: 0.5
+                }}
+              >
+                New meeting
               </Typography>
-              <Typography variant="body2" sx={{ color: "text.secondary", mb: 3, flexGrow: 1, lineHeight: 1.5 }}>
-                Launch an instant video call or generate a shareable link to invite friends or teammates.
+              <Typography variant="body2" sx={{ color: "rgba(255, 255, 255, 0.8)", fontSize: "13px" }}>
+                Start an instant video room
               </Typography>
-
-              <Box sx={{ display: "flex", gap: 1.2, flexWrap: "wrap" }}>
-                <Button
-                  variant="contained"
-                  onClick={handleCreateInstant}
-                  sx={{
-                    backgroundColor: "#2563eb",
-                    color: "#ffffff",
-                    fontWeight: 700,
-                    borderRadius: "10px",
-                    textTransform: "none",
-                    px: 2.5,
-                    py: 1,
-                    flexGrow: 1,
-                    boxShadow: "none",
-                    "&:hover": { backgroundColor: "#1d4ed8" }
-                  }}
-                >
-                  Start Now
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={handleOpenSchedule}
-                  startIcon={<CalendarMonthIcon sx={{ fontSize: 18 }} />}
-                  sx={{
-                    borderColor: "divider",
-                    color: "text.primary",
-                    fontWeight: 600,
-                    borderRadius: "10px",
-                    textTransform: "none",
-                    px: 2,
-                    py: 1,
-                    "&:hover": { borderColor: "#2563eb", color: "#2563eb" }
-                  }}
-                >
-                  Schedule
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={handleCreateInvite}
-                  sx={{
-                    borderColor: "divider",
-                    color: "text.primary",
-                    fontWeight: 600,
-                    borderRadius: "10px",
-                    textTransform: "none",
-                    px: 1.8,
-                    py: 1,
-                    "&:hover": { borderColor: "#2563eb", color: "#2563eb" }
-                  }}
-                >
-                  Get Link
-                </Button>
-              </Box>
-            </Paper>
+            </Card>
           </Grid>
 
-          {/* Card 2: Join a Meeting */}
-          <Grid item xs={12} sm={6}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 3.5,
-                borderRadius: "20px",
-                border: 1,
-                borderColor: "divider",
-                bgcolor: "background.paper",
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                boxShadow: (theme) => theme.palette.mode === "dark" ? "0 4px 20px rgba(0,0,0,0.3)" : "0 4px 20px rgba(0,0,0,0.02)"
-              }}
+          {/* Action 2: Join with code */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              hoverLift
+              onClick={() => setJoinModalOpen(true)}
+              padding={2.5}
+              sx={{ height: "100%", display: "flex", flexDirection: "column", cursor: "pointer" }}
             >
               <Box
                 sx={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: "12px",
-                  backgroundColor: "rgba(16, 185, 129, 0.1)",
+                  width: 44,
+                  height: 44,
+                  borderRadius: tokens.radii.button,
+                  backgroundColor: c.primarySoftBg,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#16a34a",
-                  mb: 2.5
+                  color: c.primary,
+                  mb: 2
                 }}
               >
-                <GroupsIcon sx={{ fontSize: 26 }} />
+                <KeyboardOutlinedIcon sx={{ fontSize: 24 }} />
               </Box>
-
-              <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary", mb: 0.8 }}>
-                Join a Meeting
+              <Typography
+                variant="h5"
+                sx={{
+                  fontFamily: tokens.typography.fonts.heading,
+                  fontWeight: tokens.typography.cardTitle.weight,
+                  fontSize: tokens.typography.cardTitle.fontSize,
+                  color: c.textHeading,
+                  mb: 0.5
+                }}
+              >
+                Join with code
               </Typography>
-              <Typography variant="body2" sx={{ color: "text.secondary", mb: 3, flexGrow: 1, lineHeight: 1.5 }}>
-                Have a meeting link or code? Paste it below to jump straight into the conversation.
+              <Typography variant="body2" sx={{ color: c.textMuted, fontSize: "13px" }}>
+                Enter code or paste invite link
               </Typography>
+            </Card>
+          </Grid>
 
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Enter code or link..."
-                  value={meetingCode}
-                  onChange={(e) => setMeetingCode(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleJoinCall();
-                  }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <KeyboardIcon sx={{ color: "text.secondary", fontSize: 18 }} />
-                      </InputAdornment>
-                    ),
-                    sx: { borderRadius: "10px", fontSize: "0.9rem" }
-                  }}
-                />
-                <Button
-                  variant="contained"
-                  onClick={() => handleJoinCall()}
-                  disabled={!meetingCode.trim()}
-                  sx={{
-                    backgroundColor: (theme) => theme.palette.mode === "dark" ? "#1e293b" : "#0f172a",
-                    color: "#ffffff",
-                    fontWeight: 700,
-                    borderRadius: "10px",
-                    textTransform: "none",
-                    px: 2.5,
-                    boxShadow: "none",
-                    "&:hover": { backgroundColor: "#2563eb" },
-                    "&:disabled": { backgroundColor: "action.disabledBackground" }
-                  }}
-                >
-                  Join
-                </Button>
+          {/* Action 3: Schedule */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              hoverLift
+              onClick={handleOpenSchedule}
+              padding={2.5}
+              sx={{ height: "100%", display: "flex", flexDirection: "column", cursor: "pointer" }}
+            >
+              <Box
+                sx={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: tokens.radii.button,
+                  backgroundColor: c.successSoftBg,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: c.success,
+                  mb: 2
+                }}
+              >
+                <CalendarMonthOutlinedIcon sx={{ fontSize: 24 }} />
               </Box>
-            </Paper>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontFamily: tokens.typography.fonts.heading,
+                  fontWeight: tokens.typography.cardTitle.weight,
+                  fontSize: tokens.typography.cardTitle.fontSize,
+                  color: c.textHeading,
+                  mb: 0.5
+                }}
+              >
+                Schedule
+              </Typography>
+              <Typography variant="body2" sx={{ color: c.textMuted, fontSize: "13px" }}>
+                Plan ahead & sync calendar
+              </Typography>
+            </Card>
+          </Grid>
+
+          {/* Action 4: Share screen */}
+          <Grid item xs={12} sm={6} md={3}>
+            <Card
+              hoverLift
+              onClick={handleShareScreenCall}
+              padding={2.5}
+              sx={{ height: "100%", display: "flex", flexDirection: "column", cursor: "pointer" }}
+            >
+              <Box
+                sx={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: tokens.radii.button,
+                  backgroundColor: isDark ? "rgba(245, 158, 11, 0.15)" : "#fef3c7",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: tokens.accent.dotAmber,
+                  mb: 2
+                }}
+              >
+                <ScreenShareOutlinedIcon sx={{ fontSize: 24 }} />
+              </Box>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontFamily: tokens.typography.fonts.heading,
+                  fontWeight: tokens.typography.cardTitle.weight,
+                  fontSize: tokens.typography.cardTitle.fontSize,
+                  color: c.textHeading,
+                  mb: 0.5
+                }}
+              >
+                Share screen
+              </Typography>
+              <Typography variant="body2" sx={{ color: c.textMuted, fontSize: "13px" }}>
+                Start call with presentation
+              </Typography>
+            </Card>
           </Grid>
         </Grid>
 
-        {/* Quick Hardware Diagnostic Link */}
+        {/* Diagnostic Bar */}
         <Box
           sx={{
             p: 2,
             mb: 5,
-            borderRadius: "14px",
-            bgcolor: "background.paper",
-            border: 1,
-            borderColor: "divider",
+            borderRadius: tokens.radii.card,
+            bgcolor: c.surface,
+            border: `1px solid ${c.border}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -470,512 +513,461 @@ function HomeComponent() {
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <TuneIcon sx={{ color: "#2563eb", fontSize: 22 }} />
-            <Typography variant="body2" sx={{ color: "text.primary", fontWeight: 600 }}>
-              Want to check your camera preview and mic before calling?
+            <TuneOutlinedIcon sx={{ color: c.primary, fontSize: 22 }} />
+            <Typography variant="body2" sx={{ color: c.textHeading, fontWeight: 600 }}>
+              Want to check camera preview and mic before calling?
             </Typography>
           </Box>
-          <Button
-            size="small"
-            onClick={handleLaunchLobby}
-            sx={{ color: "primary.main", fontWeight: 700, textTransform: "none" }}
-          >
-            Test Camera & Mic →
-          </Button>
-        </Box>
-
-        {/* =========================================================================
-            3. UPCOMING SCHEDULED MEETINGS
-            ========================================================================= */}
-        <Box sx={{ mb: 5 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
-              <CalendarMonthIcon sx={{ color: "#2563eb", fontSize: 24 }} />
-              <Typography variant="h6" sx={{ fontWeight: 800, color: "#0f172a", letterSpacing: "-0.3px" }}>
-                Scheduled Meetings
-              </Typography>
-              {scheduledMeetings.length > 0 && (
-                <Chip 
-                  label={scheduledMeetings.length} 
-                  size="small" 
-                  sx={{ backgroundColor: "rgba(37, 99, 235, 0.1)", color: "#2563eb", fontWeight: 700 }} 
-                />
-              )}
-            </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Button
+              variant="ghost"
               size="small"
-              variant="outlined"
-              onClick={handleOpenSchedule}
-              startIcon={<CalendarMonthIcon sx={{ fontSize: 16 }} />}
-              sx={{
-                borderColor: "#cbd5e1",
-                color: "#2563eb",
-                fontWeight: 700,
-                textTransform: "none",
-                borderRadius: "8px",
-                "&:hover": { borderColor: "#2563eb", backgroundColor: "rgba(37, 99, 235, 0.04)" }
+              onClick={handleCreateInvite}
+            >
+              Create invite link
+            </Button>
+            <Button
+              variant="ghost"
+              size="small"
+              onClick={() => {
+                const code = generateRoomCode();
+                navigate(`/${code}`);
               }}
             >
-              + Schedule Meeting
+              Test camera and mic →
             </Button>
           </Box>
+        </Box>
 
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: "18px",
-              border: 1,
-              borderColor: "divider",
-              bgcolor: "background.paper"
-            }}
-          >
-            {loadingScheduled ? (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                <Skeleton variant="rounded" height={72} sx={{ borderRadius: "12px" }} />
-                <Skeleton variant="rounded" height={72} sx={{ borderRadius: "12px" }} />
-              </Box>
-            ) : scheduledMeetings.length > 0 ? (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                {scheduledMeetings.map((item) => {
-                  const dateStr = item.startTime
-                    ? new Date(item.startTime).toLocaleString([], {
-                        weekday: "short",
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit"
-                      })
-                    : "Scheduled";
-                  const gCalUrl = getGoogleCalendarUrl(item);
-
-                  return (
-                    <Box
-                      key={item._id}
-                      sx={{
-                        display: "flex",
-                        alignItems: { xs: "flex-start", sm: "center" },
-                        justifyContent: "space-between",
-                        flexDirection: { xs: "column", sm: "row" },
-                        p: 2,
-                        borderRadius: "12px",
-                        bgcolor: (theme) => theme.palette.mode === "dark" ? "background.default" : "#f8fafc",
-                        border: 1,
-                        borderColor: "divider",
-                        gap: 2
-                      }}
-                    >
-                      <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
-                        <Box
-                          sx={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: "10px",
-                            backgroundColor: "rgba(37, 99, 235, 0.1)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#2563eb",
-                            flexShrink: 0
-                          }}
-                        >
-                          <EventIcon sx={{ fontSize: 22 }} />
-                        </Box>
-                        <Box>
-                          <Typography variant="body1" sx={{ fontWeight: 800, color: "text.primary" }}>
-                            {item.title}
-                          </Typography>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap", mt: 0.4 }}>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "text.secondary", fontSize: "0.82rem" }}>
-                              <AccessTimeIcon sx={{ fontSize: 15, color: "text.secondary" }} />
-                              <span>{dateStr}</span>
-                            </Box>
-                            <Chip 
-                              label={`${item.durationMinutes || 30} min`} 
-                              size="small" 
-                              sx={{ height: 20, fontSize: "0.72rem", backgroundColor: (theme) => theme.palette.mode === "dark" ? "#1e293b" : "#e2e8f0", color: "text.secondary", fontWeight: 600 }} 
-                            />
-                            <Chip 
-                              label={item.meetingCode} 
-                              size="small" 
-                              sx={{ height: 20, fontSize: "0.72rem", backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#16a34a", fontWeight: 700 }} 
-                            />
-                          </Box>
-                          {item.description && (
-                            <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
-                              {item.description}
-                            </Typography>
-                          )}
-                        </Box>
-                      </Box>
-
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", alignSelf: { xs: "stretch", sm: "center" }, justifyContent: { xs: "flex-end", sm: "flex-start" } }}>
-                        <Button
-                          size="small"
-                          component="a"
-                          href={gCalUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          startIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
-                          sx={{
-                            color: (theme) => theme.palette.mode === "dark" ? "#60a5fa" : "#1d4ed8",
-                            backgroundColor: "rgba(37, 99, 235, 0.08)",
-                            textTransform: "none",
-                            fontWeight: 700,
-                            borderRadius: "8px",
-                            fontSize: "0.8rem",
-                            px: 1.5,
-                            "&:hover": { backgroundColor: "rgba(37, 99, 235, 0.16)" }
-                          }}
-                        >
-                          Add to Google Calendar
-                        </Button>
-
-                        <Tooltip title="Copy Link">
-                          <IconButton
-                            size="small"
-                            onClick={() => copyLink(`${window.location.origin}/${item.meetingCode}`)}
-                            sx={{ color: "text.secondary" }}
-                          >
-                            <ContentCopyIcon sx={{ fontSize: 16 }} />
-                          </IconButton>
-                        </Tooltip>
-
-                        <Button
-                          size="small"
-                          variant="contained"
-                          onClick={() => handleJoinCall(item.meetingCode)}
-                          sx={{
-                            backgroundColor: "#2563eb",
-                            color: "#ffffff",
-                            fontWeight: 700,
-                            textTransform: "none",
-                            borderRadius: "8px",
-                            fontSize: "0.82rem",
-                            px: 2,
-                            boxShadow: "none",
-                            "&:hover": { backgroundColor: "#1d4ed8" }
-                          }}
-                        >
-                          Join
-                        </Button>
-
-                        <Tooltip title="Delete Scheduled Meeting">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteScheduled(item._id)}
-                            sx={{ color: "text.secondary", "&:hover": { color: "#dc2626" } }}
-                          >
-                            <DeleteIcon sx={{ fontSize: 18 }} />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </Box>
-                  );
-                })}
-              </Box>
-            ) : (
-              <Box sx={{ textAlign: "center", py: 3.5 }}>
-                <CalendarMonthIcon sx={{ fontSize: 32, color: "text.secondary", mb: 1, opacity: 0.5 }} />
-                <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
-                  No upcoming scheduled meetings
-                </Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5, mb: 2 }}>
-                  Schedule calls with date, duration, and one-click Google Calendar sync.
-                </Typography>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={handleOpenSchedule}
-                  startIcon={<CalendarMonthIcon sx={{ fontSize: 16 }} />}
+        {/* 3. Bento Grid: Two Columns (Upcoming Meetings & Recent Meetings) */}
+        <Grid container spacing={3}>
+          {/* Left Column: Upcoming Meetings */}
+          <Grid item xs={12} md={7}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
+                <Typography
+                  variant="h3"
                   sx={{
-                    borderColor: "divider",
-                    color: "primary.main",
-                    fontWeight: 700,
-                    textTransform: "none",
-                    borderRadius: "8px"
+                    fontFamily: tokens.typography.fonts.heading,
+                    fontWeight: tokens.typography.sectionTitle.weight,
+                    fontSize: "20px",
+                    color: c.textHeading
                   }}
                 >
-                  Schedule a Meeting
-                </Button>
+                  Upcoming meetings
+                </Typography>
+                {scheduledMeetings.length > 0 && (
+                  <Badge variant="primary">
+                    {scheduledMeetings.length}
+                  </Badge>
+                )}
               </Box>
-            )}
-          </Paper>
-        </Box>
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={handleOpenSchedule}
+                leftIcon={<CalendarMonthOutlinedIcon />}
+              >
+                Schedule
+              </Button>
+            </Box>
 
-        {/* =========================================================================
-            4. RECENT MEETINGS
-            ========================================================================= */}
-        <Box sx={{ mb: 4 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary", letterSpacing: "-0.3px" }}>
-              Recent Meetings
-            </Typography>
-            <Button
-              size="small"
-              onClick={() => navigate("/history")}
-              sx={{ color: "primary.main", fontWeight: 700, textTransform: "none" }}
-            >
-              View full history
-            </Button>
-          </Box>
+            <Card padding={2.5}>
+              {loadingScheduled ? (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <Skeleton variant="card" height={80} />
+                  <Skeleton variant="card" height={80} />
+                </Box>
+              ) : scheduledMeetings.length > 0 ? (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  {scheduledMeetings.map((item) => {
+                    const dateStr = item.startTime
+                      ? new Date(item.startTime).toLocaleString([], {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit"
+                        })
+                      : "Scheduled";
+                    const gCalUrl = getGoogleCalendarUrl(item);
 
-          <Paper
-            elevation={0}
-            sx={{
-              p: 3,
-              borderRadius: "18px",
-              border: 1,
-              borderColor: "divider",
-              bgcolor: "background.paper"
-            }}
-          >
-            {loadingHistory ? (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                <Skeleton variant="rounded" height={60} sx={{ borderRadius: "12px" }} />
-                <Skeleton variant="rounded" height={60} sx={{ borderRadius: "12px" }} />
-                <Skeleton variant="rounded" height={60} sx={{ borderRadius: "12px" }} />
-              </Box>
-            ) : recentMeetings.length > 0 ? (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                {recentMeetings.map((item, index) => {
-                  const roomCode = item.meetingCode || item;
-                  const dateStr = item.date
-                    ? new Date(item.date).toLocaleDateString([], {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit"
-                      })
-                    : "Recent";
+                    return (
+                      <Box
+                        key={item._id}
+                        sx={{
+                          p: 2,
+                          borderRadius: tokens.radii.button,
+                          bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : c.primarySoftBg,
+                          border: `1px solid ${c.border}`,
+                          display: "flex",
+                          flexDirection: { xs: "column", sm: "row" },
+                          alignItems: { xs: "flex-start", sm: "center" },
+                          justifyContent: "space-between",
+                          gap: 2
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+                          <Box
+                            sx={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: tokens.radii.button,
+                              backgroundColor: c.primarySoftBg,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: c.primary,
+                              flexShrink: 0
+                            }}
+                          >
+                            <EventOutlinedIcon sx={{ fontSize: 22 }} />
+                          </Box>
+                          <Box>
+                            <Typography variant="body1" sx={{ fontWeight: 600, color: c.textHeading }}>
+                              {item.title}
+                            </Typography>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mt: 0.5 }}>
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: c.textMuted, fontSize: "13px" }}>
+                                <AccessTimeOutlinedIcon sx={{ fontSize: 14 }} />
+                                <span>{dateStr}</span>
+                              </Box>
+                              <Chip label={`${item.durationMinutes || 30} min`} />
+                              <Badge variant="neutral">
+                                {item.meetingCode}
+                              </Badge>
+                            </Box>
+                            {item.description && (
+                              <Typography variant="caption" sx={{ color: c.textMuted, display: "block", mt: 0.5 }}>
+                                {item.description}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
 
-                  return (
-                    <Box
-                      key={index}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        p: 1.8,
-                        borderRadius: "12px",
-                        bgcolor: (theme) => theme.palette.mode === "dark" ? "background.default" : "#f8fafc",
-                        border: 1,
-                        borderColor: "divider",
-                        gap: 1.5
-                      }}
-                    >
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                        <VideocamIcon sx={{ color: "#2563eb", fontSize: 20 }} />
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
-                            {roomCode}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                            {dateStr}
-                          </Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, alignSelf: { xs: "stretch", sm: "center" }, justifyContent: { xs: "flex-end", sm: "flex-start" } }}>
+                          <IconButton
+                            tooltip="Add to Google Calendar"
+                            variant="ghost"
+                            size="small"
+                            onClick={() => window.open(gCalUrl, "_blank", "noopener,noreferrer")}
+                          >
+                            <OpenInNewOutlinedIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                          <IconButton
+                            tooltip="Copy link"
+                            variant="ghost"
+                            size="small"
+                            onClick={() => copyLink(`${window.location.origin}/${item.meetingCode}`)}
+                          >
+                            <ContentCopyOutlinedIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                          <Button
+                            variant="primary"
+                            size="small"
+                            onClick={() => handleJoinCall(item.meetingCode)}
+                          >
+                            Join
+                          </Button>
+                          <IconButton
+                            tooltip="Delete meeting"
+                            variant="danger"
+                            size="small"
+                            onClick={() => handleDeleteScheduled(item._id)}
+                          >
+                            <DeleteOutlineOutlinedIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
                         </Box>
                       </Box>
+                    );
+                  })}
+                </Box>
+              ) : (
+                <EmptyState
+                  icon={<CalendarMonthOutlinedIcon />}
+                  title="No upcoming meetings scheduled"
+                  description="Schedule meetings in advance with dates, durations, and calendar sync."
+                  action={
+                    <Button variant="secondary" size="small" onClick={handleOpenSchedule}>
+                      Schedule one
+                    </Button>
+                  }
+                />
+              )}
+            </Card>
+          </Grid>
 
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <Tooltip title="Copy Link">
+          {/* Right Column: Recent Meetings */}
+          <Grid item xs={12} md={5}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontFamily: tokens.typography.fonts.heading,
+                  fontWeight: tokens.typography.sectionTitle.weight,
+                  fontSize: "20px",
+                  color: c.textHeading
+                }}
+              >
+                Recent meetings
+              </Typography>
+              <Button
+                variant="ghost"
+                size="small"
+                onClick={() => navigate("/history")}
+              >
+                View full history
+              </Button>
+            </Box>
+
+            <Card padding={2.5}>
+              {loadingHistory ? (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <Skeleton variant="card" height={60} />
+                  <Skeleton variant="card" height={60} />
+                  <Skeleton variant="card" height={60} />
+                </Box>
+              ) : recentMeetings.length > 0 ? (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                  {recentMeetings.map((item, index) => {
+                    const roomCode = item.meetingCode || item;
+                    const dateStr = item.date
+                      ? new Date(item.date).toLocaleDateString([], {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit"
+                        })
+                      : "Recent";
+
+                    return (
+                      <Box
+                        key={index}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          p: 1.5,
+                          borderRadius: tokens.radii.button,
+                          bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : "#f8fafc",
+                          border: `1px solid ${c.border}`,
+                          gap: 1.5
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                          <VideoCallOutlinedIcon sx={{ color: c.primary, fontSize: 20 }} />
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: c.textHeading }}>
+                              {roomCode}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: c.textMuted }}>
+                              {dateStr}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                           <IconButton
+                            tooltip="Copy link"
+                            variant="ghost"
                             size="small"
                             onClick={() => copyLink(`${window.location.origin}/${roomCode}`)}
-                            sx={{ color: "text.secondary" }}
                           >
-                            <ContentCopyIcon sx={{ fontSize: 16 }} />
+                            <ContentCopyOutlinedIcon sx={{ fontSize: 16 }} />
                           </IconButton>
-                        </Tooltip>
-
-                        <Button
-                          size="small"
-                          variant="contained"
-                          onClick={() => handleJoinCall(roomCode)}
-                          startIcon={<ReplayIcon sx={{ fontSize: 15 }} />}
-                          sx={{
-                            backgroundColor: "#2563eb",
-                            fontWeight: 700,
-                            textTransform: "none",
-                            borderRadius: "8px",
-                            fontSize: "0.82rem",
-                            px: 2,
-                            boxShadow: "none",
-                            "&:hover": { backgroundColor: "#1d4ed8" }
-                          }}
-                        >
-                          Rejoin
-                        </Button>
+                          <Button
+                            variant="secondary"
+                            size="small"
+                            onClick={() => handleJoinCall(roomCode)}
+                            leftIcon={<ReplayOutlinedIcon />}
+                          >
+                            Rejoin
+                          </Button>
+                        </Box>
                       </Box>
-                    </Box>
-                  );
-                })}
-              </Box>
-            ) : (
-              <Box sx={{ textAlign: "center", py: 4 }}>
-                <HistoryIcon sx={{ fontSize: 32, color: "#cbd5e1", mb: 1 }} />
-                <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a" }}>
-                  No recent meetings yet
-                </Typography>
-                <Typography variant="caption" sx={{ color: "#64748b", display: "block", mt: 0.5 }}>
-                  When you create or join meetings, they will show up here for easy rejoining.
-                </Typography>
-              </Box>
-            )}
-          </Paper>
-        </Box>
+                    );
+                  })}
+                </Box>
+              ) : (
+                <EmptyState
+                  title="No recent meetings"
+                  description="Meetings you create or join will appear here for easy rejoining."
+                />
+              )}
+            </Card>
+          </Grid>
+        </Grid>
       </Container>
 
-      {/* =========================================================================
-          4. SIMPLE INVITE MODAL
-          ========================================================================= */}
-      <Dialog
+      {/* Join with Code Modal */}
+      <Modal
+        open={joinModalOpen}
+        onClose={() => setJoinModalOpen(false)}
+        title="Join a meeting"
+        description="Enter the room code or paste an invite link to jump in:"
+        actions={
+          <>
+            <Button variant="ghost" size="normal" onClick={() => setJoinModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="normal"
+              disabled={!meetingCode.trim()}
+              onClick={() => {
+                setJoinModalOpen(false);
+                handleJoinCall();
+              }}
+            >
+              Join
+            </Button>
+          </>
+        }
+      >
+        <Box sx={{ pt: 1 }}>
+          <Input
+            placeholder="e.g. xxxx-xxxx-xxxx or link"
+            value={meetingCode}
+            onChange={(e) => setMeetingCode(e.target.value)}
+            prefixIcon={<KeyboardOutlinedIcon sx={{ fontSize: "20px" }} />}
+            autoFocus
+          />
+        </Box>
+      </Modal>
+
+      {/* Invite Modal */}
+      <Modal
         open={inviteModalOpen}
         onClose={() => setInviteModalOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: "18px", p: 1 } }}
+        title="Meeting link created"
+        description="Share this link with anyone you want to invite:"
+        actions={
+          <>
+            <Button variant="ghost" size="normal" onClick={() => setInviteModalOpen(false)}>
+              Close
+            </Button>
+            <Button
+              variant="primary"
+              size="normal"
+              onClick={() => handleJoinCall(createdRoom)}
+            >
+              Join meeting
+            </Button>
+          </>
+        }
       >
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, color: "#0f172a" }}>
-            Meeting Link Created
+        <Box
+          sx={{
+            p: 2,
+            backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : c.primarySoftBg,
+            border: `1px dashed ${c.border}`,
+            borderRadius: tokens.radii.input,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 1.5,
+            mb: 2.5
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{ fontWeight: 600, color: c.textHeading, wordBreak: "break-all", fontFamily: "monospace" }}
+          >
+            {window.location.origin}/{createdRoom}
           </Typography>
-          <IconButton size="small" onClick={() => setInviteModalOpen(false)}>
-            <CloseIcon sx={{ fontSize: 18 }} />
+          <IconButton
+            tooltip="Copy link"
+            variant="ghost"
+            size="small"
+            onClick={() => copyLink()}
+          >
+            <ContentCopyOutlinedIcon fontSize="small" sx={{ color: c.primary }} />
           </IconButton>
-        </DialogTitle>
+        </Box>
 
-        <DialogContent>
-          <Typography variant="body2" sx={{ color: "#64748b", mb: 2 }}>
-            Share this link with anyone you want to invite:
-          </Typography>
+        <Button
+          fullWidth
+          variant="secondary"
+          size="normal"
+          onClick={shareWhatsApp}
+          leftIcon={<ShareOutlinedIcon />}
+        >
+          Share via WhatsApp
+        </Button>
+      </Modal>
 
-          <Paper
-            elevation={0}
-            sx={{
-              p: 1.5,
-              backgroundColor: "#f8fafc",
-              border: "1px dashed #cbd5e1",
-              borderRadius: "10px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              mb: 2.5
-            }}
-          >
-            <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a", wordBreak: "break-all" }}>
-              {window.location.origin}/{createdRoom}
-            </Typography>
-            <Tooltip title="Copy Link">
-              <IconButton onClick={() => copyLink()} size="small" sx={{ color: "#2563eb" }}>
-                <ContentCopyIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Paper>
-
-          <Button
-            fullWidth
-            variant="outlined"
-            onClick={shareWhatsApp}
-            startIcon={<WhatsAppIcon sx={{ color: "#25D366" }} />}
-            sx={{
-              py: 1,
-              borderColor: "#25D366",
-              color: "#0f172a",
-              fontWeight: 600,
-              borderRadius: "10px",
-              textTransform: "none",
-              mb: 1,
-              "&:hover": { backgroundColor: "rgba(37, 211, 102, 0.08)", borderColor: "#25D366" }
-            }}
-          >
-            Share via WhatsApp
-          </Button>
-        </DialogContent>
-
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setInviteModalOpen(false)}
-            sx={{ color: "#64748b", textTransform: "none" }}
-          >
-            Close
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => handleJoinCall(createdRoom)}
-            sx={{
-              backgroundColor: "#2563eb",
-              color: "#ffffff",
-              fontWeight: 700,
-              borderRadius: "8px",
-              textTransform: "none",
-              px: 3,
-              boxShadow: "none",
-              "&:hover": { backgroundColor: "#1d4ed8" }
-            }}
-          >
-            Join Meeting
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* =========================================================================
-          5. SCHEDULE MEETING DIALOG
-          ========================================================================= */}
-      <Dialog
+      {/* Schedule Meeting Modal */}
+      <Modal
         open={scheduleModalOpen}
         onClose={() => !schedLoading && setScheduleModalOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: "20px", p: 1 } }}
+        title="Schedule a meeting"
+        description="Plan ahead with calendar sync and invite notes:"
+        actions={
+          <>
+            <Button
+              variant="ghost"
+              size="normal"
+              disabled={schedLoading}
+              onClick={() => setScheduleModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="normal"
+              loading={schedLoading}
+              disabled={!schedTitle.trim() || !schedDateTime}
+              onClick={handleCreateScheduledMeeting}
+            >
+              Schedule meeting
+            </Button>
+          </>
+        }
       >
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <CalendarMonthIcon sx={{ color: "#2563eb" }} />
-            <Typography variant="h6" sx={{ fontWeight: 800, color: "#0f172a" }}>
-              Schedule a Meeting
-            </Typography>
-          </Box>
-          <IconButton size="small" onClick={() => setScheduleModalOpen(false)} disabled={schedLoading}>
-            <CloseIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </DialogTitle>
+        <Box component="form" onSubmit={handleCreateScheduledMeeting} sx={{ pt: 1, display: "flex", flexDirection: "column" }}>
+          <Input
+            label="Meeting title"
+            placeholder="e.g. Weekly Standup, Project Sync"
+            value={schedTitle}
+            onChange={(e) => setSchedTitle(e.target.value)}
+            required
+          />
 
-        <form onSubmit={handleCreateScheduledMeeting}>
-          <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}>
-            <TextField
-              label="Meeting Title"
-              placeholder="e.g. Weekly Standup, Project Sync"
-              value={schedTitle}
-              onChange={(e) => setSchedTitle(e.target.value)}
-              required
-              fullWidth
-              size="small"
-              InputLabelProps={{ shrink: true }}
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-            />
-
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={8}>
-                <TextField
-                  label="Date &amp; Time"
-                  type="datetime-local"
-                  value={schedDateTime}
-                  onChange={(e) => setSchedDateTime(e.target.value)}
-                  required
-                  fullWidth
-                  size="small"
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={8}>
+              <Input
+                label="Date & time"
+                type="datetime-local"
+                value={schedDateTime}
+                onChange={(e) => setSchedDateTime(e.target.value)}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ mb: 2 }}>
+                <Box
+                  component="label"
+                  sx={{
+                    display: "block",
+                    fontSize: tokens.typography.label.fontSize,
+                    fontWeight: tokens.typography.label.weight,
+                    fontFamily: tokens.typography.fonts.body,
+                    color: c.textHeading,
+                    mb: "6px"
+                  }}
+                >
+                  Duration
+                </Box>
                 <FormControl fullWidth size="small">
-                  <InputLabel shrink>Duration</InputLabel>
                   <Select
                     value={schedDuration}
                     onChange={(e) => setSchedDuration(e.target.value)}
-                    label="Duration"
-                    sx={{ borderRadius: "10px" }}
+                    sx={{
+                      borderRadius: tokens.radii.input,
+                      height: tokens.buttonHeights.normal,
+                      backgroundColor: c.surface,
+                      fontSize: tokens.typography.input.fontSize
+                    }}
                   >
                     <MenuItem value={15}>15 mins</MenuItem>
                     <MenuItem value={30}>30 mins</MenuItem>
@@ -984,67 +976,28 @@ function HomeComponent() {
                     <MenuItem value={90}>1.5 hours</MenuItem>
                   </Select>
                 </FormControl>
-              </Grid>
+              </Box>
             </Grid>
+          </Grid>
 
-            <TextField
-              label="Description / Agenda (Optional)"
-              placeholder="Add meeting agenda or notes for attendees..."
-              value={schedDescription}
-              onChange={(e) => setSchedDescription(e.target.value)}
-              multiline
-              rows={2}
-              fullWidth
-              size="small"
-              InputLabelProps={{ shrink: true }}
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-            />
-
-            <Typography variant="caption" sx={{ color: "#64748b" }}>
-              A secure, unique room code will be generated automatically. You can add it directly to Google Calendar after scheduling.
-            </Typography>
-          </DialogContent>
-
-          <DialogActions sx={{ px: 3, pb: 2.5, pt: 1 }}>
-            <Button
-              onClick={() => setScheduleModalOpen(false)}
-              disabled={schedLoading}
-              sx={{ color: "#64748b", textTransform: "none", fontWeight: 600 }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={schedLoading || !schedTitle.trim() || !schedDateTime}
-              sx={{
-                backgroundColor: "#2563eb",
-                color: "#ffffff",
-                fontWeight: 700,
-                borderRadius: "10px",
-                textTransform: "none",
-                px: 3,
-                boxShadow: "none",
-                "&:hover": { backgroundColor: "#1d4ed8" }
-              }}
-            >
-              {schedLoading ? "Scheduling..." : "Schedule Meeting"}
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
+          <Input
+            label="Description / Agenda (optional)"
+            placeholder="Add meeting agenda or notes for attendees..."
+            value={schedDescription}
+            onChange={(e) => setSchedDescription(e.target.value)}
+            multiline
+            rows={2}
+          />
+        </Box>
+      </Modal>
 
       {/* Toast Notification */}
-      <Snackbar
-        open={toastOpen}
-        autoHideDuration={3500}
-        onClose={() => setToastOpen(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert severity="success" onClose={() => setToastOpen(false)} sx={{ borderRadius: "10px" }}>
-          {toastMsg}
-        </Alert>
-      </Snackbar>
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        severity={toast.severity}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+      />
 
       <Footer />
     </Box>
