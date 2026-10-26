@@ -803,8 +803,16 @@ const getIceServers = async (req, res) => {
             credential = hmac.digest("base64");
         }
 
+        const rawUrls = process.env.TURN_URL.includes(",")
+            ? process.env.TURN_URL.split(",").map(u => u.trim())
+            : [process.env.TURN_URL];
+
+        if (process.env.TURN_URL.includes("standard.relay.metered.ca") && !rawUrls.some(u => u.includes("turns:"))) {
+            rawUrls.push("turns:standard.relay.metered.ca:443?transport=tcp");
+        }
+
         servers.push({
-            urls: process.env.TURN_URL,
+            urls: rawUrls.length === 1 ? rawUrls[0] : rawUrls,
             username: username,
             credential: credential
         });
