@@ -3,1014 +3,807 @@ import { AuthContext } from "../contexts/AuthContext";
 import withAuth from "../utils/withAuth";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import {
-    Box,
-    Container,
-    Paper,
-    Typography,
-    Avatar,
-    TextField,
-    Button,
-    Grid,
-    Chip,
-    Divider,
-    Alert,
-    CircularProgress,
-    IconButton,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Switch,
-    Tooltip
-} from "@mui/material";
-import EditIcon from "@mui/icons-material/Edit";
-import VideocamIcon from "@mui/icons-material/Videocam";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import PhoneIcon from "@mui/icons-material/Phone";
-import EmailIcon from "@mui/icons-material/Email";
-import BadgeIcon from "@mui/icons-material/Badge";
-import GoogleIcon from "@mui/icons-material/Google";
-import SaveIcon from "@mui/icons-material/Save";
-import LogoutIcon from "@mui/icons-material/Logout";
-import MicIcon from "@mui/icons-material/Mic";
-import VolumeUpIcon from "@mui/icons-material/VolumeUp";
-import NetworkCheckIcon from "@mui/icons-material/NetworkCheck";
-import HistoryIcon from "@mui/icons-material/History";
-import CloseIcon from "@mui/icons-material/Close";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import DarkModeIcon from "@mui/icons-material/DarkMode";
-import LightModeIcon from "@mui/icons-material/LightMode";
 import { useThemeMode } from "../contexts/ThemeContext";
 import { useNavigate } from "react-router-dom";
+import {
+  Button,
+  IconButton,
+  Card,
+  Input,
+  Badge,
+  Modal,
+  Toast,
+  Skeleton
+} from "../components/ui";
+
+import Box from "@mui/material/Box";
+import Container from "@mui/material/Container";
+import Typography from "@mui/material/Typography";
+import Avatar from "@mui/material/Avatar";
+import Grid from "@mui/material/Grid";
+import Switch from "@mui/material/Switch";
+import Tooltip from "@mui/material/Tooltip";
+
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import MailOutlineOutlinedIcon from "@mui/icons-material/MailOutlineOutlined";
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
+import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
+import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
+import MicNoneOutlinedIcon from "@mui/icons-material/MicNoneOutlined";
+import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
+import VolumeUpOutlinedIcon from "@mui/icons-material/VolumeUpOutlined";
+import NetworkCheckOutlinedIcon from "@mui/icons-material/NetworkCheckOutlined";
+import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
+import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 
 const AVATAR_PRESETS = [
-    "https://api.dicebear.com/7.x/bottts/svg?seed=LiveLink",
-    "https://api.dicebear.com/7.x/bottts/svg?seed=Aria",
-    "https://api.dicebear.com/7.x/bottts/svg?seed=Neo",
-    "https://api.dicebear.com/7.x/bottts/svg?seed=Cyber",
-    "https://api.dicebear.com/7.x/bottts/svg?seed=Alex",
-    "https://api.dicebear.com/7.x/bottts/svg?seed=Sam",
-    "https://api.dicebear.com/7.x/adventurer/svg?seed=Felix",
-    "https://api.dicebear.com/7.x/adventurer/svg?seed=Luna",
-    "https://api.dicebear.com/7.x/adventurer/svg?seed=Milo",
-    "https://api.dicebear.com/7.x/lorelei/svg?seed=Chloe",
-    "https://api.dicebear.com/7.x/lorelei/svg?seed=Leo",
-    "https://api.dicebear.com/7.x/lorelei/svg?seed=Zoe"
+  "https://api.dicebear.com/7.x/bottts/svg?seed=LiveLink",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Aria",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Neo",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Cyber",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Alex",
+  "https://api.dicebear.com/7.x/bottts/svg?seed=Sam",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Felix",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Luna",
+  "https://api.dicebear.com/7.x/adventurer/svg?seed=Milo",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Chloe",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Leo",
+  "https://api.dicebear.com/7.x/lorelei/svg?seed=Zoe"
 ];
 
 function ProfilePage() {
-    const { 
-        userData, 
-        getUserProfile, 
-        updateUserProfile, 
-        handleLogout, 
-        updatePreferences, 
-        logoutAllDevices, 
-        deleteAccount, 
-        sendVerificationEmail 
-    } = useContext(AuthContext);
-    const { mode, setMode } = useThemeMode();
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [verifying, setVerifying] = useState(false);
-    const [name, setName] = useState("");
-    const [phone, setPhone] = useState("");
-    const [avatar, setAvatar] = useState("");
-    const [customAvatarUrl, setCustomAvatarUrl] = useState("");
-    const [avatarError, setAvatarError] = useState("");
-    const [successMsg, setSuccessMsg] = useState("");
-    const [errorMsg, setErrorMsg] = useState("");
-    const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
-    const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-    const [logoutAllDialogOpen, setLogoutAllDialogOpen] = useState(false);
-    const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
+  const { 
+    userData, 
+    getUserProfile, 
+    updateUserProfile, 
+    handleLogout, 
+    updatePreferences, 
+    logoutAllDevices, 
+    deleteAccount, 
+    sendVerificationEmail 
+  } = useContext(AuthContext);
 
-    // Hardware & App Preferences (stored in DB & localStorage)
-    const [prefMicMuted, setPrefMicMuted] = useState(
-        () => localStorage.getItem("livelink_pref_mic_muted") === "true"
-    );
-    const [prefCamOff, setPrefCamOff] = useState(
-        () => localStorage.getItem("livelink_pref_cam_off") === "true"
-    );
-    const [prefChimes, setPrefChimes] = useState(
-        () => localStorage.getItem("livelink_pref_chimes") !== "false"
-    );
-    const [prefLowBw, setPrefLowBw] = useState(
-        () => localStorage.getItem("livelink_pref_low_bw") === "true"
-    );
+  const { mode, setMode, isDark, tokens } = useThemeMode();
+  const c = tokens.colors;
+  const navigate = useNavigate();
 
-    const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [avatar, setAvatar] = useState("");
+  const [customAvatarUrl, setCustomAvatarUrl] = useState("");
+  const [avatarError, setAvatarError] = useState("");
 
-    const loadProfile = useCallback(async () => {
-        setLoading(true);
-        try {
-            const data = await getUserProfile();
-            if (data) {
-                setName(data.name || "");
-                setPhone(data.phone || "");
-                setAvatar(data.avatar || AVATAR_PRESETS[0]);
-                if (data.preferences) {
-                    if (typeof data.preferences.micMuted === 'boolean') {
-                        setPrefMicMuted(data.preferences.micMuted);
-                        localStorage.setItem("livelink_pref_mic_muted", String(data.preferences.micMuted));
-                    }
-                    if (typeof data.preferences.camOff === 'boolean') {
-                        setPrefCamOff(data.preferences.camOff);
-                        localStorage.setItem("livelink_pref_cam_off", String(data.preferences.camOff));
-                    }
-                    if (typeof data.preferences.soundChimes === 'boolean') {
-                        setPrefChimes(data.preferences.soundChimes);
-                        localStorage.setItem("livelink_pref_chimes", String(data.preferences.soundChimes));
-                    }
-                    if (typeof data.preferences.lowBandwidth === 'boolean') {
-                        setPrefLowBw(data.preferences.lowBandwidth);
-                        localStorage.setItem("livelink_pref_low_bw", String(data.preferences.lowBandwidth));
-                    }
-                }
-            }
-        } catch (e) {
-            console.warn("Could not load user profile:", e);
-        } finally {
-            setLoading(false);
+  const [toast, setToast] = useState({ open: false, message: "", severity: "info" });
+  const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [logoutAllDialogOpen, setLogoutAllDialogOpen] = useState(false);
+  const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+
+  // Hardware & App Preferences
+  const [prefMicMuted, setPrefMicMuted] = useState(
+    () => localStorage.getItem("livelink_pref_mic_muted") === "true"
+  );
+  const [prefCamOff, setPrefCamOff] = useState(
+    () => localStorage.getItem("livelink_pref_cam_off") === "true"
+  );
+  const [prefChimes, setPrefChimes] = useState(
+    () => localStorage.getItem("livelink_pref_chimes") !== "false"
+  );
+  const [prefLowBw, setPrefLowBw] = useState(
+    () => localStorage.getItem("livelink_pref_low_bw") === "true"
+  );
+
+  const showToast = (message, severity = "info") => {
+    setToast({ open: true, message, severity });
+  };
+
+  const loadProfile = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getUserProfile();
+      if (data) {
+        setName(data.name || "");
+        setPhone(data.phone || "");
+        setAvatar(data.avatar || AVATAR_PRESETS[0]);
+        if (data.preferences) {
+          if (typeof data.preferences.micMuted === "boolean") setPrefMicMuted(data.preferences.micMuted);
+          if (typeof data.preferences.camOff === "boolean") setPrefCamOff(data.preferences.camOff);
+          if (typeof data.preferences.soundChimes === "boolean") setPrefChimes(data.preferences.soundChimes);
+          if (typeof data.preferences.lowBandwidth === "boolean") setPrefLowBw(data.preferences.lowBandwidth);
         }
-    }, [getUserProfile]);
+      }
+    } catch (e) {
+      console.warn("Could not load user profile:", e);
+    } finally {
+      setLoading(false);
+    }
+  }, [getUserProfile]);
 
-    useEffect(() => {
-        loadProfile();
-    }, [loadProfile]);
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
-    const [logoutAllLoading, setLogoutAllLoading] = useState(false);
-    const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
+  const handleSendVerification = async () => {
+    setVerifying(true);
+    try {
+      const res = await sendVerificationEmail();
+      showToast(res?.message || "Verification email sent. Check your inbox.", "success");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Could not send verification email", "error");
+    } finally {
+      setVerifying(false);
+    }
+  };
 
-    const handleSendVerification = async () => {
-        setVerifying(true);
-        setErrorMsg("");
-        setSuccessMsg("");
-        try {
-            const res = await sendVerificationEmail();
-            setSuccessMsg(res?.message || "Verification email sent! Check your inbox.");
-        } catch (err) {
-            setErrorMsg(err.response?.data?.message || "Could not send verification email.");
-        } finally {
-            setVerifying(false);
-        }
-    };
+  const handleLogoutAll = async () => {
+    try {
+      await logoutAllDevices();
+      setLogoutAllDialogOpen(false);
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to logout from all devices", "error");
+    }
+  };
 
-    const handleLogoutAll = async () => {
-        setLogoutAllLoading(true);
-        try {
-            await logoutAllDevices();
-        } catch (err) {
-            setErrorMsg(err.response?.data?.message || "Failed to logout from all devices.");
-        } finally {
-            setLogoutAllLoading(false);
-            setLogoutAllDialogOpen(false);
-        }
-    };
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmInput.trim() !== "DELETE") return;
+    try {
+      await deleteAccount();
+      setDeleteAccountDialogOpen(false);
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to delete account", "error");
+    }
+  };
 
-    const handleDeleteAccount = async () => {
-        setDeleteAccountLoading(true);
-        try {
-            await deleteAccount();
-        } catch (err) {
-            setErrorMsg(err.response?.data?.message || "Failed to delete account.");
-        } finally {
-            setDeleteAccountLoading(false);
-            setDeleteAccountDialogOpen(false);
-        }
-    };
+  const handleSave = async (e) => {
+    if (e) e.preventDefault();
+    setSaving(true);
 
-    const handleSave = async (e) => {
-        if (e) e.preventDefault();
-        setSaving(true);
-        setErrorMsg("");
-        setSuccessMsg("");
-
-        if (avatar && !avatar.startsWith("https://")) {
-            setErrorMsg("Avatar URL must start with https:// for security.");
-            setSaving(false);
-            return;
-        }
-
-        try {
-            await updateUserProfile({ name, phone, avatar });
-            await updatePreferences({
-                micMuted: prefMicMuted,
-                camOff: prefCamOff,
-                soundChimes: prefChimes,
-                lowBandwidth: prefLowBw,
-                theme: mode
-            });
-            // Also sync to localStorage
-            localStorage.setItem("livelink_pref_mic_muted", String(prefMicMuted));
-            localStorage.setItem("livelink_pref_cam_off", String(prefCamOff));
-            localStorage.setItem("livelink_pref_chimes", String(prefChimes));
-            localStorage.setItem("livelink_pref_low_bw", String(prefLowBw));
-            localStorage.setItem("livelink_theme", mode);
-
-            setSuccessMsg("Profile and meeting preferences saved successfully to database!");
-        } catch (err) {
-            setErrorMsg(err.response?.data?.message || "Could not update profile");
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const handleApplyCustomAvatar = () => {
-        const cleanUrl = customAvatarUrl.trim();
-        if (!cleanUrl) return;
-        if (!cleanUrl.startsWith("https://")) {
-            setAvatarError("Avatar image URL must start with https:// for security.");
-            return;
-        }
-        setAvatarError("");
-        setAvatar(cleanUrl);
-        setAvatarDialogOpen(false);
-        setCustomAvatarUrl("");
-    };
-
-    if (loading) {
-        return (
-            <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#f8fafc" }}>
-                <Navbar />
-                <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <CircularProgress sx={{ color: "#2563eb" }} />
-                </Box>
-                <Footer />
-            </Box>
-        );
+    if (avatar && !avatar.startsWith("https://")) {
+      showToast("Avatar URL must start with https:// for security.", "error");
+      setSaving(false);
+      return;
     }
 
-    const memberDate = userData?.createdAt
-        ? new Date(userData.createdAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-        : "Member";
+    try {
+      await updateUserProfile({ name, phone, avatar });
+      await updatePreferences({
+        micMuted: prefMicMuted,
+        camOff: prefCamOff,
+        soundChimes: prefChimes,
+        lowBandwidth: prefLowBw,
+        theme: mode
+      });
+      localStorage.setItem("livelink_pref_mic_muted", String(prefMicMuted));
+      localStorage.setItem("livelink_pref_cam_off", String(prefCamOff));
+      localStorage.setItem("livelink_pref_chimes", String(prefChimes));
+      localStorage.setItem("livelink_pref_low_bw", String(prefLowBw));
+      localStorage.setItem("livelink_theme", mode);
 
-    return (
-        <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#f8fafc" }}>
-            <Navbar />
+      showToast("Profile settings saved successfully", "success");
+    } catch (err) {
+      showToast(err.response?.data?.message || "Could not update profile", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-            <Container maxWidth="md" sx={{ py: { xs: 3.5, md: 5 }, flexGrow: 1 }}>
-                {/* =========================================================================
-                    1. USER IDENTITY BANNER
-                    ========================================================================= */}
-                <Paper
-                    elevation={0}
-                    sx={{
-                        p: { xs: 3, sm: 4 },
-                        borderRadius: "24px",
-                        border: "1px solid #e2e8f0",
-                        backgroundColor: "#ffffff",
-                        mb: 4,
-                        boxShadow: "0 4px 24px rgba(0,0,0,0.03)"
-                    }}
-                >
-                    <Box
-                        sx={{
-                            display: "flex",
-                            flexDirection: { xs: "column", sm: "row" },
-                            alignItems: { xs: "center", sm: "flex-start" },
-                            gap: 3.5
-                        }}
-                    >
-                        {/* Avatar with edit badge */}
-                        <Box sx={{ position: "relative" }}>
-                            <Avatar
-                                src={avatar}
-                                alt={name}
-                                sx={{
-                                    width: 104,
-                                    height: 104,
-                                    border: "3.5px solid #2563eb",
-                                    boxShadow: "0 8px 24px rgba(37, 99, 235, 0.25)",
-                                    backgroundColor: "#f1f5f9"
-                                }}
-                            />
-                            <Tooltip title="Change Avatar">
-                                <IconButton
-                                    size="small"
-                                    onClick={() => setAvatarDialogOpen(true)}
-                                    sx={{
-                                        position: "absolute",
-                                        bottom: 2,
-                                        right: 2,
-                                        backgroundColor: "#2563eb",
-                                        color: "#ffffff",
-                                        "&:hover": { backgroundColor: "#1d4ed8" },
-                                        boxShadow: "0 2px 8px rgba(0,0,0,0.25)"
-                                    }}
-                                >
-                                    <EditIcon sx={{ fontSize: 16 }} />
-                                </IconButton>
-                            </Tooltip>
-                        </Box>
+  const handleApplyCustomAvatar = () => {
+    const cleanUrl = customAvatarUrl.trim();
+    if (!cleanUrl) return;
+    if (!cleanUrl.startsWith("https://")) {
+      setAvatarError("Avatar image URL must start with https:// for security.");
+      return;
+    }
+    setAvatarError("");
+    setAvatar(cleanUrl);
+    setAvatarDialogOpen(false);
+    setCustomAvatarUrl("");
+  };
 
-                        {/* User basic info */}
-                        <Box sx={{ flexGrow: 1, textAlign: { xs: "center", sm: "left" } }}>
-                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: { xs: "center", sm: "flex-start" }, gap: 1.2, flexWrap: "wrap", mb: 0.8 }}>
-                                <Typography variant="h5" sx={{ fontWeight: 800, color: "#0f172a" }}>
-                                    {name || userData?.name || "User"}
-                                </Typography>
-                                <Chip
-                                    label={`@${userData?.username || "username"}`}
-                                    size="small"
-                                    sx={{
-                                        backgroundColor: "rgba(37, 99, 235, 0.1)",
-                                        color: "#2563eb",
-                                        fontWeight: 700,
-                                        borderRadius: "8px"
-                                    }}
-                                />
-                                {userData?.isGoogleUser && (
-                                    <Chip
-                                        icon={<GoogleIcon sx={{ fontSize: "14px !important" }} />}
-                                        label="Google Account"
-                                        size="small"
-                                        sx={{ backgroundColor: "#f1f5f9", color: "#475569", fontWeight: 600 }}
-                                    />
-                                )}
-                                {userData?.emailVerified ? (
-                                    <Chip
-                                        icon={<CheckCircleIcon sx={{ fontSize: "14px !important", color: "#16a34a !important" }} />}
-                                        label="Verified Member"
-                                        size="small"
-                                        sx={{ backgroundColor: "rgba(22, 163, 74, 0.08)", color: "#16a34a", fontWeight: 700 }}
-                                    />
-                                ) : (
-                                    <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.8 }}>
-                                        <Chip
-                                            label="Unverified Email"
-                                            size="small"
-                                            sx={{ backgroundColor: "rgba(245, 158, 11, 0.12)", color: "#d97706", fontWeight: 700 }}
-                                        />
-                                        <Button
-                                            size="small"
-                                            disabled={verifying}
-                                            onClick={handleSendVerification}
-                                            sx={{
-                                                fontSize: "0.75rem",
-                                                textTransform: "none",
-                                                fontWeight: 700,
-                                                color: "#2563eb",
-                                                py: "2px",
-                                                px: "8px",
-                                                minWidth: 0,
-                                                borderRadius: "6px",
-                                                border: "1px solid rgba(37, 99, 235, 0.3)",
-                                                "&:hover": { backgroundColor: "rgba(37, 99, 235, 0.05)" }
-                                            }}
-                                        >
-                                            {verifying ? "Sending..." : "Verify Now"}
-                                        </Button>
-                                    </Box>
-                                )}
-                            </Box>
+  return (
+    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: c.bg, color: c.textHeading }}>
+      <Navbar />
 
-                            <Typography variant="body2" sx={{ color: "#64748b", mb: 2.5 }}>
-                                {userData?.email || "No email linked"}
-                            </Typography>
-
-                            {/* Stat badges */}
-                            <Box sx={{ display: "flex", gap: 3, justifyContent: { xs: "center", sm: "flex-start" }, flexWrap: "wrap" }}>
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 0.8, color: "#475569", fontSize: "0.88rem" }}>
-                                    <VideocamIcon sx={{ color: "#2563eb", fontSize: 20 }} />
-                                    <span><strong>{userData?.totalMeetings || 0}</strong> Meetings Attended</span>
-                                </Box>
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 0.8, color: "#475569", fontSize: "0.88rem" }}>
-                                    <CalendarMonthIcon sx={{ color: "#64748b", fontSize: 18 }} />
-                                    <span>Joined {memberDate}</span>
-                                </Box>
-                            </Box>
-                        </Box>
-                    </Box>
-                </Paper>
-
-                {/* =========================================================================
-                    2. EDIT DETAILS & HARDWARE PREFERENCES
-                    ========================================================================= */}
-                <Paper
-                    elevation={0}
-                    sx={{
-                        p: { xs: 3, sm: 4 },
-                        borderRadius: "24px",
-                        border: "1px solid #e2e8f0",
-                        backgroundColor: "#ffffff",
-                        boxShadow: "0 4px 24px rgba(0,0,0,0.03)",
-                        mb: 4
-                    }}
-                >
-                    <Typography variant="h6" sx={{ fontWeight: 800, color: "#0f172a", mb: 0.5 }}>
-                        Account Information
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "#64748b", mb: 3 }}>
-                        Update your personal profile details to keep your meeting identity accurate.
-                    </Typography>
-
-                    {successMsg && (
-                        <Alert severity="success" sx={{ mb: 3, borderRadius: "12px", fontWeight: 600 }}>
-                            {successMsg}
-                        </Alert>
-                    )}
-                    {errorMsg && (
-                        <Alert severity="error" sx={{ mb: 3, borderRadius: "12px", fontWeight: 600 }}>
-                            {errorMsg}
-                        </Alert>
-                    )}
-
-                    <Box component="form" onSubmit={handleSave}>
-                        <Grid container spacing={3}>
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Full Name"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    variant="outlined"
-                                    required
-                                    InputProps={{
-                                        startAdornment: <BadgeIcon sx={{ color: "#94a3b8", mr: 1, fontSize: 20 }} />
-                                    }}
-                                    sx={{
-                                        "& .MuiOutlinedInput-root": { borderRadius: "12px" }
-                                    }}
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Username"
-                                    value={userData?.username || ""}
-                                    variant="outlined"
-                                    disabled
-                                    helperText="Username handle is permanent"
-                                    sx={{
-                                        "& .MuiOutlinedInput-root": { borderRadius: "12px" }
-                                    }}
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Email Address"
-                                    value={userData?.email || ""}
-                                    variant="outlined"
-                                    disabled
-                                    helperText="Primary authentication email"
-                                    InputProps={{
-                                        startAdornment: <EmailIcon sx={{ color: "#94a3b8", mr: 1, fontSize: 20 }} />
-                                    }}
-                                    sx={{
-                                        "& .MuiOutlinedInput-root": { borderRadius: "12px" }
-                                    }}
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <TextField
-                                    fullWidth
-                                    label="Phone Number"
-                                    placeholder="+91 98765 43210"
-                                    value={phone}
-                                    onChange={(e) => setPhone(e.target.value)}
-                                    variant="outlined"
-                                    InputProps={{
-                                        startAdornment: <PhoneIcon sx={{ color: "#94a3b8", mr: 1, fontSize: 20 }} />
-                                    }}
-                                    sx={{
-                                        "& .MuiOutlinedInput-root": { borderRadius: "12px" }
-                                    }}
-                                />
-                            </Grid>
-                        </Grid>
-
-                        <Divider sx={{ my: 4, borderColor: "#e2e8f0" }} />
-
-                        {/* =========================================================================
-                            3. DEFAULT MEETING PREFERENCES (HARDWARE & AUDIO)
-                            ========================================================================= */}
-                        <Typography variant="h6" sx={{ fontWeight: 800, color: "#0f172a", mb: 0.5 }}>
-                            Meeting Join Preferences
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: "#64748b", mb: 2.5 }}>
-                            Customize your default hardware states when connecting to any room.
-                        </Typography>
-
-                        <Grid container spacing={2.5} sx={{ mb: 3 }}>
-                            <Grid item xs={12} sm={6}>
-                                <Paper
-                                    elevation={0}
-                                    sx={{
-                                        p: 2,
-                                        borderRadius: "14px",
-                                        backgroundColor: "#f8fafc",
-                                        border: "1px solid #e2e8f0",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between"
-                                    }}
-                                >
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                                        <MicIcon sx={{ color: "#2563eb", fontSize: 22 }} />
-                                        <Box>
-                                            <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a" }}>
-                                                Mute mic upon entry
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: "#64748b" }}>
-                                                Start calls with microphone muted
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                    <Switch
-                                        checked={prefMicMuted}
-                                        onChange={(e) => setPrefMicMuted(e.target.checked)}
-                                        color="primary"
-                                    />
-                                </Paper>
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <Paper
-                                    elevation={0}
-                                    sx={{
-                                        p: 2,
-                                        borderRadius: "14px",
-                                        backgroundColor: "#f8fafc",
-                                        border: "1px solid #e2e8f0",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between"
-                                    }}
-                                >
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                                        <VideocamIcon sx={{ color: "#2563eb", fontSize: 22 }} />
-                                        <Box>
-                                            <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a" }}>
-                                                Camera off upon entry
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: "#64748b" }}>
-                                                Start calls with webcam turned off
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                    <Switch
-                                        checked={prefCamOff}
-                                        onChange={(e) => setPrefCamOff(e.target.checked)}
-                                        color="primary"
-                                    />
-                                </Paper>
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <Paper
-                                    elevation={0}
-                                    sx={{
-                                        p: 2,
-                                        borderRadius: "14px",
-                                        backgroundColor: "#f8fafc",
-                                        border: "1px solid #e2e8f0",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between"
-                                    }}
-                                >
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                                        <VolumeUpIcon sx={{ color: "#16a34a", fontSize: 22 }} />
-                                        <Box>
-                                            <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a" }}>
-                                                Join &amp; leave audio chimes
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: "#64748b" }}>
-                                                Play sound when members connect
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                    <Switch
-                                        checked={prefChimes}
-                                        onChange={(e) => setPrefChimes(e.target.checked)}
-                                        color="primary"
-                                    />
-                                </Paper>
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <Paper
-                                    elevation={0}
-                                    sx={{
-                                        p: 2,
-                                        borderRadius: "14px",
-                                        backgroundColor: "#f8fafc",
-                                        border: "1px solid #e2e8f0",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between"
-                                    }}
-                                >
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                                        <NetworkCheckIcon sx={{ color: "#f59e0b", fontSize: 22 }} />
-                                        <Box>
-                                            <Typography variant="body2" sx={{ fontWeight: 700, color: "#0f172a" }}>
-                                                Adaptive bitrate saver
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: "#64748b" }}>
-                                                Optimize video for weaker signals
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                    <Switch
-                                        checked={prefLowBw}
-                                        onChange={(e) => setPrefLowBw(e.target.checked)}
-                                        color="primary"
-                                    />
-                                </Paper>
-                            </Grid>
-
-                            <Grid item xs={12} sm={6}>
-                                <Paper
-                                    elevation={0}
-                                    sx={{
-                                        p: 2,
-                                        borderRadius: "14px",
-                                        backgroundColor: mode === "dark" ? "background.default" : "#f8fafc",
-                                        border: "1px solid",
-                                        borderColor: "divider",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "space-between"
-                                    }}
-                                >
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                                        {mode === "dark" ? <DarkModeIcon sx={{ color: "#60a5fa", fontSize: 22 }} /> : <LightModeIcon sx={{ color: "#f59e0b", fontSize: 22 }} />}
-                                        <Box>
-                                            <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
-                                                Dark theme mode
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                                                {mode === "dark" ? "Dark mode active" : "Light mode active"}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                    <Switch
-                                        checked={mode === "dark"}
-                                        onChange={(e) => setMode(e.target.checked ? "dark" : "light")}
-                                        color="primary"
-                                    />
-                                </Paper>
-                            </Grid>
-                        </Grid>
-
-                        <Divider sx={{ my: 4, borderColor: "#e2e8f0" }} />
-
-                        {/* Action buttons */}
-                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
-                            <Button
-                                variant="outlined"
-                                onClick={() => navigate("/history")}
-                                startIcon={<HistoryIcon />}
-                                sx={{
-                                    color: "#475569",
-                                    borderColor: "#cbd5e1",
-                                    borderRadius: "12px",
-                                    textTransform: "none",
-                                    fontWeight: 700,
-                                    py: 1,
-                                    px: 2.5,
-                                    "&:hover": { borderColor: "#94a3b8", backgroundColor: "#f8fafc" }
-                                }}
-                            >
-                                View Call History
-                            </Button>
-
-                            <Button
-                                type="submit"
-                                variant="contained"
-                                disabled={saving}
-                                startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <SaveIcon />}
-                                sx={{
-                                    backgroundColor: "#2563eb",
-                                    color: "#ffffff",
-                                    fontWeight: 700,
-                                    px: 4.5,
-                                    py: 1.2,
-                                    borderRadius: "12px",
-                                    textTransform: "none",
-                                    fontSize: "0.95rem",
-                                    boxShadow: "0 4px 14px rgba(37, 99, 235, 0.25)",
-                                    "&:hover": {
-                                        backgroundColor: "#1d4ed8",
-                                        boxShadow: "0 6px 18px rgba(37, 99, 235, 0.35)"
-                                    }
-                                }}
-                            >
-                                {saving ? "Saving Changes..." : "Save All Changes"}
-                            </Button>
-                        </Box>
-                    </Box>
-                </Paper>
-
-                {/* =========================================================================
-                    4. SECURITY & SESSION MANAGEMENT
-                    ========================================================================= */}
-                <Paper
-                    elevation={0}
-                    sx={{
-                        p: { xs: 3, sm: 4 },
-                        borderRadius: "24px",
-                        border: "1px solid #fee2e2",
-                        backgroundColor: "#ffffff",
-                        boxShadow: "0 4px 20px rgba(0,0,0,0.02)"
-                    }}
-                >
-                    <Box sx={{ mb: 2.5 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 800, color: "#0f172a" }}>
-                            Active Sessions &amp; Account Control
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: "#64748b" }}>
-                            Logged in as {userData?.email || userData?.username}. Manage your session security or permanently delete your account.
-                        </Typography>
-                    </Box>
-
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm={4}>
-                            <Button
-                                fullWidth
-                                variant="outlined"
-                                onClick={() => setLogoutDialogOpen(true)}
-                                startIcon={<LogoutIcon />}
-                                sx={{
-                                    color: "#475569",
-                                    borderColor: "#cbd5e1",
-                                    borderRadius: "12px",
-                                    textTransform: "none",
-                                    fontWeight: 700,
-                                    py: 1.2,
-                                    "&:hover": { backgroundColor: "#f8fafc", borderColor: "#94a3b8" }
-                                }}
-                            >
-                                Sign Out (This Device)
-                            </Button>
-                        </Grid>
-
-                        <Grid item xs={12} sm={4}>
-                            <Button
-                                fullWidth
-                                variant="outlined"
-                                onClick={() => setLogoutAllDialogOpen(true)}
-                                startIcon={<LogoutIcon />}
-                                sx={{
-                                    color: "#d97706",
-                                    borderColor: "#fde68a",
-                                    backgroundColor: "#fffbeb",
-                                    borderRadius: "12px",
-                                    textTransform: "none",
-                                    fontWeight: 700,
-                                    py: 1.2,
-                                    "&:hover": { backgroundColor: "#fef3c7", borderColor: "#f59e0b" }
-                                }}
-                            >
-                                Logout All Devices
-                            </Button>
-                        </Grid>
-
-                        <Grid item xs={12} sm={4}>
-                            <Button
-                                fullWidth
-                                variant="outlined"
-                                onClick={() => setDeleteAccountDialogOpen(true)}
-                                startIcon={<CloseIcon />}
-                                sx={{
-                                    color: "#dc2626",
-                                    borderColor: "#fca5a5",
-                                    backgroundColor: "#fff5f5",
-                                    borderRadius: "12px",
-                                    textTransform: "none",
-                                    fontWeight: 700,
-                                    py: 1.2,
-                                    "&:hover": { backgroundColor: "#fee2e2", borderColor: "#dc2626" }
-                                }}
-                            >
-                                Delete Account
-                            </Button>
-                        </Grid>
-                    </Grid>
-                </Paper>
-            </Container>
-
-            {/* =========================================================================
-                5. AVATAR SELECTION MODAL WITH CUSTOM URL INPUT
-                ========================================================================= */}
-            <Dialog
-                open={avatarDialogOpen}
-                onClose={() => setAvatarDialogOpen(false)}
-                maxWidth="sm"
-                fullWidth
-                PaperProps={{ sx: { borderRadius: "24px", p: 1.5 } }}
-            >
-                <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <Typography variant="h6" sx={{ fontWeight: 800, color: "#0f172a" }}>
-                        Choose Profile Avatar
-                    </Typography>
-                    <IconButton size="small" onClick={() => setAvatarDialogOpen(false)}>
-                        <CloseIcon sx={{ fontSize: 20 }} />
-                    </IconButton>
-                </DialogTitle>
-
-                <DialogContent>
-                    <Typography variant="body2" sx={{ color: "#64748b", mb: 2.5 }}>
-                        Select from one of our clean vector avatars or paste a custom image URL:
-                    </Typography>
-
-                    <Grid container spacing={2} justifyContent="center" sx={{ mb: 3 }}>
-                        {AVATAR_PRESETS.map((preset, idx) => (
-                            <Grid item key={idx}>
-                                <Avatar
-                                    src={preset}
-                                    onClick={() => {
-                                        setAvatar(preset);
-                                        setAvatarDialogOpen(false);
-                                    }}
-                                    sx={{
-                                        width: 68,
-                                        height: 68,
-                                        cursor: "pointer",
-                                        border: avatar === preset ? "3.5px solid #2563eb" : "2px solid #e2e8f0",
-                                        backgroundColor: "#f8fafc",
-                                        transition: "transform 0.2s, border-color 0.2s",
-                                        "&:hover": {
-                                            transform: "scale(1.1)",
-                                            borderColor: "#2563eb"
-                                        }
-                                    }}
-                                />
-                            </Grid>
-                        ))}
-                    </Grid>
-
-                    <Divider sx={{ my: 2, borderColor: "#e2e8f0" }} />
-
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#0f172a", mb: 1 }}>
-                        Or Use Custom Avatar URL (Must start with https://)
-                    </Typography>
-                    {avatarError && (
-                        <Alert severity="error" sx={{ mb: 1.5, borderRadius: "10px", fontSize: "0.85rem" }} onClose={() => setAvatarError("")}>
-                            {avatarError}
-                        </Alert>
-                    )}
-                    <Box sx={{ display: "flex", gap: 1 }}>
-                        <TextField
-                            fullWidth
-                            size="small"
-                            placeholder="https://example.com/avatar.jpg"
-                            value={customAvatarUrl}
-                            onChange={(e) => setCustomAvatarUrl(e.target.value)}
-                            sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
-                        />
-                        <Button
-                            variant="contained"
-                            onClick={handleApplyCustomAvatar}
-                            disabled={!customAvatarUrl.trim()}
-                            sx={{
-                                backgroundColor: "#2563eb",
-                                textTransform: "none",
-                                fontWeight: 700,
-                                borderRadius: "10px",
-                                px: 3,
-                                "&:hover": { backgroundColor: "#1d4ed8" }
-                            }}
-                        >
-                            Apply
-                        </Button>
-                    </Box>
-                </DialogContent>
-
-                <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={() => setAvatarDialogOpen(false)} sx={{ textTransform: "none", color: "#64748b", fontWeight: 600 }}>
-                        Cancel
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* Logout Confirmation Dialog */}
-            <Dialog
-                open={logoutDialogOpen}
-                onClose={() => setLogoutDialogOpen(false)}
-                PaperProps={{ sx: { borderRadius: "20px", p: 1 } }}
-            >
-                <DialogTitle sx={{ fontWeight: 800, color: "#0f172a" }}>
-                    Sign Out of LiveLink?
-                </DialogTitle>
-                <DialogContent>
-                    <Typography variant="body2" color="#64748b">
-                        Are you sure you want to end your active session on this device?
-                    </Typography>
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2.5 }}>
-                    <Button onClick={() => setLogoutDialogOpen(false)} sx={{ color: "#64748b", textTransform: "none", fontWeight: 600 }}>
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleLogout}
-                        sx={{
-                            backgroundColor: "#dc2626",
-                            color: "#ffffff",
-                            textTransform: "none",
-                            fontWeight: 700,
-                            borderRadius: "10px",
-                            "&:hover": { backgroundColor: "#b91c1c" }
-                        }}
-                    >
-                        Yes, Sign Out
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* Logout All Devices Confirmation Dialog */}
-            <Dialog
-                open={logoutAllDialogOpen}
-                onClose={() => !logoutAllLoading && setLogoutAllDialogOpen(false)}
-                PaperProps={{ sx: { borderRadius: "20px", p: 1 } }}
-            >
-                <DialogTitle sx={{ fontWeight: 800, color: "#0f172a" }}>
-                    Logout From All Devices?
-                </DialogTitle>
-                <DialogContent>
-                    <Typography variant="body2" color="#64748b">
-                        This will revoke all active sessions across all your browsers and mobile devices. You will be logged out here as well and need to sign in again.
-                    </Typography>
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2.5 }}>
-                    <Button 
-                        disabled={logoutAllLoading} 
-                        onClick={() => setLogoutAllDialogOpen(false)} 
-                        sx={{ color: "#64748b", textTransform: "none", fontWeight: 600 }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="contained"
-                        disabled={logoutAllLoading}
-                        onClick={handleLogoutAll}
-                        startIcon={logoutAllLoading ? <CircularProgress size={16} color="inherit" /> : null}
-                        sx={{
-                            backgroundColor: "#d97706",
-                            color: "#ffffff",
-                            textTransform: "none",
-                            fontWeight: 700,
-                            borderRadius: "10px",
-                            "&:hover": { backgroundColor: "#b45309" }
-                        }}
-                    >
-                        {logoutAllLoading ? "Logging Out..." : "Yes, Logout All Devices"}
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            {/* Delete Account Confirmation Dialog */}
-            <Dialog
-                open={deleteAccountDialogOpen}
-                onClose={() => !deleteAccountLoading && setDeleteAccountDialogOpen(false)}
-                PaperProps={{ sx: { borderRadius: "20px", p: 1 } }}
-            >
-                <DialogTitle sx={{ fontWeight: 800, color: "#dc2626" }}>
-                    Permanently Delete Account?
-                </DialogTitle>
-                <DialogContent>
-                    <Typography variant="body2" color="#64748b">
-                        Warning: This action is permanent and cannot be undone. All your profile information, meeting history, and scheduled sessions will be erased immediately.
-                    </Typography>
-                </DialogContent>
-                <DialogActions sx={{ px: 3, pb: 2.5 }}>
-                    <Button 
-                        disabled={deleteAccountLoading} 
-                        onClick={() => setDeleteAccountDialogOpen(false)} 
-                        sx={{ color: "#64748b", textTransform: "none", fontWeight: 600 }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="contained"
-                        disabled={deleteAccountLoading}
-                        onClick={handleDeleteAccount}
-                        startIcon={deleteAccountLoading ? <CircularProgress size={16} color="inherit" /> : null}
-                        sx={{
-                            backgroundColor: "#dc2626",
-                            color: "#ffffff",
-                            textTransform: "none",
-                            fontWeight: 700,
-                            borderRadius: "10px",
-                            "&:hover": { backgroundColor: "#b91c1c" }
-                        }}
-                    >
-                        {deleteAccountLoading ? "Deleting..." : "Permanently Delete"}
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            <Footer />
+      <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 }, flexGrow: 1 }}>
+        {/* Page Title (Single H1) */}
+        <Box sx={{ mb: 4 }}>
+          <Typography
+            component="h1"
+            sx={{
+              fontFamily: tokens.typography.fonts.heading,
+              fontWeight: tokens.typography.pageTitle.weight,
+              fontSize: { xs: tokens.typography.pageTitle.mobile, md: tokens.typography.pageTitle.desktop },
+              color: c.textHeading,
+              letterSpacing: "-0.02em",
+              mb: 0.5
+            }}
+          >
+            Account settings
+          </Typography>
+          <Typography variant="body2" sx={{ color: c.textMuted }}>
+            Manage your personal profile, meeting preferences, and security sessions.
+          </Typography>
         </Box>
-    );
+
+        {loading ? (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <Skeleton variant="card" height={160} />
+            <Skeleton variant="card" height={240} />
+          </Box>
+        ) : (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            {/* 1. Profile Overview Card */}
+            <Card padding={3.5}>
+              <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "center", sm: "flex-start" }, gap: 3 }}>
+                {/* 72px Avatar with edit button */}
+                <Box sx={{ position: "relative" }}>
+                  <Avatar
+                    src={avatar}
+                    alt={name}
+                    sx={{
+                      width: 72,
+                      height: 72,
+                      border: `2px solid ${c.primary}`,
+                      bgcolor: c.primarySoftBg
+                    }}
+                  />
+                  <Tooltip title="Change photo">
+                    <IconButton
+                      size="small"
+                      shape="round"
+                      onClick={() => setAvatarDialogOpen(true)}
+                      sx={{
+                        position: "absolute",
+                        bottom: -4,
+                        right: -4,
+                        bgcolor: c.primary,
+                        color: "#ffffff",
+                        width: 28,
+                        height: 28,
+                        minWidth: 28,
+                        minHeight: 28,
+                        "&:hover": { bgcolor: c.primaryHover }
+                      }}
+                    >
+                      <EditOutlinedIcon sx={{ fontSize: 14 }} />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+
+                {/* Details */}
+                <Box sx={{ flexGrow: 1, textAlign: { xs: "center", sm: "left" } }}>
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: { xs: "center", sm: "flex-start" }, gap: 1.5, flexWrap: "wrap", mb: 0.5 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: c.textHeading }}>
+                      {name || "User"}
+                    </Typography>
+                    {userData?.emailVerified ? (
+                      <Badge variant="success" dot>
+                        Verified
+                      </Badge>
+                    ) : (
+                      <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1 }}>
+                        <Badge variant="warning">
+                          Unverified
+                        </Badge>
+                        <Button
+                          variant="ghost"
+                          size="small"
+                          disabled={verifying}
+                          onClick={handleSendVerification}
+                        >
+                          {verifying ? "Sending..." : "Verify email"}
+                        </Button>
+                      </Box>
+                    )}
+                  </Box>
+
+                  <Typography variant="body2" sx={{ color: c.textMuted, mb: 2 }}>
+                    {userData?.email || "No email linked"}
+                  </Typography>
+
+                  <Box sx={{ display: "flex", gap: 3, justifyContent: { xs: "center", sm: "flex-start" }, flexWrap: "wrap" }}>
+                    <Typography variant="caption" sx={{ color: c.textMuted }}>
+                      Handle: <strong>@{userData?.username || "user"}</strong>
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: c.textMuted }}>
+                      Total calls: <strong>{userData?.totalMeetings || 0}</strong>
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Card>
+
+            {/* 2. Personal Information Form Card */}
+            <Card padding={3.5}>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontFamily: tokens.typography.fonts.heading,
+                  fontWeight: tokens.typography.cardTitle.weight,
+                  fontSize: tokens.typography.cardTitle.fontSize,
+                  color: c.textHeading,
+                  mb: 0.5
+                }}
+              >
+                Personal information
+              </Typography>
+              <Typography variant="body2" sx={{ color: c.textMuted, mb: 3 }}>
+                Update your display name and contact information.
+              </Typography>
+
+              <Box component="form" onSubmit={handleSave}>
+                <Grid container spacing={2.5}>
+                  <Grid item xs={12} sm={6}>
+                    <Input
+                      label="Full name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      prefixIcon={<PersonOutlineOutlinedIcon sx={{ fontSize: 18 }} />}
+                      required
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Input
+                      label="Email address"
+                      value={userData?.email || ""}
+                      disabled
+                      helperText="Primary email cannot be modified"
+                      prefixIcon={<MailOutlineOutlinedIcon sx={{ fontSize: 18 }} />}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Input
+                      label="Phone number"
+                      placeholder="+91 98765 43210"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      prefixIcon={<PhoneOutlinedIcon sx={{ fontSize: 18 }} />}
+                    />
+                  </Grid>
+
+                  <Grid item xs={12} sm={6}>
+                    <Input
+                      label="Username"
+                      value={userData?.username || ""}
+                      disabled
+                      helperText="Username handle is permanent"
+                    />
+                  </Grid>
+                </Grid>
+
+                <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="normal"
+                    loading={saving}
+                  >
+                    Save changes
+                  </Button>
+                </Box>
+              </Box>
+            </Card>
+
+            {/* 3. Meeting Join Preferences Card */}
+            <Card padding={3.5}>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontFamily: tokens.typography.fonts.heading,
+                  fontWeight: tokens.typography.cardTitle.weight,
+                  fontSize: tokens.typography.cardTitle.fontSize,
+                  color: c.textHeading,
+                  mb: 0.5
+                }}
+              >
+                Meeting preferences
+              </Typography>
+              <Typography variant="body2" sx={{ color: c.textMuted, mb: 3 }}>
+                Configure default audio and camera behaviors when entering a call.
+              </Typography>
+
+              <Grid container spacing={2}>
+                {/* Pref: Mute mic */}
+                <Grid item xs={12} sm={6}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: tokens.radii.button,
+                      bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : "#f8fafc",
+                      border: `1px solid ${c.border}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between"
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                      <MicNoneOutlinedIcon sx={{ color: c.primary, fontSize: 22 }} />
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: c.textHeading }}>
+                          Mute mic upon entry
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: c.textMuted }}>
+                          Microphone starts muted
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Switch
+                      checked={prefMicMuted}
+                      onChange={(e) => setPrefMicMuted(e.target.checked)}
+                      color="primary"
+                    />
+                  </Box>
+                </Grid>
+
+                {/* Pref: Cam off */}
+                <Grid item xs={12} sm={6}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: tokens.radii.button,
+                      bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : "#f8fafc",
+                      border: `1px solid ${c.border}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between"
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                      <VideocamOutlinedIcon sx={{ color: c.primary, fontSize: 22 }} />
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: c.textHeading }}>
+                          Camera off upon entry
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: c.textMuted }}>
+                          Video starts turned off
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Switch
+                      checked={prefCamOff}
+                      onChange={(e) => setPrefCamOff(e.target.checked)}
+                      color="primary"
+                    />
+                  </Box>
+                </Grid>
+
+                {/* Pref: Chimes */}
+                <Grid item xs={12} sm={6}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: tokens.radii.button,
+                      bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : "#f8fafc",
+                      border: `1px solid ${c.border}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between"
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                      <VolumeUpOutlinedIcon sx={{ color: c.success, fontSize: 22 }} />
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: c.textHeading }}>
+                          Audio join/leave chimes
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: c.textMuted }}>
+                          Chime on member connect
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Switch
+                      checked={prefChimes}
+                      onChange={(e) => setPrefChimes(e.target.checked)}
+                      color="primary"
+                    />
+                  </Box>
+                </Grid>
+
+                {/* Pref: Adaptive bandwidth */}
+                <Grid item xs={12} sm={6}>
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: tokens.radii.button,
+                      bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : "#f8fafc",
+                      border: `1px solid ${c.border}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between"
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                      <NetworkCheckOutlinedIcon sx={{ color: tokens.accent.dotAmber, fontSize: 22 }} />
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: c.textHeading }}>
+                          Adaptive bandwidth saver
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: c.textMuted }}>
+                          Optimized for weaker signals
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Switch
+                      checked={prefLowBw}
+                      onChange={(e) => setPrefLowBw(e.target.checked)}
+                      color="primary"
+                    />
+                  </Box>
+                </Grid>
+              </Grid>
+
+              {/* Theme Preference Pill Selector */}
+              <Box sx={{ mt: 3, pt: 2.5, borderTop: `1px solid ${c.border}` }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: c.textHeading, mb: 1.5 }}>
+                  Interface theme
+                </Typography>
+                <Box
+                  sx={{
+                    display: "inline-flex",
+                    p: 0.5,
+                    borderRadius: tokens.radii.button,
+                    backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : "#f1f5f9",
+                    border: `1px solid ${c.border}`
+                  }}
+                >
+                  {["light", "dark"].map((themeChoice) => {
+                    const isActive = mode === themeChoice;
+                    return (
+                      <Box
+                        key={themeChoice}
+                        onClick={() => setMode(themeChoice)}
+                        sx={{
+                          px: 2.5,
+                          py: 0.8,
+                          cursor: "pointer",
+                          borderRadius: "10px",
+                          fontWeight: 600,
+                          fontSize: "13px",
+                          textTransform: "capitalize",
+                          color: isActive ? c.textHeading : c.textMuted,
+                          backgroundColor: isActive ? c.surface : "transparent",
+                          boxShadow: isActive ? (isDark ? "none" : "0 1px 3px rgba(0,0,0,0.08)") : "none",
+                          transition: `all ${tokens.motion.micro}`
+                        }}
+                      >
+                        {themeChoice}
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+            </Card>
+
+            {/* 4. Security & Active Sessions Card */}
+            <Card padding={3.5}>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontFamily: tokens.typography.fonts.heading,
+                  fontWeight: tokens.typography.cardTitle.weight,
+                  fontSize: tokens.typography.cardTitle.fontSize,
+                  color: c.textHeading,
+                  mb: 0.5
+                }}
+              >
+                Security and sessions
+              </Typography>
+              <Typography variant="body2" sx={{ color: c.textMuted, mb: 3 }}>
+                Manage authentication and sign out from other devices.
+              </Typography>
+
+              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                <Button
+                  variant="secondary"
+                  size="normal"
+                  onClick={() => setLogoutDialogOpen(true)}
+                  leftIcon={<LogoutOutlinedIcon />}
+                >
+                  Sign out
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="normal"
+                  onClick={() => setLogoutAllDialogOpen(true)}
+                  leftIcon={<LogoutOutlinedIcon />}
+                >
+                  Log out from all devices
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="normal"
+                  onClick={() => navigate("/history")}
+                  leftIcon={<HistoryOutlinedIcon />}
+                >
+                  View call history
+                </Button>
+              </Box>
+            </Card>
+
+            {/* 5. Danger Zone Card */}
+            <Card
+              padding={3.5}
+              sx={{
+                border: `1px solid ${c.danger}`,
+                backgroundColor: c.dangerSoftBg
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
+                <WarningAmberOutlinedIcon sx={{ color: c.danger, fontSize: 24, mt: 0.3 }} />
+                <Box sx={{ flexGrow: 1 }}>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontFamily: tokens.typography.fonts.heading,
+                      fontWeight: 700,
+                      fontSize: "16px",
+                      color: c.danger,
+                      mb: 0.5
+                    }}
+                  >
+                    Danger zone
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: c.textHeading, mb: 2.5, maxWidth: "520px" }}>
+                    Permanently delete your LiveLink account and remove all personal meeting history. This action cannot be reversed.
+                  </Typography>
+
+                  <Button
+                    variant="danger"
+                    size="normal"
+                    onClick={() => {
+                      setDeleteConfirmInput("");
+                      setDeleteAccountDialogOpen(true);
+                    }}
+                    leftIcon={<DeleteOutlineOutlinedIcon />}
+                  >
+                    Delete account
+                  </Button>
+                </Box>
+              </Box>
+            </Card>
+          </Box>
+        )}
+      </Container>
+
+      {/* Avatar Selection Modal */}
+      <Modal
+        open={avatarDialogOpen}
+        onClose={() => setAvatarDialogOpen(false)}
+        title="Choose your avatar"
+        description="Select a preset avatar or provide an HTTPS image link:"
+        actions={
+          <Button variant="ghost" size="normal" onClick={() => setAvatarDialogOpen(false)}>
+            Close
+          </Button>
+        }
+      >
+        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, mb: 3 }}>
+          {AVATAR_PRESETS.map((preset, idx) => (
+            <Avatar
+              key={idx}
+              src={preset}
+              onClick={() => {
+                setAvatar(preset);
+                setAvatarDialogOpen(false);
+              }}
+              sx={{
+                width: 56,
+                height: 56,
+                cursor: "pointer",
+                border: avatar === preset ? `3px solid ${c.primary}` : `2px solid ${c.border}`,
+                transition: `all ${tokens.motion.micro}`,
+                "&:hover": { transform: "scale(1.08)", borderColor: c.primary }
+              }}
+            />
+          ))}
+        </Box>
+
+        <Box sx={{ pt: 1 }}>
+          <Input
+            label="Or custom HTTPS image URL"
+            value={customAvatarUrl}
+            onChange={(e) => setCustomAvatarUrl(e.target.value)}
+            placeholder="https://example.com/photo.png"
+            error={avatarError}
+          />
+          <Button
+            variant="secondary"
+            size="small"
+            fullWidth
+            onClick={handleApplyCustomAvatar}
+          >
+            Apply custom avatar
+          </Button>
+        </Box>
+      </Modal>
+
+      {/* Sign Out Modal */}
+      <Modal
+        open={logoutDialogOpen}
+        onClose={() => setLogoutDialogOpen(false)}
+        title="Sign out of LiveLink?"
+        description="Are you sure you want to log out from this browser?"
+        actions={
+          <>
+            <Button variant="ghost" size="normal" onClick={() => setLogoutDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" size="normal" onClick={handleLogout}>
+              Sign out
+            </Button>
+          </>
+        }
+      />
+
+      {/* Logout All Devices Modal */}
+      <Modal
+        open={logoutAllDialogOpen}
+        onClose={() => setLogoutAllDialogOpen(false)}
+        title="Log out from all devices?"
+        description="This will invalidate all active sessions across phones, tablets, and computers."
+        actions={
+          <>
+            <Button variant="ghost" size="normal" onClick={() => setLogoutAllDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" size="normal" onClick={handleLogoutAll}>
+              Log out all devices
+            </Button>
+          </>
+        }
+      />
+
+      {/* Delete Account Modal */}
+      <Modal
+        open={deleteAccountDialogOpen}
+        onClose={() => setDeleteAccountDialogOpen(false)}
+        title="Delete account permanently"
+        description='To confirm account deletion, type "DELETE" in capital letters below:'
+        actions={
+          <>
+            <Button variant="ghost" size="normal" onClick={() => setDeleteAccountDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              size="normal"
+              disabled={deleteConfirmInput.trim() !== "DELETE"}
+              onClick={handleDeleteAccount}
+            >
+              Permanently delete
+            </Button>
+          </>
+        }
+      >
+        <Box sx={{ pt: 1 }}>
+          <Input
+            placeholder='Type "DELETE" to confirm'
+            value={deleteConfirmInput}
+            onChange={(e) => setDeleteConfirmInput(e.target.value)}
+          />
+        </Box>
+      </Modal>
+
+      {/* Toast Notification */}
+      <Toast
+        open={toast.open}
+        message={toast.message}
+        severity={toast.severity}
+        onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+      />
+
+      <Footer />
+    </Box>
+  );
 }
 
 export default withAuth(ProfilePage);
