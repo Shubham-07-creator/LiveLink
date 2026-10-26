@@ -189,6 +189,7 @@ npm start
 - [ ] **Host Controls & Waiting Room**: Lock the room as host, have a 2nd user join, verify they wait in the waiting room, and verify the host can Admit or Deny them.
 - [ ] **Local Recording**: Start recording as host; verify all participants see the red `REC (Saved on device)` banner, and stopping downloads the `.webm` file locally.
 - [ ] **Browser Compatibility**: Test on iPhone Safari, Android Chrome, and Firefox/Edge to verify consistent layout and WebRTC negotiation.
+- [ ] **Lighthouse 90+ Audit**: Audit dashboard and meeting lobby using Chrome DevTools Lighthouse to verify >= 90 scores on Accessibility, Performance, and Best Practices.
 
 ---
 
