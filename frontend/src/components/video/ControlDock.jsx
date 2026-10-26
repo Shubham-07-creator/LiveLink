@@ -9,6 +9,7 @@ import StopScreenShareIcon from '@mui/icons-material/StopScreenShare';
 import PanToolIcon from '@mui/icons-material/PanTool';
 import AddReactionIcon from '@mui/icons-material/AddReaction';
 import ChatIcon from '@mui/icons-material/Chat';
+import GroupsIcon from '@mui/icons-material/Groups';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import StopIcon from '@mui/icons-material/Stop';
 import GridViewIcon from '@mui/icons-material/GridView';
@@ -23,7 +24,7 @@ export default function ControlDock({
     videoEnabled, audioEnabled, isScreenSharing, isHandRaised, isRecording, isHost,
     viewMode, captionsActive, unreadMessages = 0, onToggleAudio, onToggleVideo,
     onToggleScreenShare, onToggleHand, onSendReaction, onToggleViewMode, onToggleCaptions,
-    onToggleDrawer, onToggleRecording, onOpenSettings, onLeaveCall
+    onToggleChat, onTogglePeople, onToggleRecording, onOpenSettings, onLeaveCall
 }) {
     const isMobile = useMediaQuery('(max-width:600px)');
     const [isVisible, setIsVisible] = useState(true);
@@ -115,6 +116,11 @@ export default function ControlDock({
                             </IconButton>
                         </Tooltip>
                     )}
+                    <Tooltip title="People">
+                        <IconButton onClick={onTogglePeople} sx={{ bgcolor: 'rgba(255,255,255,0.08)', color: 'white', minWidth: 44, minHeight: 44 }}>
+                            <GroupsIcon />
+                        </IconButton>
+                    </Tooltip>
                     <Tooltip title="Device Settings">
                         <IconButton onClick={onOpenSettings} sx={{ bgcolor: 'rgba(255,255,255,0.08)', color: 'white', minWidth: 44, minHeight: 44 }}>
                             <SettingsIcon />
@@ -123,8 +129,8 @@ export default function ControlDock({
                 </>
             )}
 
-            <Tooltip title="Chat & People (C)">
-                <IconButton onClick={onToggleDrawer} sx={{ bgcolor: 'rgba(255,255,255,0.08)', color: 'white', minWidth: 44, minHeight: 44 }}>
+            <Tooltip title="In-Call Chat (C)">
+                <IconButton onClick={onToggleChat} sx={{ bgcolor: 'rgba(255,255,255,0.08)', color: 'white', minWidth: 44, minHeight: 44 }}>
                     <Badge badgeContent={unreadMessages} color="primary"><ChatIcon /></Badge>
                 </IconButton>
             </Tooltip>
@@ -156,6 +162,10 @@ export default function ControlDock({
             {/* Mobile More Actions Menu */}
             <Menu anchorEl={moreAnchor} open={Boolean(moreAnchor)} onClose={() => setMoreAnchor(null)}
                 slotProps={{ paper: { sx: { bgcolor: '#1e293b', color: 'white', borderRadius: '16px', minWidth: 200 } } }}>
+                <MenuItem onClick={() => { onTogglePeople?.(); setMoreAnchor(null); }}>
+                    <ListItemIcon><GroupsIcon sx={{ color: 'white' }} /></ListItemIcon>
+                    <ListItemText>People</ListItemText>
+                </MenuItem>
                 <MenuItem onClick={() => { onToggleHand(); setMoreAnchor(null); }}>
                     <ListItemIcon><PanToolIcon sx={{ color: isHandRaised ? '#f59e0b' : 'white' }} /></ListItemIcon>
                     <ListItemText>{isHandRaised ? "Lower Hand" : "Raise Hand"}</ListItemText>

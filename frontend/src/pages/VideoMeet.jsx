@@ -10,11 +10,13 @@ import useMedia from '../hooks/useMedia';
 import usePeers from '../hooks/usePeers';
 import useSignaling from '../hooks/useSignaling';
 import useStats from '../hooks/useStats';
+import useHotkeys from '../hooks/useHotkeys';
 
 import Lobby from '../components/video/Lobby';
 import Stage from '../components/video/Stage';
 import ControlDock from '../components/video/ControlDock';
-import Drawers from '../components/video/Drawers';
+import ChatDrawer from '../components/video/ChatDrawer';
+import PeopleDrawer from '../components/video/PeopleDrawer';
 import ReconnectingBanner from '../components/video/ReconnectingBanner';
 import DeviceSettingsModal from '../components/video/DeviceSettingsModal';
 import WaitingRoomModal from '../components/video/WaitingRoomModal';
@@ -32,9 +34,11 @@ export default function VideoMeet() {
     const [displayName, setDisplayName] = useState(userData?.name || userData?.username || '');
     const [viewMode, setViewMode] = useState('grid');
     const [pinnedUser, setPinnedUser] = useState(null);
-    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [chatOpen, setChatOpen] = useState(false);
+    const [peopleOpen, setPeopleOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [feedbackOpen, setFeedbackOpen] = useState(false);
+    const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
     const [roomFullInfo, setRoomFullInfo] = useState(null);
     const [duplicateTab, setDuplicateTab] = useState(false);
     const [toast, setToast] = useState({ open: false, message: '', severity: 'info' });
@@ -72,9 +76,23 @@ export default function VideoMeet() {
     const peers = usePeers({ sendSignal: signaling.sendSignal, localStream: media.localStream, myId: signaling.socketId });
     const stats = useStats({ peersRef: peers.peersRef, isCallActive: isInMeeting });
 
+    // Global Hotkeys Hook (M, V, H, C, Esc)
+    useHotkeys({
+        onToggleAudio: media.toggleAudio,
+        onToggleVideo: media.toggleVideo,
+        onToggleHand: () => signaling.toggleRaiseHand(displayName),
+        onToggleChat: () => setChatOpen(prev => !prev),
+        onCloseModals: () => {
+            setChatOpen(false);
+            setPeopleOpen(false);
+            setSettingsOpen(false);
+            setLeaveConfirmOpen(false);
+        },
+        enabled: isInMeeting
+    });
+
     useEffect(() => { if (media.isScreenSharing) setViewMode('speaker'); }, [media.isScreenSharing]);
 
-    // PHASE 2: Dynamic adaptive sender bitrates and resolution scaling
     useEffect(() => {
         if (!isInMeeting) return;
         peers.applyAdaptiveQuality({
@@ -104,19 +122,6 @@ export default function VideoMeet() {
         channel.postMessage('ping');
         return () => channel.close();
     }, [url]);
-
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (['input', 'textarea'].includes(document.activeElement?.tagName?.toLowerCase())) return;
-            if (e.key === 'Escape') { setDrawerOpen(false); setSettingsOpen(false); }
-            else if (e.key.toLowerCase() === 'm') media.toggleAudio();
-            else if (e.key.toLowerCase() === 'v') media.toggleVideo();
-            else if (e.key.toLowerCase() === 'h') signaling.toggleRaiseHand(displayName);
-            else if (e.key.toLowerCase() === 'c') setDrawerOpen(prev => !prev);
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [displayName, media, signaling]);
 
     const toggleCaptions = useCallback(() => {
         if (captionsActive) {
@@ -162,7 +167,8 @@ export default function VideoMeet() {
         signaling.connect(displayName);
     };
 
-    const handleLeave = async () => {
+    const confirmLeave = async () => {
+        setLeaveConfirmOpen(false);
         if (isRecording) toggleRecording();
         const durationSec = callStartTimeRef.current ? Math.round((Date.now() - callStartTimeRef.current) / 1000) : 0;
         try {
@@ -212,14 +218,20 @@ export default function VideoMeet() {
                         onToggleVideo={media.toggleVideo} onToggleScreenShare={() => media.isScreenSharing ? media.stopScreenShare() : media.startScreenShare()}
                         onToggleHand={() => signaling.toggleRaiseHand(displayName)} onSendReaction={(em) => signaling.sendReaction(em, displayName)}
                         onToggleViewMode={() => setViewMode(v => v === 'grid' ? 'speaker' : 'grid')} onToggleCaptions={toggleCaptions}
-                        onToggleDrawer={() => { setDrawerOpen(d => !d); signaling.setNewMessagesCount(0); }} onToggleRecording={toggleRecording}
-                        onOpenSettings={() => setSettingsOpen(true)} onLeaveCall={handleLeave} />
-                    <Drawers open={drawerOpen} onClose={() => setDrawerOpen(false)} participants={participantList}
+                        onToggleChat={() => { setChatOpen(d => !d); signaling.setNewMessagesCount(0); }}
+                        onTogglePeople={() => setPeopleOpen(d => !d)} onToggleRecording={toggleRecording}
+                        onOpenSettings={() => setSettingsOpen(true)} onLeaveCall={() => setLeaveConfirmOpen(true)} />
+
+                    {/* Dedicated Chat and People Drawers */}
+                    <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} messages={signaling.messages}
+                        typingUser={signaling.typingUser} currentUserId={signaling.socketId}
+                        onSendMessage={(txt) => signaling.sendMessage(txt, displayName)} onSendTyping={signaling.sendTyping} />
+
+                    <PeopleDrawer open={peopleOpen} onClose={() => setPeopleOpen(false)} participants={participantList}
                         isHost={signaling.isHost} isRoomLocked={signaling.isRoomLocked} waitingUsers={signaling.waitingUsers}
-                        messages={signaling.messages} typingUser={signaling.typingUser} currentUserId={signaling.socketId}
-                        onSendMessage={(txt) => signaling.sendMessage(txt, displayName)} onSendTyping={signaling.sendTyping}
-                        onLockRoom={signaling.lockRoom} onAdmitUser={signaling.admitUser} onDenyUser={signaling.denyUser}
-                        onMuteParticipant={signaling.muteParticipant} onMuteAll={signaling.muteAll} onRemoveParticipant={signaling.removeParticipant} />
+                        onLockRoom={signaling.lockRoom} onMuteAll={signaling.muteAll} onAdmitUser={signaling.admitUser}
+                        onDenyUser={signaling.denyUser} onMuteParticipant={signaling.muteParticipant} onRemoveParticipant={signaling.removeParticipant} />
+
                     <CaptionsOverlay active={captionsActive} currentTranscript={captionText} />
                     <ReconnectingBanner isReconnecting={peers.isReconnecting} reconnectFailed={peers.reconnectFailed} onRetry={() => window.location.reload()} onLeave={() => navigate('/')} />
                     <WaitingRoomModal isWaiting={signaling.isWaitingForAdmission} isDenied={signaling.admissionDenied} onLeave={() => navigate('/')} />
@@ -229,12 +241,24 @@ export default function VideoMeet() {
                         onSwitchMicrophone={media.switchMicrophone} onSwitchSpeaker={media.switchSpeaker} />
                 </>
             )}
+
+            {/* Leave Meeting Confirmation Dialog */}
+            <Dialog open={leaveConfirmOpen} onClose={() => setLeaveConfirmOpen(false)} PaperProps={{ sx: { bgcolor: '#0f172a', color: 'white', borderRadius: '20px', p: 1.5, maxWidth: 380 } }}>
+                <DialogTitle sx={{ fontWeight: 800 }}>Leave Meeting?</DialogTitle>
+                <DialogContent sx={{ color: '#94a3b8' }}>Are you sure you want to exit this call?</DialogContent>
+                <DialogActions sx={{ gap: 1, pr: 2, pb: 1.5 }}>
+                    <Button onClick={() => setLeaveConfirmOpen(false)} sx={{ color: '#94a3b8' }}>Cancel</Button>
+                    <Button variant="contained" color="error" onClick={confirmLeave} sx={{ borderRadius: '12px' }}>Leave Call</Button>
+                </DialogActions>
+            </Dialog>
+
             <FeedbackModal open={feedbackOpen} onSubmit={(d) => axios.post(`${server}/api/v1/users/feedback`, { meetingCode: url, ...d }, { withCredentials: true })} onClose={() => navigate('/')} />
             <Dialog open={Boolean(roomFullInfo)} PaperProps={{ sx: { bgcolor: '#0f172a', color: 'white', borderRadius: '20px', p: 1.5 } }}>
                 <DialogTitle sx={{ fontWeight: 800 }}>Room Capacity Reached</DialogTitle>
                 <DialogContent sx={{ color: '#94a3b8' }}>{roomFullInfo?.message || "This room has reached the maximum of 4 participants for peer-to-peer mesh calling."}</DialogContent>
                 <DialogActions><Button variant="contained" onClick={() => navigate('/')} sx={{ borderRadius: '12px' }}>Return to Home</Button></DialogActions>
             </Dialog>
+
             <Snackbar open={media.showMutedHint} anchorOrigin={{ vertical: 'top', horizontal: 'center' }} autoHideDuration={3000}><Alert severity="info" sx={{ borderRadius: '12px', bgcolor: '#1e293b', color: 'white' }}>You are speaking while muted.</Alert></Snackbar>
             <Snackbar open={toast.open} autoHideDuration={4000} onClose={() => setToast(t => ({ ...t, open: false }))}><Alert severity={toast.severity} sx={{ borderRadius: '12px' }}>{toast.message}</Alert></Snackbar>
             <Snackbar open={duplicateTab} autoHideDuration={6000}><Alert severity="warning" sx={{ borderRadius: '12px' }}>You have this meeting open in another tab.</Alert></Snackbar>
