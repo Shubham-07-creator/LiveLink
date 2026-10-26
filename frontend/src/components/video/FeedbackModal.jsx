@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
 import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
     Rating,
     TextField,
-    Box,
-    Typography,
-    CircularProgress
+    Box
 } from '@mui/material';
+import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import tokens from '../../tokens';
 
 export default function FeedbackModal({ open, onSubmit, onClose }) {
     const [rating, setRating] = useState(5);
@@ -28,28 +24,28 @@ export default function FeedbackModal({ open, onSubmit, onClose }) {
     };
 
     return (
-        <Dialog
+        <Modal
             open={open}
             onClose={onClose}
-            PaperProps={{
-                sx: {
-                    bgcolor: '#0f172a',
-                    color: 'white',
-                    borderRadius: '20px',
-                    p: 1.5,
-                    maxWidth: 420,
-                    width: '100%',
-                    border: '1px solid rgba(255,255,255,0.1)'
-                }
-            }}
+            title="How was your call quality?"
+            description="Your feedback helps us continuously improve WebRTC peer stability."
+            maxWidth="xs"
+            actions={
+                <Box sx={{ display: 'flex', width: '100%', justifyContent: 'space-between', gap: 1 }}>
+                    <Button variant="ghost" onClick={onClose}>
+                        Skip
+                    </Button>
+                    <Button
+                        variant="primary"
+                        onClick={handleSubmit}
+                        loading={isSubmitting}
+                    >
+                        Submit
+                    </Button>
+                </Box>
+            }
         >
-            <DialogTitle sx={{ fontWeight: 800, textAlign: 'center', pb: 0.5 }}>
-                How was your call quality?
-            </DialogTitle>
-            <DialogContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pt: 1 }}>
-                <Typography sx={{ color: '#94a3b8', fontSize: '0.9rem', textAlign: 'center' }}>
-                    Your feedback helps us continuously improve WebRTC peer stability.
-                </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pt: 0.5 }}>
                 <Box sx={{ py: 1 }}>
                     <Rating
                         value={rating}
@@ -67,26 +63,16 @@ export default function FeedbackModal({ open, onSubmit, onClose }) {
                     onChange={(e) => setComment(e.target.value)}
                     sx={{
                         '& .MuiOutlinedInput-root': {
-                            color: 'white',
-                            bgcolor: '#1e293b',
-                            borderRadius: '12px'
+                            color: tokens.colors.dark.textHeading,
+                            bgcolor: tokens.colors.call.tileBg,
+                            borderRadius: tokens.radii.input,
+                            '& fieldset': {
+                                borderColor: tokens.colors.dark.border
+                            }
                         }
                     }}
                 />
-            </DialogContent>
-            <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2.5 }}>
-                <Button onClick={onClose} sx={{ color: '#94a3b8' }}>
-                    Skip
-                </Button>
-                <Button
-                    variant="contained"
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    sx={{ borderRadius: '12px', bgcolor: '#2563eb', px: 3 }}
-                >
-                    {isSubmitting ? <CircularProgress size={20} color="inherit" /> : "Submit"}
-                </Button>
-            </DialogActions>
-        </Dialog>
+            </Box>
+        </Modal>
     );
 }

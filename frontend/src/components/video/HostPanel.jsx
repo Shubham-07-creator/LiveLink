@@ -1,8 +1,10 @@
 import React from 'react';
-import { Box, Typography, Button } from '@mui/material';
-import LockIcon from '@mui/icons-material/Lock';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
-import VolumeOffIcon from '@mui/icons-material/VolumeOff';
+import { Box, Typography } from '@mui/material';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import LockOpenOutlinedIcon from '@mui/icons-material/LockOpenOutlined';
+import VolumeOffOutlinedIcon from '@mui/icons-material/VolumeOffOutlined';
+import Button from '../ui/Button';
+import tokens from '../../tokens';
 
 export default function HostPanel({
     isRoomLocked,
@@ -15,27 +17,41 @@ export default function HostPanel({
     return (
         <Box sx={{ mb: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             {/* Quick Actions Row */}
-            <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8', mb: 1, letterSpacing: '0.05em' }}>
+            <Box
+                sx={{
+                    p: 1.5,
+                    borderRadius: tokens.radii.card,
+                    bgcolor: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.08)'
+                }}
+            >
+                <Typography
+                    sx={{
+                        fontSize: tokens.typography.caption.fontSize,
+                        fontWeight: 700,
+                        color: tokens.colors.dark.textMuted,
+                        mb: 1,
+                        letterSpacing: '0.05em'
+                    }}
+                >
                     HOST MODERATION
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1 }}>
                     <Button
                         size="small"
-                        variant="outlined"
-                        startIcon={isRoomLocked ? <LockIcon /> : <LockOpenIcon />}
+                        variant="secondary"
+                        startIcon={isRoomLocked ? <LockOutlinedIcon sx={{ fontSize: 16 }} /> : <LockOpenOutlinedIcon sx={{ fontSize: 16 }} />}
                         onClick={() => onLockRoom?.(!isRoomLocked)}
-                        sx={{ borderRadius: '8px', color: 'white', borderColor: 'rgba(255,255,255,0.2)', fontSize: '0.78rem' }}
+                        sx={{ fontSize: '0.78rem' }}
                     >
                         {isRoomLocked ? "Room Locked" : "Lock Room"}
                     </Button>
                     <Button
                         size="small"
-                        variant="outlined"
-                        color="error"
-                        startIcon={<VolumeOffIcon />}
+                        variant="danger"
+                        startIcon={<VolumeOffOutlinedIcon sx={{ fontSize: 16 }} />}
                         onClick={onMuteAll}
-                        sx={{ borderRadius: '8px', fontSize: '0.78rem' }}
+                        sx={{ fontSize: '0.78rem' }}
                     >
                         Mute All
                     </Button>
@@ -44,18 +60,26 @@ export default function HostPanel({
 
             {/* Waiting Room Queue */}
             {waitingUsers.length > 0 && (
-                <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: '#f59e0b', mb: 1 }}>
+                <Box
+                    sx={{
+                        p: 1.5,
+                        borderRadius: tokens.radii.card,
+                        bgcolor: tokens.colors.light.warningSoftBg,
+                        border: `1px solid ${tokens.colors.light.warning}`
+                    }}
+                >
+                    <Typography sx={{ fontSize: tokens.typography.caption.fontSize, fontWeight: 700, color: tokens.colors.light.warning, mb: 1 }}>
                         WAITING ROOM ({waitingUsers.length})
                     </Typography>
                     {waitingUsers.map(u => (
                         <Box key={u.socketId} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.5 }}>
-                            <Typography sx={{ fontSize: '0.85rem', fontWeight: 600 }}>{u.username}</Typography>
+                            <Typography sx={{ fontSize: '0.85rem', fontWeight: 600, color: tokens.colors.light.textHeading }}>
+                                {u.username}
+                            </Typography>
                             <Box sx={{ display: 'flex', gap: 0.5 }}>
                                 <Button
                                     size="small"
-                                    variant="contained"
-                                    color="success"
+                                    variant="primary"
                                     onClick={() => onAdmitUser?.(u.socketId)}
                                     sx={{ py: 0.2, minWidth: 50, fontSize: '0.72rem' }}
                                 >
@@ -63,8 +87,7 @@ export default function HostPanel({
                                 </Button>
                                 <Button
                                     size="small"
-                                    variant="outlined"
-                                    color="error"
+                                    variant="danger"
                                     onClick={() => onDenyUser?.(u.socketId)}
                                     sx={{ py: 0.2, minWidth: 50, fontSize: '0.72rem' }}
                                 >

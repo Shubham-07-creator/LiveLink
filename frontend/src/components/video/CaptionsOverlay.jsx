@@ -1,5 +1,7 @@
 import React from 'react';
-import { Box, Typography, Chip } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import Chip from '../ui/Chip';
+import tokens from '../../tokens';
 
 export default function CaptionsOverlay({ active, currentTranscript, speakerName }) {
     if (!active || !currentTranscript) return null;
@@ -13,10 +15,10 @@ export default function CaptionsOverlay({ active, currentTranscript, speakerName
                 transform: 'translateX(-50%)',
                 maxWidth: '80%',
                 bgcolor: 'rgba(0, 0, 0, 0.75)',
-                color: 'white',
+                color: '#ffffff',
                 px: 2.5,
                 py: 1.25,
-                borderRadius: '16px',
+                borderRadius: tokens.radii.tile,
                 backdropFilter: 'blur(8px)',
                 textAlign: 'center',
                 boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
@@ -30,10 +32,10 @@ export default function CaptionsOverlay({ active, currentTranscript, speakerName
             <Chip
                 label="Beta, Chrome only"
                 size="small"
-                sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: '#93c5fd', fontSize: '0.7rem', height: 20 }}
+                variant="info"
             />
-            <Typography sx={{ fontSize: '0.95rem', fontWeight: 500 }}>
-                {speakerName && <strong style={{ color: '#60a5fa' }}>{speakerName}: </strong>}
+            <Typography sx={{ fontSize: tokens.typography.body.fontSize, fontWeight: 500 }}>
+                {speakerName && <strong style={{ color: tokens.colors.dark.primaryHover }}>{speakerName}: </strong>}
                 {currentTranscript}
             </Typography>
         </Box>

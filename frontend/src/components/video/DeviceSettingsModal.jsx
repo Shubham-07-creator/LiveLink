@@ -1,17 +1,15 @@
 import React from 'react';
 import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Button,
     FormControl,
     InputLabel,
     Select,
     MenuItem,
     Box
 } from '@mui/material';
-import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import VolumeUpOutlinedIcon from '@mui/icons-material/VolumeUpOutlined';
+import Modal from '../ui/Modal';
+import Button from '../ui/Button';
+import tokens from '../../tokens';
 import { playChime } from '../../utils/audioChimes';
 
 export default function DeviceSettingsModal({
@@ -32,31 +30,31 @@ export default function DeviceSettingsModal({
     };
 
     return (
-        <Dialog
+        <Modal
             open={open}
             onClose={onClose}
-            PaperProps={{
-                sx: {
-                    bgcolor: '#0f172a',
-                    color: 'white',
-                    borderRadius: '20px',
-                    p: 1.5,
-                    width: '100%',
-                    maxWidth: 440,
-                    border: '1px solid rgba(255,255,255,0.1)'
-                }
-            }}
+            title="Audio & Video Settings"
+            description="Select and test your hardware devices."
+            maxWidth="xs"
+            actions={
+                <Button onClick={onClose} variant="primary" fullWidth>
+                    Done
+                </Button>
+            }
         >
-            <DialogTitle sx={{ fontWeight: 800 }}>Audio & Video Settings</DialogTitle>
-            <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
                 {videoDevices.length > 0 && (
                     <FormControl fullWidth size="small">
-                        <InputLabel sx={{ color: '#94a3b8' }}>Camera</InputLabel>
+                        <InputLabel sx={{ color: tokens.colors.dark.textMuted }}>Camera</InputLabel>
                         <Select
                             value={selectedCamera || videoDevices[0]?.deviceId || ''}
                             onChange={(e) => onSwitchCamera(e.target.value)}
                             label="Camera"
-                            sx={{ color: 'white', bgcolor: '#1e293b', borderRadius: '12px' }}
+                            sx={{
+                                color: tokens.colors.dark.textHeading,
+                                bgcolor: tokens.colors.call.tileBg,
+                                borderRadius: tokens.radii.input
+                            }}
                         >
                             {videoDevices.map(d => (
                                 <MenuItem key={d.deviceId} value={d.deviceId}>
@@ -69,12 +67,16 @@ export default function DeviceSettingsModal({
 
                 {audioInputDevices.length > 0 && (
                     <FormControl fullWidth size="small">
-                        <InputLabel sx={{ color: '#94a3b8' }}>Microphone</InputLabel>
+                        <InputLabel sx={{ color: tokens.colors.dark.textMuted }}>Microphone</InputLabel>
                         <Select
                             value={selectedMicrophone || audioInputDevices[0]?.deviceId || ''}
                             onChange={(e) => onSwitchMicrophone(e.target.value)}
                             label="Microphone"
-                            sx={{ color: 'white', bgcolor: '#1e293b', borderRadius: '12px' }}
+                            sx={{
+                                color: tokens.colors.dark.textHeading,
+                                bgcolor: tokens.colors.call.tileBg,
+                                borderRadius: tokens.radii.input
+                            }}
                         >
                             {audioInputDevices.map(d => (
                                 <MenuItem key={d.deviceId} value={d.deviceId}>
@@ -88,12 +90,16 @@ export default function DeviceSettingsModal({
                 <Box sx={{ display: 'flex', gap: 1 }}>
                     {audioOutputDevices.length > 0 && (
                         <FormControl fullWidth size="small">
-                            <InputLabel sx={{ color: '#94a3b8' }}>Speaker</InputLabel>
+                            <InputLabel sx={{ color: tokens.colors.dark.textMuted }}>Speaker</InputLabel>
                             <Select
                                 value={selectedSpeaker || audioOutputDevices[0]?.deviceId || ''}
                                 onChange={(e) => onSwitchSpeaker(e.target.value)}
                                 label="Speaker"
-                                sx={{ color: 'white', bgcolor: '#1e293b', borderRadius: '12px' }}
+                                sx={{
+                                    color: tokens.colors.dark.textHeading,
+                                    bgcolor: tokens.colors.call.tileBg,
+                                    borderRadius: tokens.radii.input
+                                }}
                             >
                                 {audioOutputDevices.map(d => (
                                     <MenuItem key={d.deviceId} value={d.deviceId}>
@@ -104,20 +110,15 @@ export default function DeviceSettingsModal({
                         </FormControl>
                     )}
                     <Button
-                        variant="outlined"
-                        startIcon={<VolumeUpIcon />}
+                        variant="secondary"
+                        startIcon={<VolumeUpOutlinedIcon sx={{ fontSize: 20 }} />}
                         onClick={handleTestSpeaker}
-                        sx={{ borderRadius: '12px', whiteSpace: 'nowrap', color: 'white', borderColor: 'rgba(255,255,255,0.2)' }}
+                        sx={{ whiteSpace: 'nowrap' }}
                     >
                         Test
                     </Button>
                 </Box>
-            </DialogContent>
-            <DialogActions sx={{ pr: 3, pb: 2 }}>
-                <Button onClick={onClose} variant="contained" sx={{ borderRadius: '12px', bgcolor: '#2563eb' }}>
-                    Done
-                </Button>
-            </DialogActions>
-        </Dialog>
+            </Box>
+        </Modal>
     );
 }

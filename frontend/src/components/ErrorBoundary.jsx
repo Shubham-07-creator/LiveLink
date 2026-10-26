@@ -1,8 +1,13 @@
 import React from "react";
-import { Box, Typography, Button, Paper, Container } from "@mui/material";
-import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import HomeIcon from "@mui/icons-material/Home";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import Paper from "@mui/material/Paper";
+import Container from "@mui/material/Container";
+import ErrorOutlineOutlinedIcon from "@mui/icons-material/ErrorOutlineOutlined";
+import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import tokens from "../tokens";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -29,6 +34,8 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      const call = tokens.colors.call;
+
       return (
         <Box
           sx={{
@@ -36,7 +43,7 @@ class ErrorBoundary extends React.Component {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            backgroundColor: "#090d16",
+            backgroundColor: call.stageBg,
             color: "#f8fafc",
             p: 3
           }}
@@ -46,67 +53,84 @@ class ErrorBoundary extends React.Component {
               elevation={0}
               sx={{
                 p: { xs: 3.5, sm: 5 },
-                borderRadius: "24px",
-                backgroundColor: "rgba(15, 23, 42, 0.85)",
+                borderRadius: tokens.radii.modal,
+                backgroundColor: call.dockBg,
                 backdropFilter: "blur(16px)",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
+                border: `1px solid ${call.dockBorder}`,
                 textAlign: "center",
                 boxShadow: "0 24px 60px rgba(0, 0, 0, 0.5)"
               }}
             >
               <Box
                 sx={{
-                  width: 68,
-                  height: 68,
+                  width: 64,
+                  height: 64,
                   borderRadius: "50%",
-                  backgroundColor: "rgba(239, 68, 68, 0.15)",
-                  color: "#ef4444",
+                  backgroundColor: tokens.colors.light.dangerSoftBg,
+                  color: tokens.colors.light.danger,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   margin: "0 auto 20px"
                 }}
               >
-                <ErrorOutlineRoundedIcon sx={{ fontSize: 38 }} />
+                <ErrorOutlineOutlinedIcon sx={{ fontSize: 34 }} />
               </Box>
 
-              <Typography variant="h4" sx={{ fontWeight: 800, mb: 1.5, color: "#ffffff" }}>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontFamily: tokens.typography.fonts.heading,
+                  fontWeight: 700,
+                  fontSize: "24px",
+                  mb: 1.5,
+                  color: "#ffffff"
+                }}
+              >
                 Something went wrong
               </Typography>
 
-              <Typography variant="body1" sx={{ color: "#94a3b8", mb: 4, lineHeight: 1.6 }}>
+              <Typography
+                variant="body1"
+                sx={{
+                  fontFamily: tokens.typography.fonts.body,
+                  color: "#94a3b8",
+                  mb: 4,
+                  lineHeight: 1.6
+                }}
+              >
                 LiveLink encountered an unexpected problem. We recommend reloading the page or returning to the dashboard.
               </Typography>
 
               <Box sx={{ display: "flex", gap: 2, justifyContent: "center", flexWrap: "wrap" }}>
                 <Button
                   variant="contained"
-                  startIcon={<RefreshIcon />}
+                  startIcon={<RefreshOutlinedIcon />}
                   onClick={this.handleReload}
                   sx={{
-                    backgroundColor: "#2563eb",
+                    backgroundColor: tokens.colors.light.primary,
                     color: "#ffffff",
                     px: 3,
                     py: 1.2,
-                    borderRadius: "12px",
-                    fontWeight: 700,
+                    borderRadius: tokens.radii.button,
+                    fontWeight: 600,
                     textTransform: "none",
-                    "&:hover": { backgroundColor: "#1d4ed8" }
+                    "&:hover": { backgroundColor: tokens.colors.light.primaryHover }
                   }}
                 >
-                  Reload Page
+                  Reload page
                 </Button>
                 <Button
                   variant="outlined"
-                  startIcon={<HomeIcon />}
+                  startIcon={<HomeOutlinedIcon />}
                   onClick={this.handleGoHome}
                   sx={{
                     borderColor: "rgba(255, 255, 255, 0.2)",
                     color: "#cbd5e1",
                     px: 3,
                     py: 1.2,
-                    borderRadius: "12px",
-                    fontWeight: 700,
+                    borderRadius: tokens.radii.button,
+                    fontWeight: 600,
                     textTransform: "none",
                     "&:hover": {
                       borderColor: "#ffffff",
@@ -114,7 +138,7 @@ class ErrorBoundary extends React.Component {
                     }
                   }}
                 >
-                  Return to Dashboard
+                  Return to dashboard
                 </Button>
               </Box>
 
@@ -123,13 +147,13 @@ class ErrorBoundary extends React.Component {
                   sx={{
                     mt: 4,
                     p: 2,
-                    borderRadius: "12px",
+                    borderRadius: tokens.radii.button,
                     backgroundColor: "rgba(0, 0, 0, 0.4)",
                     textAlign: "left",
                     overflowX: "auto"
                   }}
                 >
-                  <Typography variant="caption" sx={{ color: "#ef4444", fontFamily: "monospace", display: "block" }}>
+                  <Typography variant="caption" sx={{ color: tokens.colors.light.danger, fontFamily: "monospace", display: "block" }}>
                     {this.state.error.toString()}
                   </Typography>
                 </Box>
