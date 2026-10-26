@@ -93,7 +93,7 @@ export default function AppToast({
         icon={getIcon()}
         sx={{
           borderRadius: tokens.radii.button,
-          boxShadow: isDark ? "0 10px 25px -5px rgba(0,0,0,0.6)" : tokens.colors.light.shadow,
+          boxShadow: isDark ? "0 10px 25px -5px rgba(0,0,0,0.6)" : (c.shadow || "0 10px 25px -5px rgba(0,0,0,0.05)"),
           fontSize: tokens.typography.caption.fontSize,
           fontFamily: tokens.typography.fonts.body,
           fontWeight: 500,

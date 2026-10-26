@@ -24,6 +24,7 @@ export const tokens = {
       dangerSoftBg: "#fee2e2",
       success: "#15803d",
       successSoftBg: "#dcfce7",
+      warning: "#b45309",
       warningText: "#b45309",
       warningSoftBg: "#fef3c7",
       shadow: "0 1px 3px rgba(0,0,0,0.05), 0 10px 25px -5px rgba(0,0,0,0.04)",
@@ -48,6 +49,7 @@ export const tokens = {
       dangerSoftBg: "rgba(220, 38, 38, 0.15)",
       success: "#15803d",
       successSoftBg: "rgba(21, 128, 61, 0.15)",
+      warning: "#f59e0b",
       warningText: "#f59e0b",
       warningSoftBg: "rgba(245, 158, 11, 0.15)",
       shadow: "none",
@@ -177,7 +179,14 @@ export const getTokens = (mode = "light") => {
 
   return {
     isDark,
-    colors: modeColors,
+    colors: {
+      ...modeColors,
+      light: tokens.colors.light,
+      dark: tokens.colors.dark,
+      call: tokens.colors.call,
+      accent: tokens.colors.accent
+    },
+    raw: tokens,
     call: tokens.colors.call,
     accent: tokens.colors.accent,
     spacing: tokens.spacing,
