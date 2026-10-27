@@ -60,8 +60,11 @@ export default function Authentication() {
 
   const navigate = useNavigate();
   const { handleLogin, handleRegister, handleGoogleAuth } = useContext(AuthContext);
-  const { isDark, tokens, toggleTheme } = useThemeMode();
-  const c = tokens.colors;
+  const themeContext = useThemeMode();
+  const isDark = Boolean(themeContext?.isDark);
+  const tokens = themeContext?.tokens || {};
+  const toggleTheme = themeContext?.toggleTheme;
+  const c = tokens?.colors || {};
 
   const showToast = (message, severity = "info") => {
     setToast({ open: true, message, severity });

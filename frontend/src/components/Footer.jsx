@@ -10,8 +10,9 @@ import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutli
 import { useThemeMode } from "../contexts/ThemeContext";
 
 export default function Footer() {
-  const { tokens } = useThemeMode();
-  const c = tokens.colors;
+  const themeContext = useThemeMode();
+  const tokens = themeContext?.tokens || {};
+  const c = tokens?.colors || {};
 
   return (
     <Box

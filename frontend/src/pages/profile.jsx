@@ -64,8 +64,13 @@ function ProfilePage() {
     sendVerificationEmail 
   } = useContext(AuthContext);
 
-  const { mode, setMode, isDark, tokens } = useThemeMode();
-  const c = tokens.colors;
+  const themeContext = useThemeMode();
+  const mode = themeContext?.mode || "light";
+  const preference = themeContext?.preference || "system";
+  const setMode = themeContext?.setMode;
+  const isDark = Boolean(themeContext?.isDark);
+  const tokens = themeContext?.tokens || {};
+  const c = tokens?.colors || {};
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -176,13 +181,13 @@ function ProfilePage() {
         camOff: prefCamOff,
         soundChimes: prefChimes,
         lowBandwidth: prefLowBw,
-        theme: mode
+        theme: preference || mode
       });
       localStorage.setItem("livelink_pref_mic_muted", String(prefMicMuted));
       localStorage.setItem("livelink_pref_cam_off", String(prefCamOff));
       localStorage.setItem("livelink_pref_chimes", String(prefChimes));
       localStorage.setItem("livelink_pref_low_bw", String(prefLowBw));
-      localStorage.setItem("livelink_theme", mode);
+      localStorage.setItem("livelink_theme", preference || mode);
 
       showToast("Profile settings saved successfully", "success");
     } catch (err) {
@@ -553,12 +558,12 @@ function ProfilePage() {
                     border: `1px solid ${c.border}`
                   }}
                 >
-                  {["light", "dark"].map((themeChoice) => {
-                    const isActive = mode === themeChoice;
+                  {["light", "dark", "system"].map((themeChoice) => {
+                    const isActive = (preference || mode) === themeChoice;
                     return (
                       <Box
                         key={themeChoice}
-                        onClick={() => setMode(themeChoice)}
+                        onClick={() => setMode && setMode(themeChoice)}
                         sx={{
                           px: 2.5,
                           py: 0.8,
@@ -570,7 +575,7 @@ function ProfilePage() {
                           color: isActive ? c.textHeading : c.textMuted,
                           backgroundColor: isActive ? c.surface : "transparent",
                           boxShadow: isActive ? (isDark ? "none" : "0 1px 3px rgba(0,0,0,0.08)") : "none",
-                          transition: `all ${tokens.motion.micro}`
+                          transition: `all ${tokens?.motion?.micro || "150ms ease"}`
                         }}
                       >
                         {themeChoice}

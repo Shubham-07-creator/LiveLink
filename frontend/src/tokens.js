@@ -174,26 +174,47 @@ export const tokens = {
  * Returns theme-specific palette and common tokens
  */
 export const getTokens = (mode = "light") => {
-  const isDark = mode === "dark";
-  const modeColors = isDark ? tokens.colors.dark : tokens.colors.light;
+  let resolved = "light";
+  if (mode === "dark") {
+    resolved = "dark";
+  } else if (mode === "system") {
+    if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      resolved = "dark";
+    } else {
+      resolved = "light";
+    }
+  } else if (mode === "light") {
+    resolved = "light";
+  }
+
+  const isDark = resolved === "dark";
+  const modeColors = isDark ? (tokens?.colors?.dark || {}) : (tokens?.colors?.light || {});
+  const lightColors = tokens?.colors?.light || {};
+  const darkColors = tokens?.colors?.dark || {};
 
   return {
+    mode: resolved,
     isDark,
     colors: {
       ...modeColors,
-      light: tokens.colors.light,
-      dark: tokens.colors.dark,
-      call: tokens.colors.call,
-      accent: tokens.colors.accent
+      light: lightColors,
+      dark: darkColors,
+      call: tokens?.colors?.call || {},
+      accent: tokens?.colors?.accent || {},
+      shadow: modeColors?.shadow || (isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05), 0 10px 25px -5px rgba(0,0,0,0.04)"),
+      cardShadow: modeColors?.cardShadow || "none",
+      modalShadow: modeColors?.modalShadow || (isDark ? "0 20px 25px -5px rgba(0, 0, 0, 0.5)" : "0 25px 50px -12px rgba(0, 0, 0, 0.25)")
     },
     raw: tokens,
-    call: tokens.colors.call,
-    accent: tokens.colors.accent,
-    spacing: tokens.spacing,
-    radii: tokens.radii,
-    buttonHeights: tokens.buttonHeights,
-    typography: tokens.typography,
-    motion: tokens.motion
+    light: lightColors,
+    dark: darkColors,
+    call: tokens?.colors?.call || {},
+    accent: tokens?.colors?.accent || {},
+    spacing: tokens?.spacing || [0, 4, 8, 12, 16, 24, 32, 48, 64, 96],
+    radii: tokens?.radii || { card: "20px", tile: "16px", button: "12px", badge: "999px", modal: "24px", input: "12px" },
+    buttonHeights: tokens?.buttonHeights || { small: "32px", normal: "40px", large: "48px", minTouch: "44px" },
+    typography: tokens?.typography || {},
+    motion: tokens?.motion || { micro: "150ms ease", modal: "250ms ease", toast: "200ms ease-out", reduced: "0.01ms" }
   };
 };
 

@@ -38,8 +38,11 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const { userData, handleLogout } = useContext(AuthContext);
   const isLoggedIn = Boolean(userData || localStorage.getItem("token"));
-  const { isDark, tokens, toggleTheme } = useThemeMode();
-  const c = tokens.colors;
+  const themeContext = useThemeMode();
+  const isDark = Boolean(themeContext?.isDark);
+  const tokens = themeContext?.tokens || {};
+  const toggleTheme = themeContext?.toggleTheme;
+  const c = tokens?.colors || {};
 
   const [meetingCode, setMeetingCode] = useState("");
   const [createdRoom, setCreatedRoom] = useState(null);

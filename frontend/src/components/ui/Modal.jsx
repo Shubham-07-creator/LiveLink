@@ -29,8 +29,10 @@ export default function AppModal({
   ariaLabel = "dialog",
   ...props
 }) {
-  const { tokens } = useThemeMode();
-  const c = tokens.colors;
+  const themeContext = useThemeMode();
+  const tokens = themeContext?.tokens || {};
+  const isDark = Boolean(themeContext?.isDark);
+  const c = tokens?.colors || {};
 
   return (
     <Dialog
@@ -48,10 +50,10 @@ export default function AppModal({
       }}
       PaperProps={{
         sx: {
-          borderRadius: tokens.radii.modal,
-          border: `1px solid ${c.border}`,
-          backgroundColor: c.surface,
-          boxShadow: c.modalShadow,
+          borderRadius: tokens?.radii?.modal || "24px",
+          border: `1px solid ${c?.border || (isDark ? "#1f2937" : "#e2e8f0")}`,
+          backgroundColor: c?.surface || (isDark ? "#111827" : "#ffffff"),
+          boxShadow: c?.modalShadow || "none",
           padding: 2,
           position: "relative"
         }
@@ -75,10 +77,10 @@ export default function AppModal({
                 variant="h5"
                 component="div"
                 sx={{
-                  fontFamily: tokens.typography.fonts.heading,
-                  fontWeight: tokens.typography.cardTitle.weight,
-                  fontSize: tokens.typography.cardTitle.fontSize,
-                  color: c.textHeading
+                  fontFamily: tokens?.typography?.fonts?.heading || "Plus Jakarta Sans, sans-serif",
+                  fontWeight: tokens?.typography?.cardTitle?.weight || 600,
+                  fontSize: tokens?.typography?.cardTitle?.fontSize || "18px",
+                  color: c?.textHeading || (isDark ? "#f1f5f9" : "#0f172a")
                 }}
               >
                 {title}
@@ -89,10 +91,10 @@ export default function AppModal({
                 id="modal-dialog-description"
                 variant="body2"
                 sx={{
-                  color: c.textMuted,
+                  color: c?.textMuted || (isDark ? "#94a3b8" : "#64748b"),
                   mt: 0.5,
-                  fontSize: tokens.typography.caption.fontSize,
-                  fontFamily: tokens.typography.fonts.body
+                  fontSize: tokens?.typography?.caption?.fontSize || "13px",
+                  fontFamily: tokens?.typography?.fonts?.body || "Inter, sans-serif"
                 }}
               >
                 {description}

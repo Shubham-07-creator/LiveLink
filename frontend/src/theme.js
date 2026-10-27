@@ -6,8 +6,19 @@ import { tokens, getTokens } from "./tokens";
  * Derived directly from strict Design System tokens in tokens.js.
  */
 export const createAppTheme = (mode = "light") => {
-  const t = getTokens(mode);
-  const c = t.colors;
+  let normalizedMode = "light";
+  if (mode === "dark") {
+    normalizedMode = "dark";
+  } else if (mode === "system") {
+    if (typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      normalizedMode = "dark";
+    } else {
+      normalizedMode = "light";
+    }
+  }
+
+  const t = getTokens(normalizedMode);
+  const c = t?.colors || {};
 
   return createTheme({
     palette: {

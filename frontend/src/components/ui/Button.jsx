@@ -32,23 +32,25 @@ export default function AppButton({
   sx = {},
   ...props
 }) {
-  const { tokens, isDark } = useThemeMode();
-  const c = tokens.colors;
+  const themeContext = useThemeMode();
+  const tokens = themeContext?.tokens || {};
+  const isDark = Boolean(themeContext?.isDark);
+  const c = tokens?.colors || {};
 
   const getMinHeight = () => {
     switch (size) {
       case "large":
-        return tokens.buttonHeights.large;
+        return tokens?.buttonHeights?.large || "48px";
       case "small":
-        return tokens.buttonHeights.small;
+        return tokens?.buttonHeights?.small || "32px";
       case "normal":
       default:
-        return tokens.buttonHeights.normal;
+        return tokens?.buttonHeights?.normal || "40px";
     }
   };
 
   const getFontSize = () => {
-    return size === "small" ? "13px" : tokens.typography.button.fontSize;
+    return size === "small" ? "13px" : (tokens?.typography?.button?.fontSize || "14px");
   };
 
   const getPadding = () => {
@@ -59,66 +61,78 @@ export default function AppButton({
         return "4px 12px";
       case "normal":
       default:
-        return "8px 18px";
+        return "8px 16px";
     }
   };
 
   const getVariantStyles = () => {
+    const primary = c?.primary || (isDark ? "#3b82f6" : "#2563eb");
+    const primaryHover = c?.primaryHover || (isDark ? "#60a5fa" : "#1d4ed8");
+    const primaryPressed = c?.primaryPressed || (isDark ? "#2563eb" : "#1e40af");
+    const danger = c?.danger || "#dc2626";
+    const dangerHover = c?.dangerHover || "#b91c1c";
+    const surface = c?.surface || (isDark ? "#111827" : "#ffffff");
+    const border = c?.border || (isDark ? "#1f2937" : "#e2e8f0");
+    const textHeading = c?.textHeading || (isDark ? "#f1f5f9" : "#0f172a");
+
     switch (variant) {
       case "secondary":
         return {
-          backgroundColor: "transparent",
-          color: c.primary,
-          border: `1px solid ${isDark ? c.primary : c.border}`,
+          backgroundColor: surface,
+          color: primary,
+          border: `1px solid ${isDark ? primary : border}`,
           "&:hover": {
-            backgroundColor: c.primarySoftBg,
-            borderColor: c.primaryHover
+            backgroundColor: c?.primarySoftBg || (isDark ? "rgba(59, 130, 246, 0.15)" : "#eff6ff"),
+            borderColor: primaryHover
           },
           "&:active": {
-            backgroundColor: isDark ? "rgba(59, 130, 246, 0.25)" : "#dbeafe"
+            backgroundColor: c?.primarySoftBg || (isDark ? "rgba(59, 130, 246, 0.2)" : "#dbeafe")
           }
         };
+
       case "danger":
         return {
-          backgroundColor: c.danger,
+          backgroundColor: danger,
           color: "#ffffff",
           border: "1px solid transparent",
           "&:hover": {
-            backgroundColor: c.dangerHover
+            backgroundColor: dangerHover
           },
           "&:active": {
-            backgroundColor: isDark ? "#991b1b" : "#b91c1c"
+            backgroundColor: dangerHover
           }
         };
+
       case "ghost":
         return {
           backgroundColor: "transparent",
-          color: c.textHeading,
+          color: textHeading,
           border: "1px solid transparent",
           "&:hover": {
-            backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.04)"
+            backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)"
           },
           "&:active": {
-            backgroundColor: isDark ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.08)"
+            backgroundColor: isDark ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)"
           }
         };
+
       case "primary":
       default:
         return {
-          backgroundColor: c.primary,
+          backgroundColor: primary,
           color: "#ffffff",
           border: "1px solid transparent",
           "&:hover": {
-            backgroundColor: c.primaryHover
+            backgroundColor: primaryHover
           },
           "&:active": {
-            backgroundColor: c.primaryPressed
+            backgroundColor: primaryPressed
           }
         };
     }
   };
 
-  const spinnerColor = variant === "primary" || variant === "danger" ? "#ffffff" : c.primary;
+  const spinnerColor = variant === "primary" || variant === "danger" ? "#ffffff" : (c?.primary || "#2563eb");
 
   return (
     <Button
@@ -127,12 +141,12 @@ export default function AppButton({
       onClick={onClick}
       fullWidth={fullWidth}
       sx={{
-        borderRadius: tokens.radii.button,
+        borderRadius: tokens?.radii?.button || "12px",
         minHeight: getMinHeight(),
         padding: getPadding(),
         fontSize: getFontSize(),
-        fontFamily: tokens.typography.fonts.body,
-        fontWeight: tokens.typography.button.weight,
+        fontFamily: tokens?.typography?.fonts?.body || "Inter, sans-serif",
+        fontWeight: tokens?.typography?.button?.weight || 600,
         textTransform: "none",
         letterSpacing: "0",
         display: "inline-flex",
@@ -140,12 +154,12 @@ export default function AppButton({
         justifyContent: "center",
         gap: "8px",
         boxShadow: "none",
-        transition: `all ${tokens.motion.micro}`,
+        transition: `all ${tokens?.motion?.micro || "150ms ease"}`,
         opacity: disabled ? 0.45 : 1,
         cursor: disabled ? "not-allowed !important" : "pointer",
         pointerEvents: disabled ? "none" : "auto",
         "&:focus-visible": {
-          outline: `2px solid ${c.primary}`,
+          outline: `2px solid ${c?.primary || "#2563eb"}`,
           outlineOffset: "2px"
         },
         ...getVariantStyles(),

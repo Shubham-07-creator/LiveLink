@@ -51,8 +51,10 @@ function HomeComponent() {
     deleteScheduledMeeting
   } = useContext(AuthContext);
 
-  const { isDark, tokens } = useThemeMode();
-  const c = tokens.colors;
+  const themeContext = useThemeMode();
+  const isDark = Boolean(themeContext?.isDark);
+  const tokens = themeContext?.tokens || {};
+  const c = tokens?.colors || {};
 
   const [meetingCode, setMeetingCode] = useState("");
   const [createdRoom, setCreatedRoom] = useState(null);

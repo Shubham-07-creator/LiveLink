@@ -34,8 +34,9 @@ import VideoCallOutlinedIcon from "@mui/icons-material/VideoCallOutlined";
 
 export default function History() {
   const { getHistoryOfUser, deleteHistory } = useContext(AuthContext);
-  const { tokens } = useThemeMode();
-  const c = tokens.colors;
+  const themeContext = useThemeMode();
+  const tokens = themeContext?.tokens || {};
+  const c = tokens?.colors || {};
   const navigate = useNavigate();
 
   const [meetings, setMeetings] = useState([]);

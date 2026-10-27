@@ -17,25 +17,27 @@ export default function AppCard({
   sx = {},
   ...props
 }) {
-  const { tokens, isDark } = useThemeMode();
-  const c = tokens.colors;
+  const themeContext = useThemeMode();
+  const tokens = themeContext?.tokens || {};
+  const isDark = Boolean(themeContext?.isDark);
+  const c = tokens?.colors || {};
 
   return (
     <Paper
       onClick={onClick}
       sx={{
-        borderRadius: tokens.radii.card,
-        border: `1px solid ${c.border}`,
-        backgroundColor: c.surface,
+        borderRadius: tokens?.radii?.card || "20px",
+        border: `1px solid ${c?.border || (isDark ? "#1f2937" : "#e2e8f0")}`,
+        backgroundColor: c?.surface || (isDark ? "#111827" : "#ffffff"),
         backgroundImage: "none",
-        boxShadow: c.cardShadow,
+        boxShadow: c?.cardShadow || "none",
         padding: typeof padding === "number" ? `${padding * 8}px` : padding,
         cursor: onClick ? "pointer" : "default",
-        transition: `transform ${tokens.motion.micro}, box-shadow ${tokens.motion.micro}, border-color ${tokens.motion.micro}, background-color ${tokens.motion.micro}`,
+        transition: `transform ${tokens?.motion?.micro || "150ms ease"}, box-shadow ${tokens?.motion?.micro || "150ms ease"}, border-color ${tokens?.motion?.micro || "150ms ease"}, background-color ${tokens?.motion?.micro || "150ms ease"}`,
         ...(hoverLift && {
           "&:hover": {
             transform: "translateY(-2px)",
-            borderColor: isDark ? c.primaryHover : c.border,
+            borderColor: isDark ? (c?.primaryHover || "#60a5fa") : (c?.border || "#e2e8f0"),
             boxShadow: isDark
               ? "none"
               : "0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)"

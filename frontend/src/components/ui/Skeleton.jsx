@@ -19,19 +19,21 @@ export default function AppSkeleton({
   sx = {},
   ...props
 }) {
-  const { tokens, isDark } = useThemeMode();
+  const themeContext = useThemeMode();
+  const tokens = themeContext?.tokens || {};
+  const isDark = Boolean(themeContext?.isDark);
 
   const getBorderRadius = () => {
     switch (variant) {
       case "card":
-        return tokens.radii.card;
+        return tokens?.radii?.card || "20px";
       case "button":
       case "input":
-        return tokens.radii.button;
+        return tokens?.radii?.button || "12px";
       case "avatar":
         return "50%";
       case "badge":
-        return tokens.radii.badge;
+        return tokens?.radii?.badge || "999px";
       case "text":
       default:
         return "6px";
@@ -43,7 +45,7 @@ export default function AppSkeleton({
       case "card":
         return 160;
       case "button":
-        return tokens.buttonHeights.normal;
+        return tokens?.buttonHeights?.normal || "40px";
       case "avatar":
         return 40;
       case "text":

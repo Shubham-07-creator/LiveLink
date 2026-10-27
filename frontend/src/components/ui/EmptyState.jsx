@@ -19,8 +19,16 @@ export default function AppEmptyState({
   action,
   sx = {}
 }) {
-  const { tokens } = useThemeMode();
-  const c = tokens.colors;
+  const themeContext = useThemeMode();
+  const tokens = themeContext?.tokens || {};
+  const isDark = Boolean(themeContext?.isDark);
+  const c = tokens?.colors || {};
+
+  const border = c?.border || (isDark ? "#1f2937" : "#e2e8f0");
+  const primary = c?.primary || (isDark ? "#3b82f6" : "#2563eb");
+  const textHeading = c?.textHeading || (isDark ? "#f1f5f9" : "#0f172a");
+  const textMuted = c?.textMuted || (isDark ? "#94a3b8" : "#64748b");
+  const primarySoftBg = c?.primarySoftBg || (isDark ? "rgba(59, 130, 246, 0.15)" : "#eff6ff");
 
   return (
     <Box
@@ -31,8 +39,8 @@ export default function AppEmptyState({
         justifyContent: "center",
         textAlign: "center",
         padding: "48px 24px",
-        borderRadius: tokens.radii.card,
-        border: `1px dashed ${c.border}`,
+        borderRadius: tokens?.radii?.card || "20px",
+        border: `1px dashed ${border}`,
         backgroundColor: "transparent",
         ...sx
       }}
@@ -45,12 +53,12 @@ export default function AppEmptyState({
           width: 72,
           height: 72,
           borderRadius: "50%",
-          backgroundColor: c.primarySoftBg,
-          color: c.textMuted,
+          backgroundColor: primarySoftBg,
+          color: textMuted,
           mb: 2,
           "& .MuiSvgIcon-root": {
             fontSize: "40px",
-            color: c.primary
+            color: primary
           }
         }}
       >
@@ -60,10 +68,10 @@ export default function AppEmptyState({
       <Typography
         variant="h5"
         sx={{
-          fontFamily: tokens.typography.fonts.heading,
-          fontWeight: tokens.typography.cardTitle.weight,
-          fontSize: tokens.typography.cardTitle.fontSize,
-          color: c.textHeading,
+          fontFamily: tokens?.typography?.fonts?.heading || "Plus Jakarta Sans, sans-serif",
+          fontWeight: tokens?.typography?.cardTitle?.weight || 600,
+          fontSize: tokens?.typography?.cardTitle?.fontSize || "18px",
+          color: textHeading,
           mb: 1
         }}
       >
@@ -74,9 +82,9 @@ export default function AppEmptyState({
         <Typography
           variant="body2"
           sx={{
-            fontFamily: tokens.typography.fonts.body,
+            fontFamily: tokens?.typography?.fonts?.body || "Inter, sans-serif",
             fontSize: "14px",
-            color: c.textMuted,
+            color: textMuted,
             maxWidth: "400px",
             mb: action ? 3 : 0,
             lineHeight: 1.5

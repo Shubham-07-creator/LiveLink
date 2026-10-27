@@ -25,8 +25,10 @@ export default function AppIconButton({
   sx = {},
   ...props
 }) {
-  const { tokens, isDark } = useThemeMode();
-  const c = tokens.colors;
+  const themeContext = useThemeMode();
+  const tokens = themeContext?.tokens || {};
+  const isDark = Boolean(themeContext?.isDark);
+  const c = tokens?.colors || {};
 
   const getDimensions = () => {
     switch (size) {
@@ -41,16 +43,26 @@ export default function AppIconButton({
   };
 
   const dim = getDimensions();
-  const borderRadius = shape === "round" ? tokens.radii.badge : tokens.radii.button;
+  const borderRadius = shape === "round"
+    ? (tokens?.radii?.badge || "999px")
+    : (tokens?.radii?.button || "12px");
 
   const getVariantStyles = () => {
+    const primary = c?.primary || (isDark ? "#3b82f6" : "#2563eb");
+    const primaryHover = c?.primaryHover || (isDark ? "#60a5fa" : "#1d4ed8");
+    const surface = c?.surface || (isDark ? "#111827" : "#ffffff");
+    const border = c?.border || (isDark ? "#1f2937" : "#e2e8f0");
+    const textHeading = c?.textHeading || (isDark ? "#f1f5f9" : "#0f172a");
+    const danger = c?.danger || "#dc2626";
+    const dangerHover = c?.dangerHover || "#b91c1c";
+
     if (active) {
       return {
-        backgroundColor: c.primary,
+        backgroundColor: primary,
         color: "#ffffff",
         border: "1px solid transparent",
         "&:hover": {
-          backgroundColor: c.primaryHover
+          backgroundColor: primaryHover
         }
       };
     }
@@ -59,65 +71,70 @@ export default function AppIconButton({
       case "ghost":
         return {
           backgroundColor: "transparent",
-          color: c.textHeading,
+          color: textHeading,
           border: "1px solid transparent",
           "&:hover": {
             backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)"
           }
         };
-      case "danger":
-        return {
-          backgroundColor: c.dangerSoftBg,
-          color: c.danger,
-          border: `1px solid ${isDark ? "transparent" : "#fecaca"}`,
-          "&:hover": {
-            backgroundColor: c.danger,
-            color: "#ffffff"
-          }
-        };
+
       case "primary":
         return {
-          backgroundColor: c.primarySoftBg,
-          color: c.primary,
-          border: `1px solid ${c.primarySoftBorder}`,
+          backgroundColor: primary,
+          color: "#ffffff",
+          border: "1px solid transparent",
           "&:hover": {
-            backgroundColor: c.primary,
-            color: "#ffffff"
+            backgroundColor: primaryHover
           }
         };
+
+      case "danger":
+        return {
+          backgroundColor: danger,
+          color: "#ffffff",
+          border: "1px solid transparent",
+          "&:hover": {
+            backgroundColor: dangerHover
+          }
+        };
+
       case "default":
       default:
         return {
-          backgroundColor: c.surface,
-          color: c.textHeading,
-          border: `1px solid ${c.border}`,
+          backgroundColor: surface,
+          color: textHeading,
+          border: `1px solid ${border}`,
           "&:hover": {
-            borderColor: c.primary,
-            color: c.primary,
-            backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "#f8fafc"
+            backgroundColor: isDark ? "rgba(255, 255, 255, 0.06)" : "#f1f5f9",
+            borderColor: isDark ? primary : border
           }
         };
     }
   };
 
-  const buttonElement = (
+  const label = ariaLabel || tooltip;
+
+  const button = (
     <IconButton
-      disabled={disabled}
       onClick={onClick}
-      aria-label={ariaLabel || tooltip || "button"}
+      aria-label={label}
+      disabled={disabled}
       sx={{
         width: dim.width,
         height: dim.height,
-        minWidth: dim.width,
-        minHeight: dim.height,
         borderRadius,
-        transition: `all ${tokens.motion.micro}`,
-        opacity: disabled ? 0.45 : 1,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 0,
+        transition: `all ${tokens?.motion?.micro || "150ms ease"}`,
+        opacity: disabled ? 0.4 : 1,
+        cursor: disabled ? "not-allowed !important" : "pointer",
         "& .MuiSvgIcon-root": {
           fontSize: dim.iconSize
         },
         "&:focus-visible": {
-          outline: `2px solid ${c.primary}`,
+          outline: `2px solid ${c?.primary || "#2563eb"}`,
           outlineOffset: "2px"
         },
         ...getVariantStyles(),
@@ -131,11 +148,11 @@ export default function AppIconButton({
 
   if (tooltip) {
     return (
-      <Tooltip title={tooltip} arrow enterDelay={400}>
-        <span>{buttonElement}</span>
+      <Tooltip title={tooltip} arrow enterDelay={400} enterNextDelay={200}>
+        <span>{button}</span>
       </Tooltip>
     );
   }
 
-  return buttonElement;
+  return button;
 }
