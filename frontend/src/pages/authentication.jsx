@@ -123,7 +123,7 @@ export default function Authentication() {
 
   // Initialize Google Identity Services
   useEffect(() => {
-    const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID || "1028711463124-747vd73q7v6n5vfq96t5ks6d5n5p8m0n.apps.googleusercontent.com";
+    const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID || "968910378805-07msgdo5roiq6ko7em1mk8g237lebq6r.apps.googleusercontent.com";
 
     const handleGoogleCallback = async (response) => {
       if (response && response.credential) {
