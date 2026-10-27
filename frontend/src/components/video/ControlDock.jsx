@@ -53,7 +53,7 @@ export default function ControlDock({
   const [moreAnchor, setMoreAnchor] = useState(null);
   const timerRef = useRef(null);
 
-  const callTokens = tokens.colors.call;
+  const callTokens = tokens?.colors?.call || tokens?.call || {};
 
   useEffect(() => {
     if (isMobile) {
@@ -233,7 +233,7 @@ export default function ControlDock({
                   "&:hover": { bgcolor: isRecording ? callTokens.offStateHover : callTokens.dockIconHover }
                 }}
               >
-                {isRecording ? <StopOutlinedIcon sx={{ fontSize: 22 }} /> : <FiberManualRecordIcon sx={{ color: tokens.accent.dotRed, fontSize: 20 }} />}
+                {isRecording ? <StopOutlinedIcon sx={{ fontSize: 22 }} /> : <FiberManualRecordIcon sx={{ color: tokens?.accent?.dotRed || tokens?.colors?.accent?.dotRed || "#ef4444", fontSize: 20 }} />}
               </IconButton>
             </Tooltip>
           )}

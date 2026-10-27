@@ -44,7 +44,7 @@ export default function Lobby({
   onJoinMeeting
 }) {
   const videoRef = useRef(null);
-  const callTokens = tokens.colors.call;
+  const callTokens = tokens?.colors?.call || tokens?.call || {};
   const roomCode = window.location.pathname.replace(/^\//, "");
 
   useEffect(() => {

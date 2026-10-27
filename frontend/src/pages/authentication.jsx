@@ -81,7 +81,7 @@ export default function Authentication() {
 
     if (pass.length < 6) return { score: 1, label: "Too short (min 6 chars)", color: c.danger };
     if (score <= 1) return { score: 1, label: "Weak", color: c.danger };
-    if (score === 2) return { score: 2, label: "Fair", color: tokens.accent.dotAmber };
+    if (score === 2) return { score: 2, label: "Fair", color: tokens?.accent?.dotAmber || tokens?.colors?.accent?.dotAmber || "#f59e0b" };
     if (score === 3) return { score: 3, label: "Good", color: c.primary };
     return { score: 4, label: "Strong", color: c.success };
   };
@@ -340,7 +340,7 @@ export default function Authentication() {
           ariaLabel="Toggle theme"
         >
           {isDark ? (
-            <LightModeOutlinedIcon sx={{ color: tokens.accent.dotAmber }} />
+            <LightModeOutlinedIcon sx={{ color: tokens?.accent?.dotAmber || tokens?.colors?.accent?.dotAmber || "#f59e0b" }} />
           ) : (
             <DarkModeOutlinedIcon sx={{ color: c.textMuted }} />
           )}

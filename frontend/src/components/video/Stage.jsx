@@ -24,7 +24,7 @@ export default function Stage({
   onPinUser,
   onSpotlightUser
 }) {
-  const callTokens = tokens.colors.call;
+  const callTokens = tokens?.colors?.call || tokens?.call || {};
 
   // Collect all participants into a normalized list
   const participants = [

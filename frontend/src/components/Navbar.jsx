@@ -134,7 +134,7 @@ export default function Navbar() {
           ariaLabel="Toggle theme"
         >
           {isDark ? (
-            <LightModeOutlinedIcon sx={{ color: tokens.accent.dotAmber }} />
+            <LightModeOutlinedIcon sx={{ color: tokens?.accent?.dotAmber || tokens?.colors?.accent?.dotAmber || "#f59e0b" }} />
           ) : (
             <DarkModeOutlinedIcon sx={{ color: c.textMuted }} />
           )}
@@ -195,7 +195,7 @@ export default function Navbar() {
           ariaLabel="Toggle theme"
         >
           {isDark ? (
-            <LightModeOutlinedIcon sx={{ color: tokens.accent.dotAmber }} />
+            <LightModeOutlinedIcon sx={{ color: tokens?.accent?.dotAmber || tokens?.colors?.accent?.dotAmber || "#f59e0b" }} />
           ) : (
             <DarkModeOutlinedIcon sx={{ color: c.textMuted }} />
           )}

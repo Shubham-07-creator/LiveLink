@@ -25,7 +25,7 @@ export default function VideoTile({
   onSpotlight
 }) {
   const videoRef = useRef(null);
-  const callTokens = tokens.colors.call;
+  const callTokens = tokens?.colors?.call || tokens?.call || {};
 
   useEffect(() => {
     if (videoRef.current && stream) {
@@ -49,9 +49,9 @@ export default function VideoTile({
   };
 
   const getQualityColor = () => {
-    if (networkQuality === "Poor") return tokens.accent.dotRed;
-    if (networkQuality === "Weak") return tokens.accent.dotAmber;
-    return tokens.accent.dotGreen;
+    if (networkQuality === "Poor") return tokens?.accent?.dotRed || tokens?.colors?.accent?.dotRed || "#ef4444";
+    if (networkQuality === "Weak") return tokens?.accent?.dotAmber || tokens?.colors?.accent?.dotAmber || "#f59e0b";
+    return tokens?.accent?.dotGreen || tokens?.colors?.accent?.dotGreen || "#16a34a";
   };
 
   return (

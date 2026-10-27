@@ -525,7 +525,7 @@ function ProfilePage() {
                     }}
                   >
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                      <NetworkCheckOutlinedIcon sx={{ color: tokens.accent.dotAmber, fontSize: 22 }} />
+                      <NetworkCheckOutlinedIcon sx={{ color: tokens?.accent?.dotAmber || tokens?.colors?.accent?.dotAmber || "#f59e0b", fontSize: 22 }} />
                       <Box>
                         <Typography variant="body2" sx={{ fontWeight: 600, color: c.textHeading }}>
                           Adaptive bandwidth saver

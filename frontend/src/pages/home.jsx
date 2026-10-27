@@ -474,7 +474,7 @@ function HomeComponent() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: tokens.accent.dotAmber,
+                  color: tokens?.accent?.dotAmber || tokens?.colors?.accent?.dotAmber || "#f59e0b",
                   mb: 2
                 }}
               >

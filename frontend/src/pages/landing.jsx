@@ -141,7 +141,7 @@ export default function LandingPage() {
             ariaLabel="Toggle theme"
           >
             {isDark ? (
-              <LightModeOutlinedIcon sx={{ color: tokens.accent.dotAmber }} />
+              <LightModeOutlinedIcon sx={{ color: tokens?.accent?.dotAmber || tokens?.colors?.accent?.dotAmber || "#f59e0b" }} />
             ) : (
               <DarkModeOutlinedIcon sx={{ color: c.textMuted }} />
             )}
@@ -474,7 +474,7 @@ export default function LandingPage() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: tokens.accent.dotAmber,
+                    color: tokens?.accent?.dotAmber || tokens?.colors?.accent?.dotAmber || "#f59e0b",
                     mb: 2.5
                   }}
                 >
