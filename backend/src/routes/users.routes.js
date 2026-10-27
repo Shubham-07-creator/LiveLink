@@ -73,6 +73,7 @@ router.route("/forgot_password").post(authLimiter, validateBody(forgotPasswordSc
 router.route("/reset_password").post(authLimiter, validateBody(resetPasswordSchema), resetPassword);
 router.route("/verify_email").post(validateBody(verifyEmailSchema), verifyEmail);
 router.route("/send_verification").post(generalLimiter, sendVerificationEmail);
+router.route("/send_verification_email").post(generalLimiter, sendVerificationEmail);
 
 // User Profile & Database Preferences
 router.route("/profile")

@@ -34,10 +34,26 @@ app.use(helmet({
   contentSecurityPolicy: false
 }));
 
-// CORS configured to client origin with credentials support
-const clientOrigin = process.env.CLIENT_URL || "http://localhost:3000";
+// CORS configured with dynamic multi-origin support for local and deployed domains
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://livelink-svqx.onrender.com",
+  process.env.CLIENT_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: clientOrigin,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith(".onrender.com") ||
+      origin.startsWith("http://localhost:")
+    ) {
+      return callback(null, true);
+    }
+    return callback(new Error("CORS policy violation: " + origin));
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]

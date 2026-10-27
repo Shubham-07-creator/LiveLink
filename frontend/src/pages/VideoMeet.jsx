@@ -128,7 +128,8 @@ export default function VideoMeet() {
 
     useEffect(() => {
         if (isInMeeting) return;
-        const previewSocket = io.connect(server, { secure: false });
+        const isSecure = server.startsWith("https");
+        const previewSocket = io.connect(server, { secure: isSecure, withCredentials: true });
         previewSocket.emit("get-room-info", url);
         previewSocket.on("room-info", (data) => {
             if (data?.participants) setLobbyParticipants(data.participants);

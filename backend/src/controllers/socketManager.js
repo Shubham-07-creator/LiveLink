@@ -28,11 +28,26 @@ const isJoinRateLimited = (ip) => {
 };
 
 export const connectToSocket = (server) => {
-    const clientOrigin = process.env.CLIENT_URL || "http://localhost:3000";
+    const allowedOrigins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://livelink-svqx.onrender.com",
+        process.env.CLIENT_URL
+    ].filter(Boolean);
 
     const io = new Server(server, {
         cors: {
-            origin: clientOrigin,
+            origin: (origin, callback) => {
+                if (!origin) return callback(null, true);
+                if (
+                    allowedOrigins.includes(origin) ||
+                    origin.endsWith(".onrender.com") ||
+                    origin.startsWith("http://localhost:")
+                ) {
+                    return callback(null, true);
+                }
+                return callback(new Error("CORS policy violation: " + origin));
+            },
             methods: ["GET", "POST"],
             allowedHeaders: ["Content-Type", "Authorization"],
             credentials: true

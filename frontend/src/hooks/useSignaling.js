@@ -46,7 +46,8 @@ export default function useSignaling({
 
         const token = userData?.token || localStorage.getItem('token') || '';
         const avatar = userData?.avatar || null;
-        const socket = io.connect(server, { secure: false });
+        const isSecure = server.startsWith("https");
+        const socket = io.connect(server, { secure: isSecure, withCredentials: true });
         socketRef.current = socket;
 
         socket.on('connect', () => {
