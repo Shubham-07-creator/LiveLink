@@ -142,7 +142,7 @@ class ErrorBoundary extends React.Component {
                 </Button>
               </Box>
 
-              {process.env.NODE_ENV !== "production" && this.state.error && (
+              {this.state.error && (
                 <Box
                   sx={{
                     mt: 4,
