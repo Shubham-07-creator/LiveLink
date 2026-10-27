@@ -10,7 +10,7 @@ import { OAuth2Client } from "google-auth-library";
 
 const JWT_SECRET = process.env.JWT_SECRET || "LiveLinkSuperSecretJWTKey12345";
 const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || (JWT_SECRET + "_refresh_secret_key");
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "968910378805-07msgdo5roiq6ko7em1mk8g237lebq6r.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "968910378805-07msgdo5roiq6ko7em1mk8g2371ebq6r.apps.googleusercontent.com";
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // Access token (7 days)
