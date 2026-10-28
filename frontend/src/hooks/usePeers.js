@@ -143,7 +143,8 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
 
             const syncRemoteVideo = () => {
                 const freshStream = new MediaStream(streamToUse.getTracks());
-                const hasVideo = freshStream.getVideoTracks().some(t => t.enabled && t.readyState === "live");
+                const videoTracks = freshStream.getVideoTracks();
+                const hasVideo = videoTracks.length > 0 && videoTracks.some(t => t.enabled !== false);
 
                 setRemoteVideos(prev => {
                     const existingIndex = prev.findIndex(v => v.socketId === peerId);
