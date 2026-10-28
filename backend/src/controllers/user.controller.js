@@ -11,7 +11,7 @@ import { OAuth2Client } from "google-auth-library";
 const JWT_SECRET = process.env.JWT_SECRET || "LiveLinkSuperSecretJWTKey12345";
 const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET || (JWT_SECRET + "_refresh_secret_key");
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "968910378805-07msgdo5roiq6ko7em1mk8g2371ebq6r.apps.googleusercontent.com";
-const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+const googleClient = new OAuth2Client();
 
 // Access token (7 days)
 const generateAccessToken = (user) => {
@@ -241,30 +241,28 @@ const googleAuth = async (req, res) => {
     }
 
     try {
-        // Build resilient audience list supporting both corrected (2371ebq6r) and legacy env variants
-        const decoded = jwt.decode(credential);
-        const tokenAud = decoded?.aud;
-
-        const validAudiences = [
-            process.env.GOOGLE_CLIENT_ID,
-            "968910378805-07msgdo5roiq6ko7em1mk8g2371ebq6r.apps.googleusercontent.com",
-            "968910378805-07msgdo5roiq6ko7em1mk8g237lebq6r.apps.googleusercontent.com"
-        ].filter(Boolean);
-
-        if (tokenAud && typeof tokenAud === "string" && tokenAud.startsWith("968910378805") && !validAudiences.includes(tokenAud)) {
-            validAudiences.push(tokenAud);
-        }
-
-        // Verify Google ID Token with Google's public keys
+        // Cryptographically verify Google ID token signature with Google public certificates
         const ticket = await googleClient.verifyIdToken({
-            idToken: credential,
-            audience: validAudiences
+            idToken: credential
         });
 
         const payload = ticket.getPayload();
 
         if (!payload || !payload.email_verified) {
             return res.status(httpStatus.UNAUTHORIZED).json({ message: "Google account email is not verified" });
+        }
+
+        // Validate that token was issued for our Google Cloud project (968910378805)
+        const aud = payload.aud;
+        const azp = payload.azp;
+        const isProjectMatch = (
+            (typeof aud === "string" && aud.startsWith("968910378805")) ||
+            (typeof azp === "string" && azp.startsWith("968910378805")) ||
+            (Array.isArray(aud) && aud.some(a => typeof a === "string" && a.startsWith("968910378805")))
+        );
+
+        if (!isProjectMatch) {
+            return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid Google token recipient" });
         }
 
         const email = payload.email.trim().toLowerCase();
