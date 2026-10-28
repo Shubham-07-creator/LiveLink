@@ -15,6 +15,7 @@ import useHotkeys from '../hooks/useHotkeys';
 import Lobby from '../components/video/Lobby';
 import Stage from '../components/video/Stage';
 import TopBar from '../components/video/TopBar';
+import KeyboardShortcutsModal from '../components/video/KeyboardShortcutsModal';
 import ControlDock from '../components/video/ControlDock';
 import ChatDrawer from '../components/video/ChatDrawer';
 import PeopleDrawer from '../components/video/PeopleDrawer';
@@ -42,6 +43,7 @@ export default function VideoMeet() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [feedbackOpen, setFeedbackOpen] = useState(false);
     const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+    const [shortcutsOpen, setShortcutsOpen] = useState(false);
     const [controlsVisible, setControlsVisible] = useState(true);
     const [callDuration, setCallDuration] = useState(0);
 
@@ -86,10 +88,13 @@ export default function VideoMeet() {
     useHotkeys({
         onToggleAudio: media.toggleAudio,
         onToggleVideo: media.toggleVideo,
+        onToggleScreenShare: () => media.isScreenSharing ? media.stopScreenShare() : media.startScreenShare(),
         onToggleHand: () => signaling.toggleRaiseHand(displayName),
         onToggleChat: () => setChatOpen(prev => !prev),
+        onTogglePeople: () => setPeopleOpen(prev => !prev),
+        onToggleHelp: () => setShortcutsOpen(prev => !prev),
         onCloseModals: () => {
-            setChatOpen(false); setPeopleOpen(false); setSettingsOpen(false); setLeaveConfirmOpen(false);
+            setChatOpen(false); setPeopleOpen(false); setSettingsOpen(false); setLeaveConfirmOpen(false); setShortcutsOpen(false);
         },
         enabled: isInMeeting
     });
@@ -227,7 +232,8 @@ export default function VideoMeet() {
                     <TopBar roomCode={url} duration={callDuration} participantCount={peers.remoteVideos.length + 1}
                         isRecording={isRecording || signaling.remoteRecording.isRecording} isVisible={controlsVisible}
                         onCopyLink={() => { navigator.clipboard.writeText(window.location.href); setToast({ open: true, message: "Meeting link copied", severity: 'success' }); }}
-                        onTogglePeople={() => setPeopleOpen(d => !d)} />
+                        onTogglePeople={() => setPeopleOpen(d => !d)}
+                        onToggleHelp={() => setShortcutsOpen(s => !s)} />
 
                     <Stage localStream={media.localStream} screenStream={media.screenStream} isScreenSharing={media.isScreenSharing}
                         remoteVideos={peers.remoteVideos} localName={displayName} localAvatar={userData?.avatar}
@@ -264,6 +270,7 @@ export default function VideoMeet() {
                         audioInputDevices={media.audioInputDevices} audioOutputDevices={media.audioOutputDevices} selectedCamera={media.selectedCamera}
                         selectedMicrophone={media.selectedMicrophone} selectedSpeaker={media.selectedSpeaker} onSwitchCamera={media.switchCamera}
                         onSwitchMicrophone={media.switchMicrophone} onSwitchSpeaker={media.switchSpeaker} />
+                    <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
                 </>
             )}
 

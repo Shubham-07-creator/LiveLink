@@ -7,6 +7,7 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
+import KeyboardOutlinedIcon from "@mui/icons-material/KeyboardOutlined";
 import tokens from "../../tokens";
 
 export default function TopBar({
@@ -16,7 +17,8 @@ export default function TopBar({
   isRecording = false,
   isVisible = true,
   onCopyLink,
-  onTogglePeople
+  onTogglePeople,
+  onToggleHelp
 }) {
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -105,6 +107,28 @@ export default function TopBar({
             Encrypted peer-to-peer
           </Typography>
         </Box>
+
+        {/* Keyboard Shortcuts Trigger */}
+        {onToggleHelp && (
+          <Tooltip title="Keyboard shortcuts (?)">
+            <IconButton
+              onClick={onToggleHelp}
+              sx={{
+                display: { xs: "none", md: "flex" },
+                alignItems: "center",
+                p: "6px 10px",
+                borderRadius: tokens.radii.badge,
+                bgcolor: tokens.colors.call.dockBg,
+                backdropFilter: "blur(16px)",
+                border: `1px solid ${tokens.colors.call.dockBorder}`,
+                color: "#94a3b8",
+                "&:hover": { color: "#ffffff", bgcolor: "rgba(255, 255, 255, 0.12)" }
+              }}
+            >
+              <KeyboardOutlinedIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+        )}
 
         {/* Participant Count Button */}
         <Tooltip title="View participants">

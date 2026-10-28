@@ -574,7 +574,7 @@ function HomeComponent() {
               </Button>
             </Box>
 
-            <Card padding={2.5}>
+            <Card padding={2.5} sx={{ height: "100%", minHeight: { md: 460 }, display: "flex", flexDirection: "column" }}>
               {loadingScheduled ? (
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   <Skeleton variant="card" height={80} />
@@ -685,16 +685,18 @@ function HomeComponent() {
                   })}
                 </Box>
               ) : (
-                <EmptyState
-                  icon={<CalendarMonthOutlinedIcon />}
-                  title="No upcoming meetings scheduled"
-                  description="Schedule meetings in advance with dates, durations, and calendar sync."
-                  action={
-                    <Button variant="secondary" size="small" onClick={handleOpenSchedule}>
-                      Schedule one
-                    </Button>
-                  }
-                />
+                <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <EmptyState
+                    icon={<CalendarMonthOutlinedIcon />}
+                    title="No upcoming meetings scheduled"
+                    description="Schedule meetings in advance with dates, durations, and calendar sync."
+                    action={
+                      <Button variant="secondary" size="small" onClick={handleOpenSchedule}>
+                        Schedule one
+                      </Button>
+                    }
+                  />
+                </Box>
               )}
             </Card>
           </Grid>
@@ -722,7 +724,7 @@ function HomeComponent() {
               </Button>
             </Box>
 
-            <Card padding={2.5}>
+            <Card padding={2.5} sx={{ height: "100%", minHeight: { md: 460 }, display: "flex", flexDirection: "column" }}>
               {loadingHistory ? (
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   <Skeleton variant="card" height={60} />
@@ -791,10 +793,12 @@ function HomeComponent() {
                   })}
                 </Box>
               ) : (
-                <EmptyState
-                  title="No recent meetings"
-                  description="Meetings you create or join will appear here for easy rejoining."
-                />
+                <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <EmptyState
+                    title="No recent meetings"
+                    description="Meetings you create or join will appear here for easy rejoining."
+                  />
+                </Box>
               )}
             </Card>
           </Grid>
