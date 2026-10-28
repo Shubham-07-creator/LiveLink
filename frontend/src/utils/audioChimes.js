@@ -87,12 +87,13 @@ export const playChime = (type) => {
 };
 
 export const getInitials = (name) => {
-    if (!name) return "U";
-    const parts = name.trim().split(/\s+/);
+    if (!name || !name.trim()) return "U";
+    const trimmed = name.trim();
+    const parts = trimmed.split(/\s+/);
     if (parts.length >= 2) {
         return (parts[0][0] + parts[1][0]).toUpperCase();
     }
-    return name.slice(0, 2).toUpperCase();
+    return trimmed.slice(0, 2).toUpperCase();
 };
 
 export const getAvatarColor = (name) => {
