@@ -19,6 +19,8 @@ import ClosedCaptionDisabledOutlinedIcon from "@mui/icons-material/ClosedCaption
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import CallEndOutlinedIcon from "@mui/icons-material/CallEndOutlined";
 import MoreVertOutlinedIcon from "@mui/icons-material/MoreVertOutlined";
+import PictureInPictureAltOutlinedIcon from "@mui/icons-material/PictureInPictureAltOutlined";
+import SpeedOutlinedIcon from "@mui/icons-material/SpeedOutlined";
 
 import { IconButton } from "../ui";
 import tokens from "../../tokens";
@@ -45,7 +47,9 @@ export default function ControlDock({
   onToggleRecording,
   onOpenSettings,
   onLeaveCall,
-  onActivity
+  onActivity,
+  onTogglePiP,
+  onOpenDiagnostics
 }) {
   const isMobile = useMediaQuery("(max-width:600px)");
   const [isVisible, setIsVisible] = useState(true);
@@ -260,6 +264,32 @@ export default function ControlDock({
               <SettingsOutlinedIcon sx={{ fontSize: 22 }} />
             </IconButton>
           </Tooltip>
+
+          {onTogglePiP && document.pictureInPictureEnabled && (
+            <Tooltip title="Picture-in-picture">
+              <IconButton
+                size="normal"
+                shape="round"
+                onClick={onTogglePiP}
+                sx={{ bgcolor: callTokens.dockIconNormal, color: "#ffffff", "&:hover": { bgcolor: callTokens.dockIconHover } }}
+              >
+                <PictureInPictureAltOutlinedIcon sx={{ fontSize: 22 }} />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {onOpenDiagnostics && (
+            <Tooltip title="Call health & telemetry">
+              <IconButton
+                size="normal"
+                shape="round"
+                onClick={onOpenDiagnostics}
+                sx={{ bgcolor: callTokens.dockIconNormal, color: "#ffffff", "&:hover": { bgcolor: callTokens.dockIconHover } }}
+              >
+                <SpeedOutlinedIcon sx={{ fontSize: 22 }} />
+              </IconButton>
+            </Tooltip>
+          )}
         </>
       )}
 
@@ -387,6 +417,18 @@ export default function ControlDock({
           <ListItemIcon><SettingsOutlinedIcon sx={{ color: "#ffffff" }} /></ListItemIcon>
           <ListItemText>Device settings</ListItemText>
         </MenuItem>
+        {onTogglePiP && document.pictureInPictureEnabled && (
+          <MenuItem onClick={() => { onTogglePiP?.(); setMoreAnchor(null); }}>
+            <ListItemIcon><PictureInPictureAltOutlinedIcon sx={{ color: "#ffffff" }} /></ListItemIcon>
+            <ListItemText>Picture in picture</ListItemText>
+          </MenuItem>
+        )}
+        {onOpenDiagnostics && (
+          <MenuItem onClick={() => { onOpenDiagnostics?.(); setMoreAnchor(null); }}>
+            <ListItemIcon><SpeedOutlinedIcon sx={{ color: "#ffffff" }} /></ListItemIcon>
+            <ListItemText>Call diagnostics</ListItemText>
+          </MenuItem>
+        )}
       </Menu>
     </Box>
   );

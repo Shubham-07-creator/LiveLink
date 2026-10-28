@@ -11,11 +11,13 @@ import usePeers from '../hooks/usePeers';
 import useSignaling from '../hooks/useSignaling';
 import useStats from '../hooks/useStats';
 import useHotkeys from '../hooks/useHotkeys';
+import useVoiceActivity from '../hooks/useVoiceActivity';
 
 import Lobby from '../components/video/Lobby';
 import Stage from '../components/video/Stage';
 import TopBar from '../components/video/TopBar';
 import KeyboardShortcutsModal from '../components/video/KeyboardShortcutsModal';
+import NetworkDiagnosticsModal from '../components/video/NetworkDiagnosticsModal';
 import ControlDock from '../components/video/ControlDock';
 import ChatDrawer from '../components/video/ChatDrawer';
 import PeopleDrawer from '../components/video/PeopleDrawer';
@@ -44,6 +46,7 @@ export default function VideoMeet() {
     const [feedbackOpen, setFeedbackOpen] = useState(false);
     const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
+    const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
     const [controlsVisible, setControlsVisible] = useState(true);
     const [callDuration, setCallDuration] = useState(0);
 
@@ -114,6 +117,10 @@ export default function VideoMeet() {
     peersRef.current = peers;
     const stats = useStats({ peersRef: peers.peersRef, isCallActive: isInMeeting });
 
+    // Client-side real-time voice activity detection (VAD) for active speaker pulse
+    const { localSpeaking, speakingPeers } = useVoiceActivity(media.localStream, !media.audioEnabled, peers.remoteVideos);
+    const combinedSpeakingPeers = { ...stats.activeSpeakingPeers, ...speakingPeers };
+
     useHotkeys({
         onToggleAudio: media.toggleAudio,
         onToggleVideo: media.toggleVideo,
@@ -123,7 +130,7 @@ export default function VideoMeet() {
         onTogglePeople: () => setPeopleOpen(prev => !prev),
         onToggleHelp: () => setShortcutsOpen(prev => !prev),
         onCloseModals: () => {
-            setChatOpen(false); setPeopleOpen(false); setSettingsOpen(false); setLeaveConfirmOpen(false); setShortcutsOpen(false);
+            setChatOpen(false); setPeopleOpen(false); setSettingsOpen(false); setLeaveConfirmOpen(false); setShortcutsOpen(false); setDiagnosticsOpen(false);
         },
         enabled: isInMeeting
     });
@@ -213,12 +220,38 @@ export default function VideoMeet() {
         }
         const rec = new SpeechRec();
         rec.continuous = true; rec.interimResults = true;
-        rec.onresult = (e) => setCaptionText(Array.from(e.results).map(r => r[0].transcript).join(''));
+        rec.onresult = (e) => {
+            const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
+            setCaptionText(transcript);
+            signaling.sendCaption?.(transcript, displayName);
+        };
         rec.onerror = () => setCaptionsActive(false);
         rec.start();
         recognitionRef.current = rec;
         setCaptionsActive(true);
-    }, [captionsActive]);
+    }, [captionsActive, displayName, signaling]);
+
+    const togglePiP = useCallback(async () => {
+        if (!document.pictureInPictureEnabled) {
+            setToast({ open: true, message: "Picture-in-picture is not supported in this browser.", severity: 'warning' });
+            return;
+        }
+        try {
+            if (document.pictureInPictureElement) {
+                await document.exitPictureInPicture();
+            } else {
+                const videoEls = document.querySelectorAll('video');
+                const targetVideo = Array.from(videoEls).find(v => !v.muted && v.srcObject) || videoEls[0];
+                if (targetVideo) {
+                    await targetVideo.requestPictureInPicture();
+                } else {
+                    setToast({ open: true, message: "No active video stream available for PiP.", severity: 'info' });
+                }
+            }
+        } catch (err) {
+            console.warn("PiP toggle error:", err);
+        }
+    }, []);
 
     const toggleRecording = useCallback(() => {
         if (isRecording) {
@@ -283,13 +316,15 @@ export default function VideoMeet() {
                         isRecording={isRecording || signaling.remoteRecording.isRecording} isVisible={controlsVisible}
                         onCopyLink={() => { navigator.clipboard.writeText(window.location.href); setToast({ open: true, message: "Meeting link copied", severity: 'success' }); }}
                         onTogglePeople={() => setPeopleOpen(d => !d)}
-                        onToggleHelp={() => setShortcutsOpen(s => !s)} />
+                        onToggleHelp={() => setShortcutsOpen(s => !s)}
+                        onOpenDiagnostics={() => setDiagnosticsOpen(true)} />
 
                     <Stage localStream={media.localStream} screenStream={media.screenStream} isScreenSharing={media.isScreenSharing}
                         remoteVideos={peers.remoteVideos} localName={displayName} localAvatar={userData?.avatar}
                         localSocketId={currentLocalSocketId}
-                        videoEnabled={media.videoEnabled} audioEnabled={media.audioEnabled} localSpeaking={media.audioVolume > 15 && media.audioEnabled}
-                        activeSpeakingPeers={stats.activeSpeakingPeers} peerQualities={stats.peerQualities} overallQuality={stats.overallQuality}
+                        videoEnabled={media.videoEnabled} audioEnabled={media.audioEnabled}
+                        localSpeaking={localSpeaking || (media.audioVolume > 15 && media.audioEnabled)}
+                        activeSpeakingPeers={combinedSpeakingPeers} peerQualities={stats.peerQualities} overallQuality={stats.overallQuality}
                         raisedHands={signaling.raisedHands} isLocalHandRaised={signaling.isHandRaised} viewMode={viewMode}
                         pinnedUser={pinnedUser} spotlightUser={signaling.spotlightUser} onPinUser={setPinnedUser} onSpotlightUser={signaling.spotlightParticipant} />
 
@@ -302,7 +337,9 @@ export default function VideoMeet() {
                         onToggleChat={() => { setChatOpen(d => !d); signaling.setNewMessagesCount(0); }}
                         onTogglePeople={() => setPeopleOpen(d => !d)} onToggleRecording={toggleRecording}
                         onOpenSettings={() => setSettingsOpen(true)} onLeaveCall={() => setLeaveConfirmOpen(true)}
-                        onActivity={setControlsVisible} />
+                        onActivity={setControlsVisible}
+                        onTogglePiP={togglePiP}
+                        onOpenDiagnostics={() => setDiagnosticsOpen(true)} />
 
                     <FloatingReactions reactions={signaling.reactions} />
                     <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} messages={signaling.messages}
@@ -314,7 +351,10 @@ export default function VideoMeet() {
                         onLockRoom={signaling.lockRoom} onMuteAll={signaling.muteAll} onAdmitUser={signaling.admitUser}
                         onDenyUser={signaling.denyUser} onMuteParticipant={signaling.muteParticipant} onRemoveParticipant={signaling.removeParticipant} />
 
-                    <CaptionsOverlay active={captionsActive} currentTranscript={captionText} />
+                    <CaptionsOverlay
+                        active={captionsActive || Boolean(signaling.remoteCaption?.text)}
+                        currentTranscript={captionText || signaling.remoteCaption?.text || ''}
+                        speakerName={captionText ? 'You' : (signaling.remoteCaption?.speaker || '')} />
                     <ReconnectingBanner isReconnecting={peers.isReconnecting} reconnectFailed={peers.reconnectFailed} onRetry={() => window.location.reload()} onLeave={() => navigate('/')} />
                     <WaitingRoomModal isWaiting={signaling.isWaitingForAdmission} isDenied={signaling.admissionDenied} onLeave={() => navigate('/')} />
                     <DeviceSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} videoDevices={media.videoDevices}
@@ -322,6 +362,7 @@ export default function VideoMeet() {
                         selectedMicrophone={media.selectedMicrophone} selectedSpeaker={media.selectedSpeaker} onSwitchCamera={media.switchCamera}
                         onSwitchMicrophone={media.switchMicrophone} onSwitchSpeaker={media.switchSpeaker} />
                     <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+                    <NetworkDiagnosticsModal open={diagnosticsOpen} onClose={() => setDiagnosticsOpen(false)} statsSummary={stats.statsSummary} overallQuality={stats.overallQuality} />
                 </>
             )}
 

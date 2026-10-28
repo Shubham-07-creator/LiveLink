@@ -356,6 +356,21 @@ export const connectToSocket = (server) => {
             }
         });
 
+        // LIVE CLOSED CAPTIONS RELAY (Google Meet Style Real-Time Subtitles)
+        socket.on("live-caption", (transcript, speaker) => {
+            if (typeof transcript !== "string" || !transcript.trim()) return;
+            const safeTranscript = transcript.slice(0, 300);
+            const safeSpeaker = typeof speaker === "string" ? speaker.slice(0, 50) : (userNames[socket.id] || "Participant");
+            const [matchingRoom, found] = getSocketRoom(socket.id);
+            if (found) {
+                connections[matchingRoom].forEach((elem) => {
+                    if (elem !== socket.id) {
+                        io.to(elem).emit("remote-caption", { text: safeTranscript, speaker: safeSpeaker, socketId: socket.id });
+                    }
+                });
+            }
+        });
+
         socket.on("reaction", (emoji, sender) => {
             if (typeof emoji !== "string" || emoji.length > 8) return;
 

@@ -29,8 +29,10 @@ export default function useSignaling({
     const [admissionDenied, setAdmissionDenied] = useState(false);
     const [spotlightUser, setSpotlightUser] = useState(null);
     const [remoteRecording, setRemoteRecording] = useState({ isRecording: false, host: '' });
+    const [remoteCaption, setRemoteCaption] = useState(null);
 
     const typingTimeoutRef = useRef(null);
+    const captionTimeoutRef = useRef(null);
 
     // Keep active callbacks in ref to eliminate stale React closures
     const callbacksRef = useRef({});
@@ -168,6 +170,15 @@ export default function useSignaling({
         socket.on('recording-status', ({ isRecording, host }) => {
             setRemoteRecording({ isRecording, host: host || 'Host' });
         });
+
+        // Live captions from other participants
+        socket.on('remote-caption', (data) => {
+            setRemoteCaption(data);
+            if (captionTimeoutRef.current) clearTimeout(captionTimeoutRef.current);
+            captionTimeoutRef.current = setTimeout(() => {
+                setRemoteCaption(null);
+            }, 4000);
+        });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [roomUrl, userData, hostSocketId]);
 
@@ -232,6 +243,10 @@ export default function useSignaling({
         socketRef.current?.emit('recording-stopped');
     }, []);
 
+    const sendCaption = useCallback((transcript, speaker) => {
+        socketRef.current?.emit('live-caption', transcript, speaker);
+    }, []);
+
     const disconnect = useCallback(() => {
         if (socketRef.current) {
             socketRef.current.disconnect();
@@ -261,6 +276,8 @@ export default function useSignaling({
         admissionDenied,
         spotlightUser,
         remoteRecording,
+        remoteCaption,
+        sendCaption,
         connect,
         sendSignal,
         sendMessage,

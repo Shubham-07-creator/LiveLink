@@ -5,6 +5,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
+import compression from "compression";
 import dns from "node:dns";
 
 import { connectToSocket } from "./controllers/socketManager.js";
@@ -46,6 +47,9 @@ const allowedOrigins = [
   "https://livelink-svqx.onrender.com",
   process.env.CLIENT_URL
 ].filter(Boolean);
+
+// Enable GZIP compression for all responses (reduces JSON payload size by ~70%)
+app.use(compression());
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -89,7 +93,7 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.json({
     status: "healthy",
-    version: "2.3.0-high-perf-webrtc",
+    version: "2.4.0-maang-features-speed",
     uptime: process.uptime(),
     timestamp: new Date().toISOString()
   });

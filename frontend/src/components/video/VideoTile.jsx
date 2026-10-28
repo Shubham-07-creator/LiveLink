@@ -84,11 +84,12 @@ export default function VideoTile({
         alignItems: "center",
         justifyContent: "center",
         border: isSpeaking
-          ? `2px solid ${callTokens.activeSpeaker}`
+          ? `2px solid ${callTokens.activeSpeaker || "#3b82f6"}`
           : isSpotlighted
           ? "2px solid #f59e0b"
           : "1px solid rgba(255, 255, 255, 0.08)",
-        boxShadow: isSpeaking ? callTokens.activeSpeakerGlow : "none",
+        boxShadow: isSpeaking ? (callTokens.activeSpeakerGlow || "0 0 0 3px #3b82f6, 0 0 20px rgba(59, 130, 246, 0.5)") : "none",
+        animation: isSpeaking ? "pulseGlow 1.8s ease-in-out infinite" : "none",
         transition: `border 0.2s ease, box-shadow 0.2s ease`
       }}
     >
@@ -258,6 +259,21 @@ export default function VideoTile({
         >
           {name} {isLocal && "(You)"}
         </Typography>
+        {isSpeaking && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "flex-end",
+              gap: "2.5px",
+              height: "12px",
+              px: 0.5
+            }}
+          >
+            <Box sx={{ width: "2.5px", height: "100%", bgcolor: "#60a5fa", borderRadius: "1px", animation: "soundWave 0.5s ease-in-out infinite alternate" }} />
+            <Box sx={{ width: "2.5px", height: "60%", bgcolor: "#93c5fd", borderRadius: "1px", animation: "soundWave 0.5s ease-in-out 0.15s infinite alternate" }} />
+            <Box sx={{ width: "2.5px", height: "80%", bgcolor: "#3b82f6", borderRadius: "1px", animation: "soundWave 0.5s ease-in-out 0.3s infinite alternate" }} />
+          </Box>
+        )}
         {isMuted && (
           <MicOffOutlinedIcon sx={{ color: callTokens.offState, fontSize: 16 }} />
         )}

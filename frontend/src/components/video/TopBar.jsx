@@ -18,7 +18,8 @@ export default function TopBar({
   isVisible = true,
   onCopyLink,
   onTogglePeople,
-  onToggleHelp
+  onToggleHelp,
+  onOpenDiagnostics
 }) {
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -88,25 +89,31 @@ export default function TopBar({
 
       {/* Right: Security Badge + Participant Count */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-        {/* Encrypted peer-to-peer badge */}
-        <Box
-          sx={{
-            display: { xs: "none", sm: "flex" },
-            alignItems: "center",
-            gap: 1,
-            p: "6px 14px",
-            borderRadius: tokens.radii.badge,
-            bgcolor: tokens.colors.call.dockBg,
-            backdropFilter: "blur(16px)",
-            border: `1px solid ${tokens.colors.call.dockBorder}`
-          }}
-        >
-          <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: tokens?.accent?.dotGreen || tokens?.colors?.accent?.dotGreen || "#16a34a" }} />
-          <LockOutlinedIcon sx={{ fontSize: 15, color: "#cbd5e1" }} />
-          <Typography sx={{ fontSize: "12px", fontWeight: 600, color: "#cbd5e1" }}>
-            Encrypted peer-to-peer
-          </Typography>
-        </Box>
+        {/* Encrypted peer-to-peer badge (Click to view live network diagnostics) */}
+        <Tooltip title="Call Health & Network Diagnostics (MAANG Telemetry)">
+          <Box
+            onClick={onOpenDiagnostics}
+            sx={{
+              display: { xs: "none", sm: "flex" },
+              alignItems: "center",
+              gap: 1,
+              p: "6px 14px",
+              borderRadius: tokens.radii.badge,
+              bgcolor: tokens.colors.call.dockBg,
+              backdropFilter: "blur(16px)",
+              border: `1px solid ${tokens.colors.call.dockBorder}`,
+              cursor: onOpenDiagnostics ? "pointer" : "default",
+              transition: "background-color 0.15s ease",
+              "&:hover": onOpenDiagnostics ? { bgcolor: "rgba(255, 255, 255, 0.12)" } : {}
+            }}
+          >
+            <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: tokens?.accent?.dotGreen || tokens?.colors?.accent?.dotGreen || "#16a34a" }} />
+            <LockOutlinedIcon sx={{ fontSize: 15, color: "#cbd5e1" }} />
+            <Typography sx={{ fontSize: "12px", fontWeight: 600, color: "#cbd5e1" }}>
+              Encrypted peer-to-peer
+            </Typography>
+          </Box>
+        </Tooltip>
 
         {/* Keyboard Shortcuts Trigger */}
         {onToggleHelp && (
