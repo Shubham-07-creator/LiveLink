@@ -421,7 +421,7 @@ function ProfilePage() {
                     sx={{
                       p: 2,
                       borderRadius: tokens.radii.button,
-                      bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : "#f8fafc",
+                      bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : c.primarySoftBg,
                       border: `1px solid ${c.border}`,
                       display: "flex",
                       alignItems: "center",
@@ -453,7 +453,7 @@ function ProfilePage() {
                     sx={{
                       p: 2,
                       borderRadius: tokens.radii.button,
-                      bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : "#f8fafc",
+                      bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : c.primarySoftBg,
                       border: `1px solid ${c.border}`,
                       display: "flex",
                       alignItems: "center",
@@ -485,7 +485,7 @@ function ProfilePage() {
                     sx={{
                       p: 2,
                       borderRadius: tokens.radii.button,
-                      bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : "#f8fafc",
+                      bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : c.primarySoftBg,
                       border: `1px solid ${c.border}`,
                       display: "flex",
                       alignItems: "center",
@@ -517,7 +517,7 @@ function ProfilePage() {
                     sx={{
                       p: 2,
                       borderRadius: tokens.radii.button,
-                      bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : "#f8fafc",
+                      bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : c.primarySoftBg,
                       border: `1px solid ${c.border}`,
                       display: "flex",
                       alignItems: "center",

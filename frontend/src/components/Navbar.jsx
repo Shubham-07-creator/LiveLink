@@ -243,7 +243,7 @@ export default function Navbar() {
           <Box
             sx={{
               p: 2,
-              backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "#f8fafc",
+              backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : c.primarySoftBg,
               borderRadius: tokens.radii.button,
               border: `1px solid ${c.border}`,
               mb: 2,

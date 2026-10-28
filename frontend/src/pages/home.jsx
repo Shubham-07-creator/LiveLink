@@ -287,7 +287,7 @@ function HomeComponent() {
                 transition: `all ${tokens.motion.micro}`,
                 "&:hover": {
                   borderColor: c.primary,
-                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "#f8fafc"
+                  backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : c.primarySoftBg
                 }
               }}
             >
@@ -753,7 +753,7 @@ function HomeComponent() {
                           justifyContent: "space-between",
                           p: 1.5,
                           borderRadius: tokens.radii.button,
-                          bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : "#f8fafc",
+                          bgcolor: isDark ? "rgba(255, 255, 255, 0.03)" : c.primarySoftBg,
                           border: `1px solid ${c.border}`,
                           gap: 1.5
                         }}
