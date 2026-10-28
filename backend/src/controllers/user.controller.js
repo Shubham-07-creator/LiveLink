@@ -319,7 +319,7 @@ const getUserProfile = async (req, res) => {
     try {
         const user = await findUserFromToken(token);
         if (!user) {
-            return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+            return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid or expired session. Please sign in again." });
         }
 
         const totalMeetings = await Meeting.countDocuments({ user_id: user.username });
@@ -365,7 +365,7 @@ const updateUserProfile = async (req, res) => {
     try {
         const user = await findUserFromToken(token);
         if (!user) {
-            return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+            return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid or expired session. Please sign in again." });
         }
 
         if (name && name.trim()) user.name = name.trim();
@@ -402,7 +402,7 @@ const updatePreferences = async (req, res) => {
     try {
         const user = await findUserFromToken(token);
         if (!user) {
-            return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+            return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid or expired session. Please sign in again." });
         }
 
         user.preferences = {
@@ -505,7 +505,7 @@ const sendVerificationEmail = async (req, res) => {
 
     try {
         const user = await findUserFromToken(token);
-        if (!user) return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+        if (!user) return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid or expired session. Please sign in again." });
         if (user.emailVerified) return res.status(httpStatus.BAD_REQUEST).json({ message: "Email is already verified." });
 
         const verifyToken = crypto.randomBytes(32).toString("hex");
@@ -534,7 +534,7 @@ const scheduleMeeting = async (req, res) => {
     const { title, meetingCode, startTime, durationMinutes, description } = req.body;
     try {
         const user = await findUserFromToken(token);
-        if (!user) return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+        if (!user) return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid or expired session. Please sign in again." });
 
         const scheduled = new ScheduledMeeting({
             user_id: user.username,
@@ -561,7 +561,7 @@ const getScheduledMeetings = async (req, res) => {
 
     try {
         const user = await findUserFromToken(token);
-        if (!user) return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+        if (!user) return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid or expired session. Please sign in again." });
 
         const scheduled = await ScheduledMeeting.find({ user_id: user.username }).sort({ startTime: 1 });
         return res.status(httpStatus.OK).json(scheduled);
@@ -578,7 +578,7 @@ const deleteScheduledMeeting = async (req, res) => {
     if (!id) return res.status(httpStatus.BAD_REQUEST).json({ message: "Meeting ID required" });
     try {
         const user = await findUserFromToken(token);
-        if (!user) return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+        if (!user) return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid or expired session. Please sign in again." });
 
         await ScheduledMeeting.deleteOne({ _id: id, user_id: user.username });
         return res.status(httpStatus.OK).json({ message: "Scheduled meeting deleted successfully" });
@@ -622,7 +622,7 @@ const getUserHistory = async (req, res) => {
     try {
         const user = await findUserFromToken(token);
         if (!user) {
-            return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+            return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid or expired session. Please sign in again." });
         }
         const meetings = await Meeting.find({ user_id: user.username }).sort({ date: -1 });
         return res.json(meetings);
@@ -642,7 +642,7 @@ const addToHistory = async (req, res) => {
     try {
         const user = await findUserFromToken(token);
         if (!user) {
-            return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+            return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid or expired session. Please sign in again." });
         }
 
         const newMeeting = new Meeting({
@@ -671,7 +671,7 @@ const deleteHistory = async (req, res) => {
     try {
         const user = await findUserFromToken(token);
         if (!user) {
-            return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+            return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid or expired session. Please sign in again." });
         }
 
         await Meeting.deleteOne({
@@ -711,7 +711,7 @@ const logoutAllDevices = async (req, res) => {
 
     try {
         const user = await findUserFromToken(token);
-        if (!user) return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+        if (!user) return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid or expired session. Please sign in again." });
 
         user.token = null;
         user.refreshToken = null;
@@ -734,7 +734,7 @@ const deleteAccount = async (req, res) => {
 
     try {
         const user = await findUserFromToken(token);
-        if (!user) return res.status(httpStatus.NOT_FOUND).json({ message: "User not found" });
+        if (!user) return res.status(httpStatus.UNAUTHORIZED).json({ message: "Invalid or expired session. Please sign in again." });
 
         await Meeting.deleteMany({ user_id: user.username });
         await ScheduledMeeting.deleteMany({ user_id: user.username });

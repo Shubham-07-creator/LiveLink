@@ -11,7 +11,12 @@ import { connectToSocket } from "./controllers/socketManager.js";
 import userRoutes from "./routes/users.routes.js";
 import logger from "./utils/logger.js";
 
-dotenv.config();
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config(); // fallback to current working directory if present
 
 // Ensure SRV DNS resolution works reliably across all Windows network adapters
 try {
