@@ -142,8 +142,21 @@ export default function VideoMeet() {
     }, [isInMeeting, peers.remoteVideos.length, media.audioVolume, media.audioEnabled, media.isScreenSharing, isMobile, stats.overallQuality, peers]);
 
     useEffect(() => {
+        try {
+            const cachedIce = sessionStorage.getItem("livelink_ice_servers");
+            if (cachedIce) {
+                const parsed = JSON.parse(cachedIce);
+                if (Array.isArray(parsed) && parsed.length) peers.setIceServers(parsed);
+            }
+        } catch (e) {}
+
         axios.get(`${server}/api/v1/users/ice_servers`, { withCredentials: true })
-            .then(res => { if (res.data?.iceServers?.length) peers.setIceServers(res.data.iceServers); })
+            .then(res => {
+                if (res.data?.iceServers?.length) {
+                    peers.setIceServers(res.data.iceServers);
+                    try { sessionStorage.setItem("livelink_ice_servers", JSON.stringify(res.data.iceServers)); } catch (e) {}
+                }
+            })
             .catch(() => {});
         media.initMedia();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -163,7 +176,11 @@ export default function VideoMeet() {
     useEffect(() => {
         if (isInMeeting) return;
         const isSecure = server.startsWith("https");
-        const previewSocket = io.connect(server, { secure: isSecure, withCredentials: true });
+        const previewSocket = io.connect(server, {
+            secure: isSecure,
+            withCredentials: true,
+            transports: ['websocket', 'polling']
+        });
         previewSocket.emit("get-room-info", url);
         previewSocket.on("room-info", (data) => {
             if (data?.participants) setLobbyParticipants(data.participants);

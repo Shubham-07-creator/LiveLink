@@ -86,7 +86,12 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
         }
 
         const isPolite = currentMyId ? (currentMyId > peerId) : true;
-        const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
+        const pc = new RTCPeerConnection({
+            iceServers: iceServersRef.current,
+            bundlePolicy: "max-bundle",
+            rtcpMuxPolicy: "require",
+            iceCandidatePoolSize: 6
+        });
 
         const peerEntry = {
             pc,
@@ -110,6 +115,38 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
                     peerEntry.senders[track.kind] = pc.addTrack(track, activeStream);
                 } catch (e) {}
             });
+        }
+
+        // Hardware-Accelerated Codec Optimization (VP8 & H264 Prioritization)
+        try {
+            if (typeof RTCRtpSender.getCapabilities === "function") {
+                const capabilities = RTCRtpSender.getCapabilities("video");
+                if (capabilities && Array.isArray(capabilities.codecs)) {
+                    const preferred = capabilities.codecs.filter(c => 
+                        c.mimeType.toLowerCase() === "video/vp8" || 
+                        c.mimeType.toLowerCase() === "video/h264"
+                    );
+                    const others = capabilities.codecs.filter(c => !preferred.includes(c));
+                    const sortedCodecs = [...preferred, ...others];
+
+                    pc.getTransceivers().forEach(transceiver => {
+                        if (transceiver.sender?.track?.kind === "video" && typeof transceiver.setCodecPreferences === "function") {
+                            try { transceiver.setCodecPreferences(sortedCodecs); } catch (e) {}
+                        }
+                    });
+                }
+            }
+        } catch (e) {}
+
+        // Enforce maintain-framerate for buttery-smooth video transmission
+        if (peerEntry.senders['video'] && typeof peerEntry.senders['video'].getParameters === 'function') {
+            try {
+                const params = peerEntry.senders['video'].getParameters();
+                params.degradationPreference = 'maintain-framerate';
+                if (!params.encodings || params.encodings.length === 0) params.encodings = [{}];
+                params.encodings[0].networkPriority = 'high';
+                peerEntry.senders['video'].setParameters(params).catch(() => {});
+            } catch (e) {}
         }
 
         pc.onnegotiationneeded = async () => {
@@ -272,10 +309,12 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
             if (videoSender && typeof videoSender.getParameters === 'function') {
                 try {
                     const params = videoSender.getParameters();
+                    params.degradationPreference = 'maintain-framerate';
                     if (!params.encodings || params.encodings.length === 0) params.encodings = [{}];
                     params.encodings[0].maxBitrate = targetBitrate;
                     params.encodings[0].maxFramerate = targetFps;
                     params.encodings[0].scaleResolutionDownBy = targetScale;
+                    params.encodings[0].networkPriority = 'high';
                     await videoSender.setParameters(params);
                 } catch (e) {}
             }

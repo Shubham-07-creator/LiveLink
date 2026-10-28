@@ -89,7 +89,7 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.json({
     status: "healthy",
-    version: "2.2.0-webrtc-p2p-fixed",
+    version: "2.3.0-high-perf-webrtc",
     uptime: process.uptime(),
     timestamp: new Date().toISOString()
   });

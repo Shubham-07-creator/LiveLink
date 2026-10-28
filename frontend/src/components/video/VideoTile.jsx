@@ -102,7 +102,9 @@ export default function VideoTile({
           width: "100%",
           height: "100%",
           objectFit: "cover",
-          transform: isLocal ? "scaleX(-1)" : "none",
+          transform: isLocal ? "scaleX(-1) translateZ(0)" : "translateZ(0)",
+          willChange: "transform",
+          backfaceVisibility: "hidden",
           display: isVideoOff ? "none" : "block"
         }}
       />

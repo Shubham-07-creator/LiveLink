@@ -10,6 +10,9 @@ let timeOnline = {};
 let userNames = {};
 let userAvatars = {};
 
+// Fast O(1) reverse lookup: socket.id -> room code
+const socketToRoom = new Map();
+
 // Host Controls & Waiting Room State
 let roomHosts = {};
 let roomLocked = {};
@@ -49,6 +52,10 @@ export const connectToSocket = (server) => {
     ].filter(Boolean);
 
     const io = new Server(server, {
+        transports: ["websocket", "polling"],
+        perMessageDeflate: false, // Low-latency WebRTC signaling without zlib compression overhead
+        pingInterval: 10000,
+        pingTimeout: 5000,
         cors: {
             origin: (origin, callback) => {
                 if (!origin) return callback(null, true);
@@ -67,17 +74,19 @@ export const connectToSocket = (server) => {
         }
     });
 
-    // Helper to find the room a socket belongs to
+    // Helper to find the room a socket belongs to (O(1) fast lookup)
     const getSocketRoom = (socketId) => {
-        return Object.entries(connections).reduce(
-            ([room, isFound], [roomKey, roomValue]) => {
-                if (!isFound && roomValue.includes(socketId)) {
-                    return [roomKey, true];
-                }
-                return [room, isFound];
-            },
-            ["", false]
-        );
+        const cached = socketToRoom.get(socketId);
+        if (cached && connections[cached] && connections[cached].includes(socketId)) {
+            return [cached, true];
+        }
+        for (const [roomKey, roomValue] of Object.entries(connections)) {
+            if (roomValue.includes(socketId)) {
+                socketToRoom.set(socketId, roomKey);
+                return [roomKey, true];
+            }
+        }
+        return ["", false];
     };
 
     // Validate JWT in Socket.IO middleware if token provided
@@ -222,6 +231,7 @@ export const connectToSocket = (server) => {
             if (!connections[path].includes(socket.id)) {
                 connections[path].push(socket.id);
             }
+            socketToRoom.set(socket.id, path);
 
             userNames[socket.id] = safeUsername || "User";
             userAvatars[socket.id] = safeAvatar;
@@ -518,6 +528,7 @@ export const connectToSocket = (server) => {
             if (index !== -1) {
                 connections[matchingRoom].splice(index, 1);
             }
+            socketToRoom.delete(targetSocketId);
 
             connections[matchingRoom].forEach((elem) => {
                 io.to(elem).emit("user-left", targetSocketId);
@@ -558,6 +569,7 @@ export const connectToSocket = (server) => {
                 delete userNames[socket.id];
                 delete userAvatars[socket.id];
                 delete timeOnline[socket.id];
+                socketToRoom.delete(socket.id);
 
                 // HOST REASSIGNMENT: If host leaves, designate next oldest participant
                 if (roomHosts[key] === socket.id) {

@@ -59,7 +59,15 @@ export default function useSignaling({
         const token = userData?.token || localStorage.getItem('token') || '';
         const avatar = userData?.avatar || null;
         const isSecure = server.startsWith("https");
-        const socket = io.connect(server, { secure: isSecure, withCredentials: true });
+        const socket = io.connect(server, {
+            secure: isSecure,
+            withCredentials: true,
+            transports: ['websocket', 'polling'],
+            upgrade: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 500,
+            timeout: 8000
+        });
         socketRef.current = socket;
 
         socket.on('connect', () => {

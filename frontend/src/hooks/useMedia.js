@@ -1,7 +1,22 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createSilenceTrack, createBlackVideoTrack } from '../utils/mediaFallback';
 
-const AUDIO_CONSTRAINTS = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+const AUDIO_CONSTRAINTS = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+    channelCount: 1,
+    sampleRate: 48000,
+    latency: { ideal: 0.01, max: 0.05 }
+};
+
+const getVideoConstraints = (cameraId) => ({
+    ...(cameraId ? { deviceId: { exact: cameraId } } : {}),
+    width: { ideal: 1280, max: 1920 },
+    height: { ideal: 720, max: 1080 },
+    frameRate: { ideal: 30, min: 24, max: 30 },
+    facingMode: "user"
+});
 
 export default function useMedia({ onTrackReplaced, onSpeakingStateChange } = {}) {
     const [localStream, setLocalStream] = useState(null);
@@ -77,7 +92,7 @@ export default function useMedia({ onTrackReplaced, onSpeakingStateChange } = {}
     const initMedia = useCallback(async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: selectedCamera ? { deviceId: { exact: selectedCamera }, width: { ideal: 1280 } } : { width: { ideal: 1280 } },
+                video: getVideoConstraints(selectedCamera),
                 audio: selectedMicrophone ? { deviceId: { exact: selectedMicrophone }, ...AUDIO_CONSTRAINTS } : AUDIO_CONSTRAINTS
             });
             localStreamRef.current = stream;
@@ -119,7 +134,7 @@ export default function useMedia({ onTrackReplaced, onSpeakingStateChange } = {}
         setSelectedCamera(deviceId);
         if (!localStreamRef.current) return;
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } } });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: getVideoConstraints(deviceId) });
             const newTrack = stream.getVideoTracks()[0];
             const oldTrack = localStreamRef.current.getVideoTracks()[0];
             if (oldTrack) { localStreamRef.current.removeTrack(oldTrack); oldTrack.stop(); }
