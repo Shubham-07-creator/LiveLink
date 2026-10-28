@@ -284,7 +284,10 @@ const googleAuth = async (req, res) => {
         if (user) {
             if (!user.googleId) user.googleId = googleId;
             user.emailVerified = true;
-            if (avatar && (!user.avatar || user.avatar.includes("dicebear"))) {
+            if (name) {
+                user.name = name;
+            }
+            if (avatar) {
                 user.avatar = avatar;
             }
         } else {
@@ -318,12 +321,14 @@ const googleAuth = async (req, res) => {
         return res.status(httpStatus.OK).json({
             token: token,
             user: {
+                id: user._id,
                 name: user.name,
                 username: user.username,
                 email: user.email,
-                phone: user.phone,
+                phone: user.phone || "",
                 avatar: user.avatar,
                 emailVerified: true,
+                isGoogleUser: true,
                 preferences: user.preferences
             }
         });

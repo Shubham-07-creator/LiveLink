@@ -24,6 +24,8 @@ export default function Lobby({
   localStream,
   username,
   onUsernameChange,
+  isLoggedIn = false,
+  userAvatar = null,
   videoEnabled,
   audioEnabled,
   permissionDenied,
@@ -255,13 +257,60 @@ export default function Lobby({
             </Box>
 
             <Box sx={{ "& .MuiBox-root": { mb: 0 } }}>
-              <Input
-                label="Your display name"
-                value={username}
-                onChange={(e) => onUsernameChange(e.target.value)}
-                placeholder="Enter your name"
-                required
-              />
+              {isLoggedIn && username ? (
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: tokens.radii.card,
+                    bgcolor: "rgba(37, 99, 235, 0.12)",
+                    border: "1px solid rgba(59, 130, 246, 0.3)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 1.5
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <Avatar
+                      src={userAvatar || undefined}
+                      sx={{
+                        width: 38,
+                        height: 38,
+                        bgcolor: getAvatarColor(username),
+                        fontSize: "13px",
+                        fontWeight: 700
+                      }}
+                    >
+                      {getInitials(username)}
+                    </Avatar>
+                    <Box>
+                      <Typography sx={{ fontSize: "14px", fontWeight: 700, color: "#ffffff", lineHeight: 1.2 }}>
+                        Joining as {username}
+                      </Typography>
+                      <Typography sx={{ fontSize: "12px", color: "#93c5fd" }}>
+                        Verified Account
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Button
+                    variant="ghost"
+                    size="small"
+                    onClick={() => onUsernameChange("")}
+                    sx={{ color: "#93c5fd", fontSize: "12px" }}
+                  >
+                    Edit
+                  </Button>
+                </Box>
+              ) : (
+                <Input
+                  label={isLoggedIn ? "Your display name" : "Join as guest"}
+                  value={username}
+                  onChange={(e) => onUsernameChange(e.target.value)}
+                  placeholder={isLoggedIn ? "Enter your name" : "Enter your name to join as guest"}
+                  helperText={!isLoggedIn ? "Joining as guest. Please enter your name." : ""}
+                  required
+                />
+              )}
             </Box>
 
             <DeviceSelector

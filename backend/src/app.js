@@ -93,7 +93,7 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.json({
     status: "healthy",
-    version: "2.4.0-maang-features-speed",
+    version: "2.5.0-profile-auth-guest-flow",
     uptime: process.uptime(),
     timestamp: new Date().toISOString()
   });

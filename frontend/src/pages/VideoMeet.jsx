@@ -37,7 +37,26 @@ export default function VideoMeet() {
     const isMobile = useMediaQuery('(max-width:600px)');
 
     const [isInMeeting, setIsInMeeting] = useState(false);
-    const [displayName, setDisplayName] = useState(userData?.name || userData?.username || '');
+    const isLoggedIn = Boolean(localStorage.getItem("token"));
+    const storedName = localStorage.getItem("user_name");
+
+    const [displayName, setDisplayName] = useState(() => {
+        if (userData?.name) return userData.name;
+        if (userData?.username) return userData.username;
+        if (isLoggedIn && storedName) return storedName;
+        return '';
+    });
+
+    // Auto-sync logged in user name when userData arrives
+    useEffect(() => {
+        if (userData) {
+            const resolved = userData.name || userData.username || '';
+            if (resolved) {
+                setDisplayName(resolved);
+            }
+        }
+    }, [userData]);
+
     const [viewMode, setViewMode] = useState('grid');
     const [pinnedUser, setPinnedUser] = useState(null);
     const [chatOpen, setChatOpen] = useState(false);
@@ -302,6 +321,7 @@ export default function VideoMeet() {
         <Box sx={{ width: '100vw', height: { xs: '100dvh', sm: '100vh' }, bgcolor: '#090d16', color: 'white', position: 'relative', overflow: 'hidden' }}>
             {!isInMeeting ? (
                 <Lobby localStream={media.localStream} username={displayName} onUsernameChange={setDisplayName}
+                    isLoggedIn={isLoggedIn} userAvatar={userData?.avatar || localStorage.getItem("user_avatar")}
                     videoEnabled={media.videoEnabled} audioEnabled={media.audioEnabled} permissionDenied={media.permissionDenied}
                     audioVolume={media.audioVolume} videoDevices={media.videoDevices} audioInputDevices={media.audioInputDevices}
                     audioOutputDevices={media.audioOutputDevices} selectedCamera={media.selectedCamera}

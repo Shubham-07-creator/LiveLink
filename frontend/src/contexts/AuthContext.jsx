@@ -1,6 +1,6 @@
 import axios from "axios";
 import httpStatus from "http-status";
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import server from "../environment";
 
@@ -11,32 +11,64 @@ const client = axios.create({
     withCredentials: true
 });
 
+// Automatic Bearer Token Interceptor for Reliable Cross-Domain Authorization
+client.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
 export const authClient = client;
 
 export const AuthProvider = ({ children }) => {
-    const [userData, setUserData] = useState(null);
+    const [userData, setUserData] = useState(() => {
+        try {
+            const token = localStorage.getItem("token");
+            const name = localStorage.getItem("user_name");
+            const email = localStorage.getItem("user_email");
+            const avatar = localStorage.getItem("user_avatar");
+            if (token && (name || email)) {
+                return { name, username: name, email, avatar };
+            }
+        } catch (e) {}
+        return null;
+    });
+
     const router = useNavigate();
 
-    // Load user profile on startup if token or session exists
-    const getUserProfile = async () => {
+    const persistUserData = useCallback((user) => {
+        if (!user) return;
+        setUserData(user);
+        try {
+            const resolvedName = user.name || user.username || "";
+            if (resolvedName) localStorage.setItem("user_name", resolvedName);
+            if (user.avatar) localStorage.setItem("user_avatar", user.avatar);
+            if (user.email) localStorage.setItem("user_email", user.email);
+        } catch (e) {}
+    }, []);
+
+    // Load user profile on startup if token or session exists (stable useCallback)
+    const getUserProfile = useCallback(async () => {
         const token = localStorage.getItem("token");
         try {
             const res = await client.get("/profile", {
                 params: token ? { token } : {}
             });
             if (res.status === httpStatus.OK) {
-                setUserData(res.data);
+                persistUserData(res.data);
                 return res.data;
             }
         } catch (err) {
             console.warn("Could not fetch profile:", err.message);
             return null;
         }
-    };
+    }, [persistUserData]);
 
     useEffect(() => {
         getUserProfile();
-    }, []);
+    }, [getUserProfile]);
 
     const handleRegister = async (arg1, arg2, arg3, arg4 = "", arg5 = "", arg6 = "") => {
         try {
@@ -70,7 +102,7 @@ export const AuthProvider = ({ children }) => {
             if (request.status === httpStatus.OK) {
                 localStorage.setItem("token", request.data.token);
                 if (request.data.user) {
-                    setUserData(request.data.user);
+                    persistUserData(request.data.user);
                 } else {
                     await getUserProfile();
                 }
@@ -94,7 +126,7 @@ export const AuthProvider = ({ children }) => {
             if (request.status === httpStatus.OK) {
                 localStorage.setItem("token", request.data.token);
                 if (request.data.user) {
-                    setUserData(request.data.user);
+                    persistUserData(request.data.user);
                 } else {
                     await getUserProfile();
                 }
@@ -121,14 +153,21 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const clearStoredCredentials = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user_name");
+        localStorage.removeItem("user_avatar");
+        localStorage.removeItem("user_email");
+        setUserData(null);
+    };
+
     const handleLogout = async () => {
         try {
             await client.post("/logout");
         } catch (e) {
             // Clear local credentials even if network fails
         }
-        localStorage.removeItem("token");
-        setUserData(null);
+        clearStoredCredentials();
         router("/auth");
     };
 
@@ -164,8 +203,7 @@ export const AuthProvider = ({ children }) => {
         } catch (e) {
             console.warn("Logout all devices failed:", e);
         }
-        localStorage.removeItem("token");
-        setUserData(null);
+        clearStoredCredentials();
         router("/auth");
     };
 
@@ -176,8 +214,7 @@ export const AuthProvider = ({ children }) => {
         } catch (e) {
             console.warn("Delete account failed:", e);
         }
-        localStorage.removeItem("token");
-        setUserData(null);
+        clearStoredCredentials();
         router("/");
     };
 

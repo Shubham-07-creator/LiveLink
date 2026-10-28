@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState, useCallback } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import withAuth from "../utils/withAuth";
 import Navbar from "../components/Navbar";
@@ -73,12 +73,12 @@ function ProfilePage() {
   const c = tokens?.colors || {};
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !userData && !localStorage.getItem("user_name"));
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [avatar, setAvatar] = useState("");
+  const [name, setName] = useState(() => userData?.name || localStorage.getItem("user_name") || "");
+  const [phone, setPhone] = useState(() => userData?.phone || "");
+  const [avatar, setAvatar] = useState(() => userData?.avatar || localStorage.getItem("user_avatar") || AVATAR_PRESETS[0]);
   const [customAvatarUrl, setCustomAvatarUrl] = useState("");
   const [avatarError, setAvatarError] = useState("");
 
@@ -107,31 +107,40 @@ function ProfilePage() {
     setToast({ open: true, message, severity });
   };
 
-  const loadProfile = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getUserProfile();
-      if (data) {
-        setName(data.name || "");
-        setPhone(data.phone || "");
-        setAvatar(data.avatar || AVATAR_PRESETS[0]);
-        if (data.preferences) {
-          if (typeof data.preferences.micMuted === "boolean") setPrefMicMuted(data.preferences.micMuted);
-          if (typeof data.preferences.camOff === "boolean") setPrefCamOff(data.preferences.camOff);
-          if (typeof data.preferences.soundChimes === "boolean") setPrefChimes(data.preferences.soundChimes);
-          if (typeof data.preferences.lowBandwidth === "boolean") setPrefLowBw(data.preferences.lowBandwidth);
+  useEffect(() => {
+    let isMounted = true;
+    const fetchProfile = async () => {
+      try {
+        const data = await getUserProfile();
+        if (isMounted) {
+          const profileData = data || userData;
+          if (profileData) {
+            setName(profileData.name || "");
+            setPhone(profileData.phone || "");
+            setAvatar(profileData.avatar || AVATAR_PRESETS[0]);
+            if (profileData.preferences) {
+              if (typeof profileData.preferences.micMuted === "boolean") setPrefMicMuted(profileData.preferences.micMuted);
+              if (typeof profileData.preferences.camOff === "boolean") setPrefCamOff(profileData.preferences.camOff);
+              if (typeof profileData.preferences.soundChimes === "boolean") setPrefChimes(profileData.preferences.soundChimes);
+              if (typeof profileData.preferences.lowBandwidth === "boolean") setPrefLowBw(profileData.preferences.lowBandwidth);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Could not load user profile:", e);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
         }
       }
-    } catch (e) {
-      console.warn("Could not load user profile:", e);
-    } finally {
-      setLoading(false);
-    }
-  }, [getUserProfile]);
+    };
 
-  useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+    fetchProfile();
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSendVerification = async () => {
     setVerifying(true);
