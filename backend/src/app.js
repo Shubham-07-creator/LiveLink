@@ -91,6 +91,18 @@ app.get("/health", (req, res) => {
 
 app.use("/api/v1/users", userRoutes);
 
+// Global error handling middleware (prevents stack trace leak in production)
+app.use((err, req, res, next) => {
+  logger.error({
+    event: "unhandled_api_error",
+    error: err.message,
+    stack: process.env.NODE_ENV === "production" ? undefined : err.stack
+  });
+  res.status(err.status || 500).json({
+    message: err.message || "Internal server error"
+  });
+});
+
 const start = async () => {
   try {
     const connectionDb = await mongoose.connect(process.env.MONGO_URI);

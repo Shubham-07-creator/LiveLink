@@ -69,23 +69,27 @@ const clearAuthCookies = (res) => {
     });
 };
 
-// Helper to extract token from Cookie, Query, Header, or Body
+// Helper to extract token from Cookie, Query, Header, or Body (strictly type-safe to prevent NoSQL object injection)
 const extractToken = (req) => {
-    return (
+    const raw = (
         req.cookies?.token ||
         req.query?.token ||
         req.body?.token ||
         req.headers?.authorization?.replace(/^Bearer\s+/i, "")
     );
+    return (typeof raw === "string" && raw.trim().length > 0) ? raw.trim() : null;
 };
 
 // Helper to find user from token (supports both token string and signed JWT, with tokenVersion check)
 const findUserFromToken = async (token) => {
-    if (!token) return null;
-    let user = await User.findOne({ token });
+    if (!token || typeof token !== "string") return null;
+    const cleanToken = String(token).trim();
+    if (!cleanToken) return null;
+
+    let user = await User.findOne({ token: cleanToken });
     if (!user) {
         try {
-            const decoded = jwt.verify(token, JWT_SECRET);
+            const decoded = jwt.verify(cleanToken, JWT_SECRET);
             user = await User.findById(decoded.id) || await User.findOne({ username: decoded.username });
             if (user && decoded.tokenVersion !== undefined && user.tokenVersion !== undefined) {
                 if (decoded.tokenVersion < user.tokenVersion) return null;

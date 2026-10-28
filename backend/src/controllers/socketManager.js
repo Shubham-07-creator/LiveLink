@@ -27,6 +27,19 @@ const isJoinRateLimited = (ip) => {
     return false;
 };
 
+// Periodic cleanup of join rate limiter map to prevent memory leak
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, timestamps] of joinAttempts.entries()) {
+        const active = timestamps.filter(t => now - t < 60000);
+        if (active.length === 0) {
+            joinAttempts.delete(ip);
+        } else {
+            joinAttempts.set(ip, active);
+        }
+    }
+}, 5 * 60 * 1000).unref();
+
 export const connectToSocket = (server) => {
     const allowedOrigins = [
         "http://localhost:3000",
@@ -258,7 +271,11 @@ export const connectToSocket = (server) => {
         });
 
         socket.on("signal", (toId, message) => {
-            io.to(toId).emit("signal", socket.id, message);
+            const [matchingRoom, found] = getSocketRoom(socket.id);
+            // Security check: Only forward WebRTC signals between participants in the exact same room
+            if (found && connections[matchingRoom] && connections[matchingRoom].includes(toId)) {
+                io.to(toId).emit("signal", socket.id, message);
+            }
         });
 
         socket.on("chat-message", (data, sender) => {
@@ -525,43 +542,46 @@ export const connectToSocket = (server) => {
         });
 
         socket.on("disconnect", () => {
-            let key;
+            const [key, found] = getSocketRoom(socket.id);
 
-            for (const [k, v] of JSON.parse(JSON.stringify(Object.entries(connections)))) {
-                for (let a = 0; a < v.length; ++a) {
-                    if (v[a] === socket.id) {
-                        key = k;
+            if (found && connections[key]) {
+                const index = connections[key].indexOf(socket.id);
+                if (index !== -1) {
+                    connections[key].splice(index, 1);
+                }
 
-                        for (let a = 0; a < connections[key].length; ++a) {
-                            io.to(connections[key][a]).emit("user-left", socket.id);
-                        }
+                // Notify remaining participants
+                connections[key].forEach((elem) => {
+                    io.to(elem).emit("user-left", socket.id);
+                });
 
-                        const index = connections[key].indexOf(socket.id);
-                        connections[key].splice(index, 1);
+                delete userNames[socket.id];
+                delete userAvatars[socket.id];
+                delete timeOnline[socket.id];
 
-                        delete userNames[socket.id];
-                        delete userAvatars[socket.id];
-                        delete timeOnline[socket.id];
-
-                        // HOST REASSIGNMENT: If host leaves, designate next oldest participant
-                        if (roomHosts[key] === socket.id) {
-                            if (connections[key].length > 0) {
-                                roomHosts[key] = connections[key][0];
-                                const newHostName = userNames[roomHosts[key]] || "Host";
-                                connections[key].forEach((elem) => {
-                                    io.to(elem).emit("host-changed", { hostSocketId: roomHosts[key], hostName: newHostName });
-                                });
-                            } else {
-                                delete roomHosts[key];
-                                delete roomLocked[key];
-                                delete waitingRooms[key];
-                            }
-                        }
-
-                        if (connections[key].length === 0) {
-                            delete connections[key];
-                        }
+                // HOST REASSIGNMENT: If host leaves, designate next oldest participant
+                if (roomHosts[key] === socket.id) {
+                    if (connections[key].length > 0) {
+                        roomHosts[key] = connections[key][0];
+                        const newHostName = userNames[roomHosts[key]] || "Host";
+                        connections[key].forEach((elem) => {
+                            io.to(elem).emit("host-changed", { hostSocketId: roomHosts[key], hostName: newHostName });
+                        });
+                    } else {
+                        delete roomHosts[key];
+                        delete roomLocked[key];
+                        delete waitingRooms[key];
+                        delete messages[key];
                     }
+                }
+
+                // ROOM TEARDOWN: Prevent in-memory chat/room memory leaks
+                if (connections[key].length === 0) {
+                    delete connections[key];
+                    delete messages[key];
+                    delete roomHosts[key];
+                    delete roomLocked[key];
+                    delete waitingRooms[key];
                 }
             }
 
