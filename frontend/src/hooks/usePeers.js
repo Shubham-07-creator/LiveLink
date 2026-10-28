@@ -15,6 +15,15 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
     const reconnectTimerRef = useRef(null);
     const iceServersRef = useRef(DEFAULT_STUN_SERVERS);
 
+    const myIdRef = useRef(myId);
+    myIdRef.current = myId;
+    const localStreamRef = useRef(localStream);
+    localStreamRef.current = localStream;
+    const sendSignalRef = useRef(sendSignal);
+    sendSignalRef.current = sendSignal;
+    const onPeerStreamRef = useRef(onPeerStream);
+    onPeerStreamRef.current = onPeerStream;
+
     const setIceServers = useCallback((servers) => {
         if (Array.isArray(servers) && servers.length) iceServersRef.current = servers;
     }, []);
@@ -64,29 +73,51 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
 
     // Create RTCPeerConnection with Perfect Negotiation
     const createPeer = useCallback((peerId, meta = {}) => {
-        if (peersRef.current[peerId]?.pc) return peersRef.current[peerId].pc;
+        const currentMyId = myIdRef.current;
+        // Strict guard: Never create peer connection to oneself or invalid target
+        if (!peerId || (currentMyId && peerId === currentMyId)) {
+            return null;
+        }
 
-        const isPolite = myId ? (myId > peerId) : true;
+        if (peersRef.current[peerId]?.pc) {
+            if (meta.name) peersRef.current[peerId].name = meta.name;
+            if (meta.avatar) peersRef.current[peerId].avatar = meta.avatar;
+            return peersRef.current[peerId].pc;
+        }
+
+        const isPolite = currentMyId ? (currentMyId > peerId) : true;
         const pc = new RTCPeerConnection({ iceServers: iceServersRef.current });
 
         const peerEntry = {
-            pc, isPolite, makingOffer: false, ignoreOffer: false,
-            isSettingRemoteAnswerPending: false, iceCandidateQueue: [], senders: {},
-            disconnectTimer: null, name: meta.name || "Participant", avatar: meta.avatar || null
+            pc,
+            isPolite,
+            makingOffer: false,
+            ignoreOffer: false,
+            isSettingRemoteAnswerPending: false,
+            iceCandidateQueue: [],
+            senders: {},
+            disconnectTimer: null,
+            name: meta.name || "Participant",
+            avatar: meta.avatar || null,
+            remoteStream: new MediaStream()
         };
         peersRef.current[peerId] = peerEntry;
 
-        if (localStream) {
-            localStream.getTracks().forEach(track => {
-                peerEntry.senders[track.kind] = pc.addTrack(track, localStream);
+        const activeStream = localStreamRef.current;
+        if (activeStream) {
+            activeStream.getTracks().forEach(track => {
+                try {
+                    peerEntry.senders[track.kind] = pc.addTrack(track, activeStream);
+                } catch (e) {}
             });
         }
 
         pc.onnegotiationneeded = async () => {
+            if (pc.signalingState !== "stable" || peerEntry.makingOffer) return;
             try {
                 peerEntry.makingOffer = true;
                 await pc.setLocalDescription();
-                sendSignal?.(peerId, { description: pc.localDescription });
+                sendSignalRef.current?.(peerId, { description: pc.localDescription });
             } catch (err) {
                 console.error(`[WebRTC] Negotiation error for ${peerId}:`, err);
             } finally {
@@ -95,21 +126,49 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
         };
 
         pc.onicecandidate = (event) => {
-            if (event.candidate) sendSignal?.(peerId, { candidate: event.candidate });
+            if (event.candidate) {
+                sendSignalRef.current?.(peerId, { candidate: event.candidate });
+            }
         };
 
         pc.ontrack = (event) => {
-            const [stream] = event.streams;
-            const remoteStream = stream || new MediaStream([event.track]);
-            setRemoteVideos(prev => {
-                const existing = prev.find(v => v.socketId === peerId);
-                if (existing) return prev.map(v => v.socketId === peerId ? { ...v, stream: remoteStream } : v);
-                return [...prev, {
-                    socketId: peerId, stream: remoteStream, name: peerEntry.name, avatar: peerEntry.avatar,
-                    videoEnabled: event.track.kind === 'video' ? event.track.enabled : true
-                }];
-            });
-            onPeerStream?.(peerId, remoteStream);
+            if (!peerEntry.remoteStream) {
+                peerEntry.remoteStream = new MediaStream();
+            }
+            if (!peerEntry.remoteStream.getTracks().some(t => t.id === event.track.id)) {
+                peerEntry.remoteStream.addTrack(event.track);
+            }
+
+            const streamToUse = (event.streams && event.streams[0]) ? event.streams[0] : peerEntry.remoteStream;
+
+            const syncRemoteVideo = () => {
+                const freshStream = new MediaStream(streamToUse.getTracks());
+                const hasVideo = freshStream.getVideoTracks().some(t => t.enabled && t.readyState === "live");
+
+                setRemoteVideos(prev => {
+                    const existingIndex = prev.findIndex(v => v.socketId === peerId);
+                    const item = {
+                        socketId: peerId,
+                        stream: freshStream,
+                        name: peerEntry.name,
+                        avatar: peerEntry.avatar,
+                        videoEnabled: hasVideo
+                    };
+                    if (existingIndex !== -1) {
+                        const copy = [...prev];
+                        copy[existingIndex] = item;
+                        return copy;
+                    }
+                    return [...prev, item];
+                });
+            };
+
+            event.track.onunmute = syncRemoteVideo;
+            event.track.onmute = syncRemoteVideo;
+            event.track.onended = syncRemoteVideo;
+
+            syncRemoteVideo();
+            onPeerStreamRef.current?.(peerId, streamToUse);
         };
 
         const handleStateChange = () => {
@@ -139,13 +198,18 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
         pc.onconnectionstatechange = handleStateChange;
         pc.oniceconnectionstatechange = handleStateChange;
         return pc;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [myId, localStream, sendSignal, onPeerStream, updateReconnectionState, closePeer]);
+    }, [closePeer, updateReconnectionState]);
 
     // Signal handling
     const handleSignal = useCallback(async (senderId, signalData) => {
+        const currentMyId = myIdRef.current;
+        if (!senderId || (currentMyId && senderId === currentMyId)) return;
+
         let peer = peersRef.current[senderId];
-        if (!peer) { createPeer(senderId); peer = peersRef.current[senderId]; }
+        if (!peer) {
+            createPeer(senderId, {});
+            peer = peersRef.current[senderId];
+        }
         if (!peer?.pc) return;
         const pc = peer.pc;
 
@@ -168,7 +232,7 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
 
                 if (description.type === "offer") {
                     await pc.setLocalDescription();
-                    sendSignal?.(senderId, { description: pc.localDescription });
+                    sendSignalRef.current?.(senderId, { description: pc.localDescription });
                 }
             } else if (signalData.candidate) {
                 const cand = new RTCIceCandidate(signalData.candidate);
@@ -181,20 +245,23 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
         } catch (err) {
             console.error(`[WebRTC] Signal handling error from ${senderId}:`, err);
         }
-    }, [createPeer, sendSignal]);
+    }, [createPeer]);
 
     // Live track replacement
     const replaceTrackOnPeers = useCallback(async (kind, newTrack) => {
+        const activeLocal = localStreamRef.current;
         const promises = Object.values(peersRef.current).map(async (peer) => {
             const sender = peer.senders?.[kind];
             if (sender && typeof sender.replaceTrack === 'function') {
                 try { await sender.replaceTrack(newTrack); } catch (e) {}
             } else if (peer.pc && newTrack) {
-                try { peer.senders[kind] = peer.pc.addTrack(newTrack, localStream); } catch (e) {}
+                try {
+                    peer.senders[kind] = peer.pc.addTrack(newTrack, activeLocal);
+                } catch (e) {}
             }
         });
         await Promise.all(promises);
-    }, [localStream]);
+    }, []);
 
     // PHASE 2: Adaptive sender parameter adjustment
     const applyAdaptiveQuality = useCallback(async (options) => {

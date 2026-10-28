@@ -28,9 +28,26 @@ export default function VideoTile({
   const callTokens = tokens?.colors?.call || tokens?.call || {};
 
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
+    const videoEl = videoRef.current;
+    if (!videoEl || !stream) return;
+
+    if (videoEl.srcObject !== stream) {
+      videoEl.srcObject = stream;
     }
+
+    const playVideo = () => {
+      videoEl.play().catch((err) => {
+        // Autoplay policy or pause - harmless warning
+        console.warn("[VideoTile] Play deferred or pending gesture:", err?.message);
+      });
+    };
+
+    videoEl.onloadedmetadata = playVideo;
+    playVideo();
+
+    return () => {
+      if (videoEl) videoEl.onloadedmetadata = null;
+    };
   }, [stream]);
 
   const handlePiP = async (e) => {

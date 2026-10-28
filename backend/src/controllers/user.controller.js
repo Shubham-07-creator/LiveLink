@@ -817,8 +817,8 @@ const getIceServers = async (req, res) => {
     ];
 
     if (process.env.TURN_URL) {
-        let username = process.env.TURN_USER || process.env.TURN_USERNAME || "";
-        let credential = process.env.TURN_PASS || process.env.TURN_CREDENTIAL || "";
+        let username = (process.env.TURN_USER || process.env.TURN_USERNAME || "").trim();
+        let credential = (process.env.TURN_PASS || process.env.TURN_CREDENTIAL || "").trim();
 
         // Ephemeral short-lived credentials using HMAC-SHA1 (RFC 5766 TURN REST API)
         if (process.env.TURN_SECRET) {
@@ -832,9 +832,10 @@ const getIceServers = async (req, res) => {
             credential = hmac.digest("base64");
         }
 
-        const rawUrls = process.env.TURN_URL.includes(",")
-            ? process.env.TURN_URL.split(",").map(u => u.trim())
-            : [process.env.TURN_URL];
+        const rawUrls = (process.env.TURN_URL.includes(",")
+            ? process.env.TURN_URL.split(",")
+            : [process.env.TURN_URL]
+        ).map(u => (typeof u === "string" ? u.trim() : "")).filter(Boolean);
 
         if (process.env.TURN_URL.includes("standard.relay.metered.ca") && !rawUrls.some(u => u.includes("turns:"))) {
             rawUrls.push("turns:standard.relay.metered.ca:443?transport=tcp");

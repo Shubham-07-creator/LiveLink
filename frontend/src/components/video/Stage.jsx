@@ -10,6 +10,7 @@ export default function Stage({
   remoteVideos = [],
   localName = "You",
   localAvatar,
+  localSocketId,
   videoEnabled,
   audioEnabled,
   localSpeaking,
@@ -26,7 +27,11 @@ export default function Stage({
 }) {
   const callTokens = tokens?.colors?.call || tokens?.call || {};
 
-  // Collect all participants into a normalized list
+  // Collect all participants into a normalized list (filtering out self-duplicates)
+  const filteredRemoteVideos = remoteVideos.filter(
+    (r) => r.socketId !== "local" && (!localSocketId || r.socketId !== localSocketId)
+  );
+
   const participants = [
     {
       socketId: "local",
@@ -40,7 +45,7 @@ export default function Stage({
       isHandRaised: Boolean(isLocalHandRaised),
       quality: overallQuality
     },
-    ...remoteVideos.map((r) => ({
+    ...filteredRemoteVideos.map((r) => ({
       socketId: r.socketId,
       stream: r.stream,
       name: r.name || "Participant",

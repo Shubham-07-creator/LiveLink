@@ -14,6 +14,7 @@ export default function useSignaling({
     onRoomFull
 } = {}) {
     const socketRef = useRef(null);
+    const socketIdRef = useRef('');
     const [socketId, setSocketId] = useState('');
     const [hostSocketId, setHostSocketId] = useState('');
     const [isRoomLocked, setIsRoomLocked] = useState(false);
@@ -30,6 +31,17 @@ export default function useSignaling({
     const [remoteRecording, setRemoteRecording] = useState({ isRecording: false, host: '' });
 
     const typingTimeoutRef = useRef(null);
+
+    // Keep active callbacks in ref to eliminate stale React closures
+    const callbacksRef = useRef({});
+    callbacksRef.current = {
+        onSignalReceived,
+        onUserJoined,
+        onUserLeft,
+        onForceMute,
+        onUserRemoved,
+        onRoomFull
+    };
 
     const isHost = Boolean(socketId && hostSocketId && socketId === hostSocketId);
 
@@ -51,6 +63,7 @@ export default function useSignaling({
         socketRef.current = socket;
 
         socket.on('connect', () => {
+            socketIdRef.current = socket.id;
             setSocketId(socket.id);
             socket.emit('join-call', roomUrl, displayName, token, avatar);
         });
@@ -60,7 +73,7 @@ export default function useSignaling({
             if (id !== socket.id) playChime('join');
             if (roomHost) setHostSocketId(roomHost);
             if (locked !== undefined) setIsRoomLocked(Boolean(locked));
-            onUserJoined?.(id, clients, namesMap, avatarsMap, roomHost);
+            callbacksRef.current.onUserJoined?.(id, clients, namesMap, avatarsMap, roomHost, socket.id);
         });
 
         // WebRTC Signaling relay
@@ -69,7 +82,7 @@ export default function useSignaling({
             if (typeof data === 'string') {
                 try { parsedData = JSON.parse(data); } catch (e) {}
             }
-            onSignalReceived?.(fromId, parsedData);
+            callbacksRef.current.onSignalReceived?.(fromId, parsedData);
         });
 
         // User left room
@@ -80,7 +93,7 @@ export default function useSignaling({
                 delete next[leftId];
                 return next;
             });
-            onUserLeft?.(leftId);
+            callbacksRef.current.onUserLeft?.(leftId);
         });
 
         // Chat messages
@@ -132,8 +145,8 @@ export default function useSignaling({
 
         // Moderation
         socket.on('room-lock-changed', ({ isLocked }) => setIsRoomLocked(Boolean(isLocked)));
-        socket.on('force-mute', () => onForceMute?.());
-        socket.on('user-removed', ({ message }) => onUserRemoved?.(message));
+        socket.on('force-mute', () => callbacksRef.current.onForceMute?.());
+        socket.on('user-removed', ({ message }) => callbacksRef.current.onUserRemoved?.(message));
         socket.on('spotlight-changed', ({ spotlightId }) => setSpotlightUser(spotlightId));
         socket.on('host-changed', ({ hostSocketId }) => {
             setHostSocketId(hostSocketId);
@@ -141,13 +154,14 @@ export default function useSignaling({
         });
 
         // Room full (capacity limit reached)
-        socket.on('room-full', (info) => onRoomFull?.(info));
+        socket.on('room-full', (info) => callbacksRef.current.onRoomFull?.(info));
 
         // Recording status
         socket.on('recording-status', ({ isRecording, host }) => {
             setRemoteRecording({ isRecording, host: host || 'Host' });
         });
-    }, [roomUrl, userData, onSignalReceived, onUserJoined, onUserLeft, onForceMute, onUserRemoved, onRoomFull, hostSocketId]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [roomUrl, userData, hostSocketId]);
 
     // Host actions
     const lockRoom = useCallback((lock) => {
@@ -223,6 +237,7 @@ export default function useSignaling({
 
     return {
         socketRef,
+        socketIdRef,
         socketId,
         hostSocketId,
         isHost,

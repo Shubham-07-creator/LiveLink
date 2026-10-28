@@ -58,31 +58,60 @@ export default function VideoMeet() {
     const [captionText, setCaptionText] = useState('');
     const recognitionRef = useRef(null);
     const callStartTimeRef = useRef(null);
+    const peersRef = useRef(null);
 
-    const media = useMedia({ onTrackReplaced: (kind, track) => peers.replaceTrackOnPeers(kind, track) });
+    const media = useMedia({ onTrackReplaced: (kind, track) => peersRef.current?.replaceTrackOnPeers(kind, track) });
 
     const signaling = useSignaling({
-        roomUrl: url, userData,
-        onSignalReceived: (senderId, data) => peers.handleSignal(senderId, data),
-        onUserJoined: (id, clients, namesMap, avatarsMap) => {
+        roomUrl: url,
+        userData,
+        onSignalReceived: (senderId, data) => peersRef.current?.handleSignal(senderId, data),
+        onUserJoined: (joinedId, clients, namesMap, avatarsMap, roomHost, myId) => {
+            const currentMyId = myId || signaling.socketIdRef?.current || signaling.socketId;
+
+            // Strict mesh rule: Never connect to oneself
             clients.forEach(cId => {
-                if (cId !== signaling.socketId) peers.createPeer(cId, { name: namesMap?.[cId], avatar: avatarsMap?.[cId] });
+                if (!cId || cId === currentMyId) return;
+
+                // Asymmetric offer initiation:
+                // Existing participants in the room initiate connection to newly joined participants.
+                if (joinedId !== currentMyId && cId === joinedId) {
+                    peersRef.current?.createPeer(cId, { name: namesMap?.[cId], avatar: avatarsMap?.[cId] });
+                }
             });
+
+            // Reliable Fallback for newly joined user: If after 2.5s no offer has arrived from an existing participant,
+            // initiate as fallback to ensure 100% connection reliability.
+            if (joinedId === currentMyId) {
+                clients.forEach(cId => {
+                    if (!cId || cId === currentMyId) return;
+                    setTimeout(() => {
+                        if (peersRef.current && !peersRef.current.peersRef.current[cId]) {
+                            peersRef.current.createPeer(cId, { name: namesMap?.[cId], avatar: avatarsMap?.[cId] });
+                        }
+                    }, 2500);
+                });
+            }
         },
-        onUserLeft: (leftId) => peers.closePeer(leftId),
+        onUserLeft: (leftId) => peersRef.current?.closePeer(leftId),
         onForceMute: () => {
             if (media.audioEnabled) media.toggleAudio();
             setToast({ open: true, message: "You were muted by the meeting host.", severity: 'warning' });
         },
         onUserRemoved: (msg) => {
-            peers.closeAllPeers();
+            peersRef.current?.closeAllPeers();
             media.stopAudioVisualizer();
             navigate('/', { state: { toast: msg } });
         },
         onRoomFull: (info) => setRoomFullInfo(info)
     });
 
-    const peers = usePeers({ sendSignal: signaling.sendSignal, localStream: media.localStream, myId: signaling.socketId });
+    const peers = usePeers({
+        sendSignal: signaling.sendSignal,
+        localStream: media.localStream,
+        myId: signaling.socketIdRef?.current || signaling.socketId
+    });
+    peersRef.current = peers;
     const stats = useStats({ peersRef: peers.peersRef, isCallActive: isInMeeting });
 
     useHotkeys({
@@ -210,9 +239,13 @@ export default function VideoMeet() {
         setFeedbackOpen(true);
     };
 
+    const currentLocalSocketId = signaling.socketIdRef?.current || signaling.socketId;
+
     const participantList = [
-        { socketId: signaling.socketId, name: displayName, isLocal: true, isHost: signaling.isHost, isHandRaised: signaling.isHandRaised, avatar: userData?.avatar },
-        ...peers.remoteVideos.map(r => ({ socketId: r.socketId, name: r.name, isLocal: false, isHost: r.socketId === signaling.hostSocketId, isHandRaised: Boolean(signaling.raisedHands[r.socketId]), avatar: r.avatar }))
+        { socketId: currentLocalSocketId, name: displayName, isLocal: true, isHost: signaling.isHost, isHandRaised: signaling.isHandRaised, avatar: userData?.avatar },
+        ...peers.remoteVideos
+            .filter(r => r.socketId !== currentLocalSocketId)
+            .map(r => ({ socketId: r.socketId, name: r.name, isLocal: false, isHost: r.socketId === signaling.hostSocketId, isHandRaised: Boolean(signaling.raisedHands[r.socketId]), avatar: r.avatar }))
     ];
 
     return (
@@ -229,7 +262,7 @@ export default function VideoMeet() {
                     onJoinWithoutMedia={media.joinWithoutMedia} onJoinMeeting={handleJoin} />
             ) : (
                 <>
-                    <TopBar roomCode={url} duration={callDuration} participantCount={peers.remoteVideos.length + 1}
+                    <TopBar roomCode={url} duration={callDuration} participantCount={participantList.length}
                         isRecording={isRecording || signaling.remoteRecording.isRecording} isVisible={controlsVisible}
                         onCopyLink={() => { navigator.clipboard.writeText(window.location.href); setToast({ open: true, message: "Meeting link copied", severity: 'success' }); }}
                         onTogglePeople={() => setPeopleOpen(d => !d)}
@@ -237,6 +270,7 @@ export default function VideoMeet() {
 
                     <Stage localStream={media.localStream} screenStream={media.screenStream} isScreenSharing={media.isScreenSharing}
                         remoteVideos={peers.remoteVideos} localName={displayName} localAvatar={userData?.avatar}
+                        localSocketId={currentLocalSocketId}
                         videoEnabled={media.videoEnabled} audioEnabled={media.audioEnabled} localSpeaking={media.audioVolume > 15 && media.audioEnabled}
                         activeSpeakingPeers={stats.activeSpeakingPeers} peerQualities={stats.peerQualities} overallQuality={stats.overallQuality}
                         raisedHands={signaling.raisedHands} isLocalHandRaised={signaling.isHandRaised} viewMode={viewMode}
