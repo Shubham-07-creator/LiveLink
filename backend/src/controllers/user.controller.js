@@ -103,17 +103,20 @@ const findUserFromToken = async (token) => {
 
 // 1. SMART LOGIN (Supports both Username OR Email, issues signed JWT + httpOnly cookie)
 const login = async (req, res) => {
-    const { username, password } = req.body;
+    const rawIdentifier = req.body.username || req.body.email;
+    const { password } = req.body;
 
-    if (!username || !password) {
+    if (!rawIdentifier || !password) {
         return res.status(httpStatus.BAD_REQUEST).json({ message: "Please provide username/email and password" });
     }
+
+    const username = rawIdentifier.trim();
 
     try {
         const user = await User.findOne({
             $or: [
-                { username: username.trim() },
-                { email: username.trim().toLowerCase() }
+                { username: username },
+                { email: username.toLowerCase() }
             ]
         });
 
@@ -123,7 +126,7 @@ const login = async (req, res) => {
 
         if (!user.password) {
             return res.status(httpStatus.BAD_REQUEST).json({ 
-                message: "This account was created with Google. Please use 'Continue with Google'." 
+                message: "This account was created with Google. Please use 'Continue with Google', or use 'Forgot password' below to set a password." 
             });
         }
 
@@ -181,6 +184,15 @@ const register = async (req, res) => {
     try {
         const existingEmail = await User.findOne({ email: cleanEmail });
         if (existingEmail) {
+            if (!existingEmail.password) {
+                // User previously signed in with Google, but now wants to set a local password
+                existingEmail.password = await bcrypt.hash(password, 10);
+                if (name && name.trim()) existingEmail.name = name.trim();
+                await existingEmail.save();
+                return res.status(httpStatus.OK).json({ 
+                    message: "Password added to your existing account! Please sign in with your email and password." 
+                });
+            }
             return res.status(httpStatus.CONFLICT).json({ message: "This email is already registered. Please sign in." });
         }
 
@@ -229,10 +241,24 @@ const googleAuth = async (req, res) => {
     }
 
     try {
+        // Build resilient audience list supporting both corrected (2371ebq6r) and legacy env variants
+        const decoded = jwt.decode(credential);
+        const tokenAud = decoded?.aud;
+
+        const validAudiences = [
+            process.env.GOOGLE_CLIENT_ID,
+            "968910378805-07msgdo5roiq6ko7em1mk8g2371ebq6r.apps.googleusercontent.com",
+            "968910378805-07msgdo5roiq6ko7em1mk8g237lebq6r.apps.googleusercontent.com"
+        ].filter(Boolean);
+
+        if (tokenAud && typeof tokenAud === "string" && tokenAud.startsWith("968910378805") && !validAudiences.includes(tokenAud)) {
+            validAudiences.push(tokenAud);
+        }
+
         // Verify Google ID Token with Google's public keys
         const ticket = await googleClient.verifyIdToken({
             idToken: credential,
-            audience: GOOGLE_CLIENT_ID
+            audience: validAudiences
         });
 
         const payload = ticket.getPayload();

@@ -41,10 +41,10 @@ import {
 
 const router = Router();
 
-// Rate limiter for authentication endpoints: max 25 attempts per 15 minutes
+// Rate limiter for authentication endpoints: max 60 attempts per 15 minutes
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 25,
+    max: 60,
     standardHeaders: true,
     legacyHeaders: false,
     message: { message: "Too many requests. Please try again after 15 minutes." }

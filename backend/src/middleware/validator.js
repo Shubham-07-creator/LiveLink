@@ -33,8 +33,12 @@ export const registerSchema = z.object({
 });
 
 export const loginSchema = z.object({
-    username: z.string().trim().min(1, "Username or email is required"),
+    username: z.string().trim().optional(),
+    email: z.string().trim().optional(),
     password: z.string().min(1, "Password is required")
+}).refine(data => Boolean((data.username && data.username.length > 0) || (data.email && data.email.length > 0)), {
+    message: "Username or email is required",
+    path: ["username"]
 });
 
 export const googleAuthSchema = z.object({
