@@ -89,6 +89,7 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.json({
     status: "healthy",
+    version: "2.1.0-auth-resilient",
     uptime: process.uptime(),
     timestamp: new Date().toISOString()
   });
