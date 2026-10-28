@@ -319,19 +319,21 @@ export default function Authentication() {
   return (
     <Box
       sx={{
-        minHeight: "100vh",
+        minHeight: { xs: "100dvh", sm: "100vh" },
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         bgcolor: c.bg,
         color: c.textHeading,
-        p: { xs: 2.5, sm: 4 },
+        p: { xs: 2, sm: 4 },
+        pt: { xs: "calc(24px + env(safe-area-inset-top, 0px))", sm: 4 },
+        pb: { xs: "calc(24px + env(safe-area-inset-bottom, 0px))", sm: 4 },
         position: "relative"
       }}
     >
       {/* Theme Toggle in top-right */}
-      <Box sx={{ position: "absolute", top: 16, right: 16 }}>
+      <Box sx={{ position: "absolute", top: { xs: "calc(16px + env(safe-area-inset-top, 0px))", sm: 16 }, right: 16 }}>
         <IconButton
           tooltip={isDark ? "Switch to light mode" : "Switch to dark mode"}
           variant="default"

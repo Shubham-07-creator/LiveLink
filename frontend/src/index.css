@@ -1,7 +1,15 @@
 /* ==========================================================================
    LiveLink Pro Design System
    Global Resets, Sleek Scrollbars, Typography & Focus Rings
+   Mobile-First Native App Polish & Safe Area Support
    ========================================================================== */
+
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
 
 *,
 *::before,
@@ -9,11 +17,13 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -26,6 +36,8 @@ body {
   text-rendering: optimizeLegibility;
   line-height: 1.5;
   overflow-x: hidden;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* World-Class Selection Style */
@@ -86,7 +98,15 @@ code, kbd, samp, pre {
   font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
 }
 
-/* Universal Button click polish */
+/* Universal Button click & touch polish */
+button,
+a,
+[role="button"],
+input[type="button"],
+input[type="submit"] {
+  touch-action: manipulation;
+}
+
 button:active {
   transform: scale(0.985);
   transition: transform 0.08s ease;

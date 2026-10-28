@@ -94,8 +94,9 @@ export default function LandingPage() {
       <Box
         component="header"
         sx={{
-          py: 2,
-          px: { xs: 2.5, md: 5 },
+          pt: { xs: "calc(12px + env(safe-area-inset-top, 0px))", sm: 2 },
+          pb: 2,
+          px: { xs: 2, md: 5 },
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",

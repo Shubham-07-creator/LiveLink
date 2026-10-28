@@ -214,7 +214,7 @@ function ProfilePage() {
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: c.bg, color: c.textHeading }}>
       <Navbar />
 
-      <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 }, flexGrow: 1 }}>
+      <Container maxWidth="md" sx={{ pt: { xs: 2.5, md: 5 }, pb: { xs: 12, md: 6 }, px: { xs: 2, sm: 3, md: 4 }, flexGrow: 1 }}>
         {/* Page Title (Single H1) */}
         <Box sx={{ mb: 4 }}>
           <Typography

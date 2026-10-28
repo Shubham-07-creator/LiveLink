@@ -141,7 +141,7 @@ export default function History() {
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: c.bg, color: c.textHeading }}>
       <Navbar />
 
-      <Container maxWidth="md" sx={{ py: { xs: 4, md: 6 }, flexGrow: 1 }}>
+      <Container maxWidth="md" sx={{ pt: { xs: 2.5, md: 5 }, pb: { xs: 12, md: 6 }, px: { xs: 2, sm: 3, md: 4 }, flexGrow: 1 }}>
         {/* Header (Single H1) */}
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 4, flexWrap: "wrap", gap: 2 }}>
           <Box>

@@ -78,6 +78,12 @@ export default function Stage({
     return "repeat(2, 1fr)";
   };
 
+  const getGridRows = () => {
+    if (totalTiles <= 1) return "1fr";
+    if (totalTiles === 2) return { xs: "repeat(2, 1fr)", sm: "1fr" };
+    return "repeat(2, 1fr)";
+  };
+
   return (
     <Box
       sx={{
@@ -86,10 +92,10 @@ export default function Stage({
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        p: 2, // 16px min padding
-        pt: 9, // Space for top bar
-        pb: 11, // Space for bottom dock
-        gap: 2, // 16px gap
+        p: { xs: 1, sm: 2 },
+        pt: { xs: "calc(56px + env(safe-area-inset-top, 0px))", sm: 9 }, // Space for top bar
+        pb: { xs: "calc(72px + env(safe-area-inset-bottom, 0px))", sm: 11 }, // Space for bottom dock
+        gap: { xs: 1, sm: 2 },
         bgcolor: callTokens.stageBg
       }}
     >
@@ -162,8 +168,8 @@ export default function Stage({
             minHeight: 0,
             display: "grid",
             gridTemplateColumns: getGridColumns(),
-            gridTemplateRows: totalTiles > 2 ? "repeat(2, 1fr)" : "1fr",
-            gap: 2, // 16px strictly
+            gridTemplateRows: getGridRows(),
+            gap: { xs: 1, sm: 2 },
             width: "100%",
             height: "100%"
           }}

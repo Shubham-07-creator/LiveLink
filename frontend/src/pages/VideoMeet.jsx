@@ -216,7 +216,7 @@ export default function VideoMeet() {
     ];
 
     return (
-        <Box sx={{ width: '100vw', height: '100vh', bgcolor: '#090d16', color: 'white', position: 'relative', overflow: 'hidden' }}>
+        <Box sx={{ width: '100vw', height: { xs: '100dvh', sm: '100vh' }, bgcolor: '#090d16', color: 'white', position: 'relative', overflow: 'hidden' }}>
             {!isInMeeting ? (
                 <Lobby localStream={media.localStream} username={displayName} onUsernameChange={setDisplayName}
                     videoEnabled={media.videoEnabled} audioEnabled={media.audioEnabled} permissionDenied={media.permissionDenied}

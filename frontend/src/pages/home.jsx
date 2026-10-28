@@ -250,9 +250,9 @@ function HomeComponent() {
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: c.bg, color: c.textHeading }}>
       <Navbar />
 
-      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 }, flexGrow: 1 }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 2.5, md: 5 }, pb: { xs: 12, md: 6 }, px: { xs: 2, sm: 3, md: 4 }, flexGrow: 1 }}>
         {/* 1. Welcome Header (Single H1) */}
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: { xs: 3, md: 4 } }}>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 2 }}>
             <Box>
               <Typography
@@ -324,14 +324,14 @@ function HomeComponent() {
           </Box>
         </Box>
 
-        {/* 2. Four Quick Action Cards */}
-        <Grid container spacing={2.5} sx={{ mb: 5 }}>
+        {/* 2. Four Quick Action Cards (2x2 Grid on Mobile, 4 in a row on Desktop) */}
+        <Grid container spacing={{ xs: 1.5, sm: 2.5 }} sx={{ mb: { xs: 3.5, md: 5 } }}>
           {/* Action 1: New meeting (Primary Filled Blue) */}
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card
               hoverLift
               onClick={handleCreateInstant}
-              padding={2.5}
+              padding={1.75}
               sx={{
                 height: "100%",
                 display: "flex",
@@ -344,156 +344,156 @@ function HomeComponent() {
             >
               <Box
                 sx={{
-                  width: 44,
-                  height: 44,
+                  width: { xs: 38, sm: 44 },
+                  height: { xs: 38, sm: 44 },
                   borderRadius: tokens.radii.button,
                   backgroundColor: "rgba(255, 255, 255, 0.2)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   color: "#ffffff",
-                  mb: 2
+                  mb: { xs: 1.25, sm: 2 }
                 }}
               >
-                <VideoCallOutlinedIcon sx={{ fontSize: 24 }} />
+                <VideoCallOutlinedIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
               </Box>
               <Typography
                 variant="h5"
                 sx={{
                   fontFamily: tokens.typography.fonts.heading,
                   fontWeight: tokens.typography.cardTitle.weight,
-                  fontSize: tokens.typography.cardTitle.fontSize,
+                  fontSize: { xs: "14px", sm: tokens.typography.cardTitle.fontSize },
                   color: "#ffffff",
                   mb: 0.5
                 }}
               >
                 New meeting
               </Typography>
-              <Typography variant="body2" sx={{ color: "rgba(255, 255, 255, 0.8)", fontSize: "13px" }}>
-                Start an instant video room
+              <Typography variant="body2" sx={{ color: "rgba(255, 255, 255, 0.8)", fontSize: { xs: "11px", sm: "13px" }, lineHeight: 1.3 }}>
+                Start instant room
               </Typography>
             </Card>
           </Grid>
 
           {/* Action 2: Join with code */}
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card
               hoverLift
               onClick={() => setJoinModalOpen(true)}
-              padding={2.5}
+              padding={1.75}
               sx={{ height: "100%", display: "flex", flexDirection: "column", cursor: "pointer" }}
             >
               <Box
                 sx={{
-                  width: 44,
-                  height: 44,
+                  width: { xs: 38, sm: 44 },
+                  height: { xs: 38, sm: 44 },
                   borderRadius: tokens.radii.button,
                   backgroundColor: c.primarySoftBg,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   color: c.primary,
-                  mb: 2
+                  mb: { xs: 1.25, sm: 2 }
                 }}
               >
-                <KeyboardOutlinedIcon sx={{ fontSize: 24 }} />
+                <KeyboardOutlinedIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
               </Box>
               <Typography
                 variant="h5"
                 sx={{
                   fontFamily: tokens.typography.fonts.heading,
                   fontWeight: tokens.typography.cardTitle.weight,
-                  fontSize: tokens.typography.cardTitle.fontSize,
+                  fontSize: { xs: "14px", sm: tokens.typography.cardTitle.fontSize },
                   color: c.textHeading,
                   mb: 0.5
                 }}
               >
                 Join with code
               </Typography>
-              <Typography variant="body2" sx={{ color: c.textMuted, fontSize: "13px" }}>
-                Enter code or paste invite link
+              <Typography variant="body2" sx={{ color: c.textMuted, fontSize: { xs: "11px", sm: "13px" }, lineHeight: 1.3 }}>
+                Enter code or link
               </Typography>
             </Card>
           </Grid>
 
           {/* Action 3: Schedule */}
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card
               hoverLift
               onClick={handleOpenSchedule}
-              padding={2.5}
+              padding={1.75}
               sx={{ height: "100%", display: "flex", flexDirection: "column", cursor: "pointer" }}
             >
               <Box
                 sx={{
-                  width: 44,
-                  height: 44,
+                  width: { xs: 38, sm: 44 },
+                  height: { xs: 38, sm: 44 },
                   borderRadius: tokens.radii.button,
                   backgroundColor: c.successSoftBg,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   color: c.success,
-                  mb: 2
+                  mb: { xs: 1.25, sm: 2 }
                 }}
               >
-                <CalendarMonthOutlinedIcon sx={{ fontSize: 24 }} />
+                <CalendarMonthOutlinedIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
               </Box>
               <Typography
                 variant="h5"
                 sx={{
                   fontFamily: tokens.typography.fonts.heading,
                   fontWeight: tokens.typography.cardTitle.weight,
-                  fontSize: tokens.typography.cardTitle.fontSize,
+                  fontSize: { xs: "14px", sm: tokens.typography.cardTitle.fontSize },
                   color: c.textHeading,
                   mb: 0.5
                 }}
               >
                 Schedule
               </Typography>
-              <Typography variant="body2" sx={{ color: c.textMuted, fontSize: "13px" }}>
-                Plan ahead & sync calendar
+              <Typography variant="body2" sx={{ color: c.textMuted, fontSize: { xs: "11px", sm: "13px" }, lineHeight: 1.3 }}>
+                Plan ahead & sync
               </Typography>
             </Card>
           </Grid>
 
           {/* Action 4: Share screen */}
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid item xs={6} sm={6} md={3}>
             <Card
               hoverLift
               onClick={handleShareScreenCall}
-              padding={2.5}
+              padding={1.75}
               sx={{ height: "100%", display: "flex", flexDirection: "column", cursor: "pointer" }}
             >
               <Box
                 sx={{
-                  width: 44,
-                  height: 44,
+                  width: { xs: 38, sm: 44 },
+                  height: { xs: 38, sm: 44 },
                   borderRadius: tokens.radii.button,
                   backgroundColor: isDark ? "rgba(245, 158, 11, 0.15)" : "#fef3c7",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   color: tokens?.accent?.dotAmber || tokens?.colors?.accent?.dotAmber || "#f59e0b",
-                  mb: 2
+                  mb: { xs: 1.25, sm: 2 }
                 }}
               >
-                <ScreenShareOutlinedIcon sx={{ fontSize: 24 }} />
+                <ScreenShareOutlinedIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
               </Box>
               <Typography
                 variant="h5"
                 sx={{
                   fontFamily: tokens.typography.fonts.heading,
                   fontWeight: tokens.typography.cardTitle.weight,
-                  fontSize: tokens.typography.cardTitle.fontSize,
+                  fontSize: { xs: "14px", sm: tokens.typography.cardTitle.fontSize },
                   color: c.textHeading,
                   mb: 0.5
                 }}
               >
                 Share screen
               </Typography>
-              <Typography variant="body2" sx={{ color: c.textMuted, fontSize: "13px" }}>
-                Start call with presentation
+              <Typography variant="body2" sx={{ color: c.textMuted, fontSize: { xs: "11px", sm: "13px" }, lineHeight: 1.3 }}>
+                Start presentation
               </Typography>
             </Card>
           </Grid>
@@ -503,24 +503,24 @@ function HomeComponent() {
         <Box
           sx={{
             p: 2,
-            mb: 5,
+            mb: { xs: 3.5, md: 5 },
             borderRadius: tokens.radii.card,
             bgcolor: c.surface,
             border: `1px solid ${c.border}`,
             display: "flex",
-            alignItems: "center",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { xs: "flex-start", sm: "center" },
             justifyContent: "space-between",
-            flexWrap: "wrap",
             gap: 1.5
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <TuneOutlinedIcon sx={{ color: c.primary, fontSize: 22 }} />
+            <TuneOutlinedIcon sx={{ color: c.primary, fontSize: 22, flexShrink: 0 }} />
             <Typography variant="body2" sx={{ color: c.textHeading, fontWeight: 600 }}>
               Want to check camera preview and mic before calling?
             </Typography>
           </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: { xs: "100%", sm: "auto" }, justifyContent: { xs: "flex-end", sm: "flex-start" } }}>
             <Button
               variant="ghost"
               size="small"

@@ -51,164 +51,266 @@ export default function Navbar() {
   };
 
   return (
-    <Box
-      component="header"
-      sx={{
-        width: "100%",
-        height: "68px",
-        backgroundColor: isDark ? "rgba(17, 24, 39, 0.95)" : "rgba(255, 255, 255, 0.95)",
-        backdropFilter: "blur(12px)",
-        borderBottom: `1px solid ${c.border}`,
-        position: "sticky",
-        top: 0,
-        zIndex: 1100,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        px: { xs: 2, sm: 4 },
-        boxShadow: isDark ? "none" : c.cardShadow
-      }}
-    >
-      {/* Left: Brand Logo */}
+    <>
       <Box
-        onClick={() => navigate(isLoggedIn ? "/home" : "/")}
+        component="header"
         sx={{
+          width: "100%",
+          height: { xs: "60px", sm: "68px" },
+          backgroundColor: isDark ? "rgba(17, 24, 39, 0.95)" : "rgba(255, 255, 255, 0.95)",
+          backdropFilter: "blur(12px)",
+          borderBottom: `1px solid ${c.border}`,
+          position: "sticky",
+          top: 0,
+          zIndex: 1100,
           display: "flex",
           alignItems: "center",
-          gap: 1.5,
-          cursor: "pointer",
-          userSelect: "none"
+          justifyContent: "space-between",
+          px: { xs: 2, sm: 4 },
+          boxShadow: isDark ? "none" : c.cardShadow
         }}
       >
+        {/* Left: Brand Logo */}
         <Box
-          component="img"
-          src="/video.svg"
-          alt="LiveLink"
-          sx={{ width: 34, height: 34 }}
-        />
-        <Typography
-          variant="h5"
+          onClick={() => navigate(isLoggedIn ? "/home" : "/")}
           sx={{
-            fontFamily: tokens.typography.fonts.heading,
-            fontWeight: 800,
-            color: c.textHeading,
-            letterSpacing: "-0.03em"
+            display: "flex",
+            alignItems: "center",
+            gap: 1.25,
+            cursor: "pointer",
+            userSelect: "none"
           }}
         >
-          Live<Box component="span" sx={{ color: c.primary }}>Link</Box>
-        </Typography>
+          <Box
+            component="img"
+            src="/video.svg"
+            alt="LiveLink"
+            sx={{ width: { xs: 30, sm: 34 }, height: { xs: 30, sm: 34 } }}
+          />
+          <Typography
+            variant="h5"
+            sx={{
+              fontFamily: tokens?.typography?.fonts?.heading || "inherit",
+              fontWeight: 800,
+              fontSize: { xs: "1.2rem", sm: "1.45rem" },
+              color: c.textHeading,
+              letterSpacing: "-0.03em"
+            }}
+          >
+            Live<Box component="span" sx={{ color: c.primary }}>Link</Box>
+          </Typography>
+        </Box>
+
+        {/* Center Desktop Navigation Links */}
+        {isLoggedIn && (
+          <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1 }}>
+            {navItems.map((item) => {
+              const active = isActive(item.path);
+              return (
+                <Button
+                  key={item.path}
+                  variant={active ? "primary" : "ghost"}
+                  size="small"
+                  onClick={() => handleNavClick(item.path)}
+                  leftIcon={item.icon}
+                  sx={{
+                    color: active ? "#ffffff" : c.textHeading,
+                    bgcolor: active ? c.primary : "transparent"
+                  }}
+                >
+                  {item.label}
+                </Button>
+              );
+            })}
+          </Box>
+        )}
+
+        {/* Right Desktop Actions */}
+        <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1.5 }}>
+          {/* Light/Dark Toggle */}
+          <IconButton
+            tooltip={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            variant="default"
+            size="normal"
+            onClick={toggleTheme}
+            ariaLabel="Toggle theme"
+          >
+            {isDark ? (
+              <LightModeOutlinedIcon sx={{ color: tokens?.accent?.dotAmber || tokens?.colors?.accent?.dotAmber || "#f59e0b" }} />
+            ) : (
+              <DarkModeOutlinedIcon sx={{ color: c.textMuted }} />
+            )}
+          </IconButton>
+
+          {isLoggedIn ? (
+            <>
+              {userData && (
+                <Chip
+                  icon={
+                    <Avatar
+                      src={userData.avatar}
+                      alt={userData.name}
+                      sx={{ width: 24, height: 24, fontSize: "11px" }}
+                    />
+                  }
+                  label={userData.name || userData.username || "Account"}
+                  onClick={() => navigate("/profile")}
+                />
+              )}
+
+              <Button
+                variant="ghost"
+                size="normal"
+                onClick={handleLogout}
+                leftIcon={<LogoutOutlinedIcon />}
+              >
+                Sign out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="secondary"
+                size="normal"
+                onClick={() => navigate("/auth")}
+              >
+                Sign in
+              </Button>
+              <Button
+                variant="primary"
+                size="normal"
+                onClick={() => navigate("/auth")}
+              >
+                Get started
+              </Button>
+            </>
+          )}
+        </Box>
+
+        {/* Mobile Header Actions */}
+        <Box sx={{ display: { xs: "flex", md: "none" }, alignItems: "center", gap: 1 }}>
+          <IconButton
+            tooltip={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            variant="default"
+            size="normal"
+            onClick={toggleTheme}
+            ariaLabel="Toggle theme"
+          >
+            {isDark ? (
+              <LightModeOutlinedIcon sx={{ color: tokens?.accent?.dotAmber || tokens?.colors?.accent?.dotAmber || "#f59e0b" }} />
+            ) : (
+              <DarkModeOutlinedIcon sx={{ color: c.textMuted }} />
+            )}
+          </IconButton>
+
+          {isLoggedIn ? (
+            <IconButton
+              variant="default"
+              size="normal"
+              onClick={() => setMobileOpen(true)}
+              ariaLabel="Open navigation menu"
+            >
+              <MenuOutlinedIcon />
+            </IconButton>
+          ) : (
+            <Button
+              variant="primary"
+              size="small"
+              onClick={() => navigate("/auth")}
+              sx={{ fontSize: "12px", px: 1.5, py: 0.5, minHeight: 32 }}
+            >
+              Sign in
+            </Button>
+          )}
+        </Box>
       </Box>
 
-      {/* Center Desktop Navigation Links */}
+      {/* Mobile Bottom Navigation Bar (Fixed for logged-in users on phones) */}
       {isLoggedIn && (
-        <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1 }}>
+        <Box
+          component="nav"
+          aria-label="Mobile navigation"
+          sx={{
+            display: { xs: "flex", md: "none" },
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: "calc(58px + env(safe-area-inset-bottom, 0px))",
+            pb: "env(safe-area-inset-bottom, 0px)",
+            backgroundColor: isDark ? "rgba(17, 24, 39, 0.96)" : "rgba(255, 255, 255, 0.96)",
+            backdropFilter: "blur(16px)",
+            borderTop: `1px solid ${c.border}`,
+            zIndex: 1200,
+            alignItems: "center",
+            justifyContent: "space-around",
+            px: 1,
+            boxShadow: isDark ? "0 -4px 20px rgba(0, 0, 0, 0.45)" : "0 -4px 20px rgba(15, 23, 42, 0.06)"
+          }}
+        >
           {navItems.map((item) => {
             const active = isActive(item.path);
             return (
-              <Button
+              <Box
                 key={item.path}
-                variant={active ? "primary" : "ghost"}
-                size="small"
+                component="button"
                 onClick={() => handleNavClick(item.path)}
-                leftIcon={item.icon}
                 sx={{
-                  color: active ? "#ffffff" : c.textHeading,
-                  bgcolor: active ? c.primary : "transparent"
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  py: 0.75,
+                  gap: 0.4,
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: active ? c.primary : c.textMuted,
+                  touchAction: "manipulation",
+                  userSelect: "none",
+                  transition: `all ${tokens?.motion?.micro || "0.15s ease"}`,
+                  "&:active": {
+                    transform: "scale(0.92)"
+                  }
                 }}
               >
-                {item.label}
-              </Button>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 44,
+                    height: 28,
+                    borderRadius: "14px",
+                    backgroundColor: active ? (isDark ? "rgba(37, 99, 235, 0.2)" : c.primarySoftBg) : "transparent",
+                    transition: `background-color ${tokens?.motion?.micro || "0.15s ease"}`
+                  }}
+                >
+                  {React.cloneElement(item.icon, {
+                    sx: {
+                      fontSize: 22,
+                      color: active ? c.primary : c.textMuted,
+                      transition: `color ${tokens?.motion?.micro || "0.15s ease"}`
+                    }
+                  })}
+                </Box>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: "11px",
+                    fontWeight: active ? 700 : 500,
+                    color: active ? c.primary : c.textMuted,
+                    letterSpacing: active ? "-0.01em" : "normal"
+                  }}
+                >
+                  {item.label}
+                </Typography>
+              </Box>
             );
           })}
         </Box>
       )}
-
-      {/* Right Desktop Actions */}
-      <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 1.5 }}>
-        {/* Light/Dark Toggle */}
-        <IconButton
-          tooltip={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          variant="default"
-          size="normal"
-          onClick={toggleTheme}
-          ariaLabel="Toggle theme"
-        >
-          {isDark ? (
-            <LightModeOutlinedIcon sx={{ color: tokens?.accent?.dotAmber || tokens?.colors?.accent?.dotAmber || "#f59e0b" }} />
-          ) : (
-            <DarkModeOutlinedIcon sx={{ color: c.textMuted }} />
-          )}
-        </IconButton>
-
-        {isLoggedIn ? (
-          <>
-            {userData && (
-              <Chip
-                icon={
-                  <Avatar
-                    src={userData.avatar}
-                    alt={userData.name}
-                    sx={{ width: 24, height: 24, fontSize: "11px" }}
-                  />
-                }
-                label={userData.name || userData.username || "Account"}
-                onClick={() => navigate("/profile")}
-              />
-            )}
-
-            <Button
-              variant="ghost"
-              size="normal"
-              onClick={handleLogout}
-              leftIcon={<LogoutOutlinedIcon />}
-            >
-              Sign out
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button
-              variant="secondary"
-              size="normal"
-              onClick={() => navigate("/auth")}
-            >
-              Sign in
-            </Button>
-            <Button
-              variant="primary"
-              size="normal"
-              onClick={() => navigate("/auth")}
-            >
-              Get started
-            </Button>
-          </>
-        )}
-      </Box>
-
-      {/* Mobile Hamburger & Theme Toggle Button */}
-      <Box sx={{ display: { xs: "flex", md: "none" }, alignItems: "center", gap: 1 }}>
-        <IconButton
-          tooltip={isDark ? "Switch to light mode" : "Switch to dark mode"}
-          variant="default"
-          size="normal"
-          onClick={toggleTheme}
-          ariaLabel="Toggle theme"
-        >
-          {isDark ? (
-            <LightModeOutlinedIcon sx={{ color: tokens?.accent?.dotAmber || tokens?.colors?.accent?.dotAmber || "#f59e0b" }} />
-          ) : (
-            <DarkModeOutlinedIcon sx={{ color: c.textMuted }} />
-          )}
-        </IconButton>
-        <IconButton
-          variant="default"
-          size="normal"
-          onClick={() => setMobileOpen(true)}
-          ariaLabel="Open navigation menu"
-        >
-          <MenuOutlinedIcon />
-        </IconButton>
-      </Box>
 
       {/* Mobile Navigation Drawer */}
       <Drawer
@@ -318,6 +420,6 @@ export default function Navbar() {
           )}
         </List>
       </Drawer>
-    </Box>
+    </>
   );
 }

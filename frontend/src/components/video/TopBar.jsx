@@ -35,9 +35,9 @@ export default function TopBar({
     <Box
       sx={{
         position: "absolute",
-        top: 16,
-        left: 16,
-        right: 16,
+        top: { xs: "calc(8px + env(safe-area-inset-top, 0px))", sm: 16 },
+        left: { xs: 8, sm: 16 },
+        right: { xs: 8, sm: 16 },
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
