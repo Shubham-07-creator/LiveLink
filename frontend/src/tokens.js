@@ -43,17 +43,17 @@ const darkColors = {
   primaryPressed: "#2563eb",
   primarySoftBg: "rgba(59, 130, 246, 0.15)",
   primarySoftBorder: "rgba(59, 130, 246, 0.3)",
-  danger: "#dc2626",
-  dangerHover: "#b91c1c",
-  dangerSoftBg: "rgba(220, 38, 38, 0.15)",
-  success: "#15803d",
-  successSoftBg: "rgba(21, 128, 61, 0.15)",
+  danger: "#ef4444",
+  dangerHover: "#dc2626",
+  dangerSoftBg: "rgba(239, 68, 68, 0.15)",
+  success: "#22c55e",
+  successSoftBg: "rgba(34, 197, 94, 0.15)",
   warning: "#f59e0b",
   warningText: "#f59e0b",
   warningSoftBg: "rgba(245, 158, 11, 0.15)",
   shadow: "none",
-  cardShadow: "none",
-  modalShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5)"
+  cardShadow: "0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)",
+  modalShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6)"
 };
 
 const callColors = {
@@ -213,8 +213,8 @@ export const getTokens = (mode = "light") => {
       call: callColors,
       accent: accentColors,
       shadow: modeColors?.shadow || (isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05), 0 10px 25px -5px rgba(0,0,0,0.04)"),
-      cardShadow: modeColors?.cardShadow || "none",
-      modalShadow: modeColors?.modalShadow || (isDark ? "0 20px 25px -5px rgba(0, 0, 0, 0.5)" : "0 25px 50px -12px rgba(0, 0, 0, 0.25)")
+      cardShadow: modeColors?.cardShadow || (isDark ? "0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)" : "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)"),
+      modalShadow: modeColors?.modalShadow || (isDark ? "0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6)" : "0 25px 50px -12px rgba(0, 0, 0, 0.25)")
     },
     raw: tokens,
     light: lightColors,

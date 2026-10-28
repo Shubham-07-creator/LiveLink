@@ -37,9 +37,9 @@ export default function AppCard({
         ...(hoverLift && {
           "&:hover": {
             transform: "translateY(-2px)",
-            borderColor: isDark ? (c?.primaryHover || "#60a5fa") : (c?.border || "#e2e8f0"),
+            borderColor: isDark ? (c?.primaryHover || "#60a5fa") : (c?.primary || "#2563eb"),
             boxShadow: isDark
-              ? "none"
+              ? "0 12px 30px -5px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(96, 165, 250, 0.3)"
               : "0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)"
           }
         }),

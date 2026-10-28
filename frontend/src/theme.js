@@ -22,7 +22,7 @@ export const createAppTheme = (mode = "light") => {
 
   return createTheme({
     palette: {
-      mode,
+      mode: normalizedMode,
       primary: {
         main: c.primary,
         dark: c.primaryHover,

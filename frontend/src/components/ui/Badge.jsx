@@ -30,20 +30,20 @@ export default function AppBadge({
         };
       case "success":
         return {
-          backgroundColor: c?.successSoftBg || (isDark ? "rgba(21, 128, 61, 0.15)" : "#dcfce7"),
-          color: c?.success || "#15803d",
+          backgroundColor: c?.successSoftBg || (isDark ? "rgba(34, 197, 94, 0.15)" : "#dcfce7"),
+          color: isDark ? (tokens?.accent?.dotGreen || "#22c55e") : (c?.success || "#15803d"),
           dotColor: tokens?.accent?.dotGreen || "#16a34a"
         };
       case "danger":
         return {
-          backgroundColor: c?.dangerSoftBg || (isDark ? "rgba(220, 38, 38, 0.15)" : "#fee2e2"),
-          color: c?.danger || "#dc2626",
+          backgroundColor: c?.dangerSoftBg || (isDark ? "rgba(239, 68, 68, 0.15)" : "#fee2e2"),
+          color: isDark ? (tokens?.accent?.dotRed || "#ef4444") : (c?.danger || "#dc2626"),
           dotColor: tokens?.accent?.dotRed || "#ef4444"
         };
       case "warning":
         return {
           backgroundColor: c?.warningSoftBg || (isDark ? "rgba(245, 158, 11, 0.15)" : "#fef3c7"),
-          color: c?.warningText || c?.warning || "#b45309",
+          color: isDark ? (tokens?.accent?.dotAmber || "#f59e0b") : (c?.warningText || "#b45309"),
           dotColor: tokens?.accent?.dotAmber || "#f59e0b"
         };
       case "neutral":
