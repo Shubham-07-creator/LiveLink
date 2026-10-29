@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+[data-theme="light"] {
+  --bg-app: #FAF8F5;
+  --surface: #FFFFFF;
+  --surface-elevated: #FFFFFF;
+  --sidebar: #F3EFEA;
+  --sidebar-active: #E9E3DC;
+  --accent: #CC785C;
+  --accent-hover: #BA664A;
+  --accent-button: #B35639;
+  --accent-button-hover: #9E4A30;
+  --accent-subtle: rgba(204, 120, 92, 0.12);
+  --text: #1F1E1D;
+  --text-muted: #6B6862;
+  --text-inverse: #FAF8F5;
+  --border: #E5E0D8;
+  --border-strong: #D1CAC0;
+}
+
+[data-theme="dark"] {
+  --bg-app: #1A1915;
+  --surface: #23221E;
+  --surface-elevated: #2A2924;
+  --sidebar: #141311;
+  --sidebar-active: #2C2B26;
+  --accent: #D97757;
+  --accent-hover: #E08566;
+  --accent-button: #D97757;
+  --accent-button-hover: #E08566;
+  --accent-subtle: rgba(217, 119, 87, 0.18);
+  --text: #EDEAE5;
+  --text-muted: #9C978F;
+  --text-inverse: #1A1915;
+  --border: #32302A;
+  --border-strong: #44413A;
+}
+
+[data-theme="sepia"] {
+  --bg-app: #F4EFE6;
+  --surface: #FAF6F0;
+  --surface-elevated: #FFFDF9;
+  --sidebar: #EDE7DC;
+  --sidebar-active: #E1D9CC;
+  --accent: #A2583E;
+  --accent-hover: #8E4B33;
+  --accent-button: #8E4B33;
+  --accent-button-hover: #793D28;
+  --accent-subtle: rgba(162, 88, 62, 0.14);
+  --text: #2B2621;
+  --text-muted: #786F66;
+  --text-inverse: #FAF6F0;
+  --border: #DED6C9;
+  --border-strong: #C8BEAF;
+}
+
+body {
+  background-color: var(--bg-app);
+  color: var(--text);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+  transition-property: background-color, border-color, color;
+  transition-duration: 200ms;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
