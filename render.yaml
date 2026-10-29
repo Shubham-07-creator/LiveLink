@@ -1,0 +1,48 @@
+services:
+  # 1. LiveLink Backend WebRTC & Socket.io Service
+  - type: web
+    name: livelink-backend
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+
+  # 2. Aether Zero-Cost AI & Artifacts Studio (Next.js)
+  - type: web
+    name: aether-ai-studio
+    runtime: node
+    plan: free
+    rootDir: aether
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: GEMINI_MODEL_FAST
+        value: gemini-3.5-flash
+      - key: GEMINI_MODEL_SMART
+        value: gemini-3.5-flash
+      - key: MODEL_FAST
+        value: gemini-3.5-flash
+      - key: MODEL_SMART
+        value: gemini-3.5-flash
+      - key: FALLBACK_PROVIDERS
+        value: groq,openrouter,ollama
+      - key: EMBEDDING_PROVIDER
+        value: local
+      - key: EMBEDDING_DIM
+        value: 384
+      - key: AI_KILL_SWITCH
+        value: "false"
+      - key: DAILY_USER_MESSAGE_LIMIT
+        value: "100"
+      - key: DAILY_USER_TOKEN_LIMIT
+        value: "150000"

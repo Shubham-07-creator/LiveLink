@@ -23,8 +23,8 @@ export class GeminiAdapter implements LLMAdapter {
 
     const defaultModel =
       modelTier === 'smart'
-        ? process.env.GEMINI_MODEL_SMART || 'gemini-1.5-flash'
-        : process.env.GEMINI_MODEL_FAST || 'gemini-1.5-flash';
+        ? process.env.GEMINI_MODEL_SMART || 'gemini-3.5-flash'
+        : process.env.GEMINI_MODEL_FAST || 'gemini-3.5-flash';
 
     const model = modelOverride || defaultModel;
 
