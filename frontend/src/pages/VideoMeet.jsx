@@ -120,6 +120,15 @@ export default function VideoMeet() {
             if (media.audioEnabled) media.toggleAudio();
             setToast({ open: true, message: "You were muted by the meeting host.", severity: 'warning' });
         },
+        onForceVideoOff: ({ requestedBy }) => {
+            if (media.videoEnabled) media.toggleVideo();
+            setToast({ open: true, message: `Your camera was turned off by ${requestedBy || "the host"}.`, severity: 'warning' });
+        },
+        onMeetingEndedByHost: ({ hostName, message }) => {
+            peersRef.current?.closeAllPeers();
+            media.stopAudioVisualizer();
+            navigate('/', { state: { toast: message || `This meeting was ended for all participants by ${hostName || "the host"}.` } });
+        },
         onUserRemoved: (msg) => {
             peersRef.current?.closeAllPeers();
             media.stopAudioVisualizer();
@@ -334,6 +343,7 @@ export default function VideoMeet() {
                 <>
                     <TopBar roomCode={url} duration={callDuration} participantCount={participantList.length}
                         isRecording={isRecording || signaling.remoteRecording.isRecording} isVisible={controlsVisible}
+                        isPrivateCall={signaling.isPrivateCall || url?.startsWith("p-")}
                         onCopyLink={() => { navigator.clipboard.writeText(window.location.href); setToast({ open: true, message: "Meeting link copied", severity: 'success' }); }}
                         onTogglePeople={() => setPeopleOpen(d => !d)}
                         onToggleHelp={() => setShortcutsOpen(s => !s)}
@@ -341,7 +351,7 @@ export default function VideoMeet() {
 
                     <Stage localStream={media.localStream} screenStream={media.screenStream} isScreenSharing={media.isScreenSharing}
                         remoteVideos={peers.remoteVideos} localName={displayName} localAvatar={userData?.avatar}
-                        localSocketId={currentLocalSocketId}
+                        localSocketId={currentLocalSocketId} hostSocketId={signaling.hostSocketId}
                         videoEnabled={media.videoEnabled} audioEnabled={media.audioEnabled}
                         localSpeaking={localSpeaking || (media.audioVolume > 15 && media.audioEnabled)}
                         activeSpeakingPeers={combinedSpeakingPeers} peerQualities={stats.peerQualities} overallQuality={stats.overallQuality}
@@ -351,7 +361,14 @@ export default function VideoMeet() {
                     <ControlDock videoEnabled={media.videoEnabled} audioEnabled={media.audioEnabled} isScreenSharing={media.isScreenSharing}
                         isHandRaised={signaling.isHandRaised} isRecording={isRecording} isHost={signaling.isHost} viewMode={viewMode}
                         captionsActive={captionsActive} unreadMessages={signaling.newMessagesCount} onToggleAudio={media.toggleAudio}
-                        onToggleVideo={media.toggleVideo} onToggleScreenShare={() => media.isScreenSharing ? media.stopScreenShare() : media.startScreenShare()}
+                        onToggleVideo={media.toggleVideo}
+                        onToggleScreenShare={() => {
+                            if (!signaling.isHost && signaling.roomPermissions?.allowScreenShare === false) {
+                                setToast({ open: true, message: "Screen sharing has been locked by the meeting host.", severity: 'warning' });
+                                return;
+                            }
+                            media.isScreenSharing ? media.stopScreenShare() : media.startScreenShare();
+                        }}
                         onToggleHand={() => signaling.toggleRaiseHand(displayName)} onSendReaction={(em) => signaling.sendReaction(em, displayName)}
                         onToggleViewMode={() => setViewMode(v => v === 'grid' ? 'speaker' : 'grid')} onToggleCaptions={toggleCaptions}
                         onToggleChat={() => { setChatOpen(d => !d); signaling.setNewMessagesCount(0); }}
@@ -364,12 +381,19 @@ export default function VideoMeet() {
                     <FloatingReactions reactions={signaling.reactions} />
                     <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} messages={signaling.messages}
                         typingUser={signaling.typingUser} currentUserId={signaling.socketId}
+                        isChatDisabled={!signaling.isHost && signaling.roomPermissions?.allowChat === false}
                         onSendMessage={(txt) => signaling.sendMessage(txt, displayName)} onSendTyping={signaling.sendTyping} />
 
                     <PeopleDrawer open={peopleOpen} onClose={() => setPeopleOpen(false)} participants={participantList}
-                        isHost={signaling.isHost} isRoomLocked={signaling.isRoomLocked} waitingUsers={signaling.waitingUsers}
-                        onLockRoom={signaling.lockRoom} onMuteAll={signaling.muteAll} onAdmitUser={signaling.admitUser}
-                        onDenyUser={signaling.denyUser} onMuteParticipant={signaling.muteParticipant} onRemoveParticipant={signaling.removeParticipant} />
+                        isHost={signaling.isHost} isRoomLocked={signaling.isRoomLocked} roomPermissions={signaling.roomPermissions}
+                        waitingUsers={signaling.waitingUsers}
+                        onLockRoom={signaling.lockRoom} onMuteAll={signaling.muteAll}
+                        onEndMeetingForAll={() => setLeaveConfirmOpen(true)}
+                        onToggleScreenSharePermission={signaling.toggleScreenSharePermission}
+                        onToggleChatPermission={signaling.toggleChatPermission}
+                        onAdmitUser={signaling.admitUser} onDenyUser={signaling.denyUser}
+                        onMuteParticipant={signaling.muteParticipant} onForceStopVideo={signaling.forceStopVideo}
+                        onRemoveParticipant={signaling.removeParticipant} />
 
                     <CaptionsOverlay
                         active={captionsActive || Boolean(signaling.remoteCaption?.text)}
@@ -387,12 +411,27 @@ export default function VideoMeet() {
             )}
 
             {/* Leave Meeting Confirmation Dialog */}
-            <Modal open={leaveConfirmOpen} onClose={() => setLeaveConfirmOpen(false)} title="Leave meeting?"
-                description="Are you sure you want to disconnect from this call?"
+            <Modal open={leaveConfirmOpen} onClose={() => setLeaveConfirmOpen(false)}
+                title={signaling.isHost ? "Host Controls: Leave or End Meeting" : "Leave meeting?"}
+                description={signaling.isHost
+                    ? "As the host, you can leave the call or permanently end the meeting for all participants."
+                    : "Are you sure you want to disconnect from this call?"
+                }
                 actions={
                     <>
                         <Button variant="ghost" size="normal" onClick={() => setLeaveConfirmOpen(false)}>Cancel</Button>
-                        <Button variant="danger" size="normal" onClick={confirmLeave}>Leave call</Button>
+                        <Button variant="secondary" size="normal" onClick={confirmLeave}>Leave call</Button>
+                        {signaling.isHost && (
+                            <Button variant="danger" size="normal" onClick={() => {
+                                setLeaveConfirmOpen(false);
+                                if (isRecording) toggleRecording();
+                                peers.closeAllPeers();
+                                signaling.endMeetingForAll();
+                                navigate('/', { state: { toast: "You ended the meeting for all participants." } });
+                            }}>
+                                End for all
+                            </Button>
+                        )}
                     </>
                 } />
 

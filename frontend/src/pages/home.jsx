@@ -39,6 +39,7 @@ import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
 function HomeComponent() {
   const navigate = useNavigate();
@@ -219,6 +220,11 @@ function HomeComponent() {
     navigate(`/${code}`);
   };
 
+  const handleCreatePrivate = () => {
+    const code = generateRoomCode(true);
+    navigate(`/${code}`);
+  };
+
   const handleCreateInvite = () => {
     const code = generateRoomCode();
     setCreatedRoom(code);
@@ -324,10 +330,10 @@ function HomeComponent() {
           </Box>
         </Box>
 
-        {/* 2. Four Quick Action Cards (2x2 Grid on Mobile, 4 in a row on Desktop) */}
-        <Grid container spacing={{ xs: 1.5, sm: 2.5 }} sx={{ mb: { xs: 3.5, md: 5 } }}>
+        {/* 2. Five Quick Action Cards (Responsive Grid: 2 per row mobile, 5 in a row on Desktop) */}
+        <Grid container spacing={{ xs: 1.5, sm: 2.5 }} columns={{ xs: 12, sm: 12, md: 10 }} sx={{ mb: { xs: 3.5, md: 5 } }}>
           {/* Action 1: New meeting (Primary Filled Blue) */}
-          <Grid item xs={6} sm={6} md={3}>
+          <Grid item xs={6} sm={4} md={2}>
             <Card
               hoverLift
               onClick={handleCreateInstant}
@@ -370,13 +376,54 @@ function HomeComponent() {
                 New meeting
               </Typography>
               <Typography variant="body2" sx={{ color: "rgba(255, 255, 255, 0.8)", fontSize: { xs: "11px", sm: "13px" }, lineHeight: 1.3 }}>
-                Start instant room
+                Group call & host tools
               </Typography>
             </Card>
           </Grid>
 
-          {/* Action 2: Join with code */}
-          <Grid item xs={6} sm={6} md={3}>
+          {/* Action 2: Private 1-to-1 (Strict 2-Person Limit, E2EE) */}
+          <Grid item xs={6} sm={4} md={2}>
+            <Card
+              hoverLift
+              onClick={handleCreatePrivate}
+              padding={1.75}
+              sx={{ height: "100%", display: "flex", flexDirection: "column", cursor: "pointer" }}
+            >
+              <Box
+                sx={{
+                  width: { xs: 38, sm: 44 },
+                  height: { xs: 38, sm: 44 },
+                  borderRadius: tokens.radii.button,
+                  backgroundColor: isDark ? "rgba(168, 85, 247, 0.15)" : "#f3e8ff",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#a855f7",
+                  mb: { xs: 1.25, sm: 2 }
+                }}
+              >
+                <LockOutlinedIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />
+              </Box>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontFamily: tokens.typography.fonts.heading,
+                  fontWeight: tokens.typography.cardTitle.weight,
+                  fontSize: { xs: "14px", sm: tokens.typography.cardTitle.fontSize },
+                  color: c.textHeading,
+                  mb: 0.5
+                }}
+              >
+                Private 1-to-1
+              </Typography>
+              <Typography variant="body2" sx={{ color: c.textMuted, fontSize: { xs: "11px", sm: "13px" }, lineHeight: 1.3 }}>
+                Strict 2-person • E2EE
+              </Typography>
+            </Card>
+          </Grid>
+
+          {/* Action 3: Join with code */}
+          <Grid item xs={6} sm={4} md={2}>
             <Card
               hoverLift
               onClick={() => setJoinModalOpen(true)}
@@ -416,8 +463,8 @@ function HomeComponent() {
             </Card>
           </Grid>
 
-          {/* Action 3: Schedule */}
-          <Grid item xs={6} sm={6} md={3}>
+          {/* Action 4: Schedule */}
+          <Grid item xs={6} sm={6} md={2}>
             <Card
               hoverLift
               onClick={handleOpenSchedule}
@@ -457,8 +504,8 @@ function HomeComponent() {
             </Card>
           </Grid>
 
-          {/* Action 4: Share screen */}
-          <Grid item xs={6} sm={6} md={3}>
+          {/* Action 5: Share screen */}
+          <Grid item xs={12} sm={6} md={2}>
             <Card
               hoverLift
               onClick={handleShareScreenCall}
@@ -862,6 +909,21 @@ function HomeComponent() {
           </>
         }
       >
+        <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+          <Chip
+            label="Group meeting (up to 4)"
+            selected={!createdRoom?.startsWith("p-")}
+            onClick={() => setCreatedRoom(generateRoomCode(false))}
+            size="small"
+          />
+          <Chip
+            label="Private 1-to-1 (max 2)"
+            selected={createdRoom?.startsWith("p-")}
+            onClick={() => setCreatedRoom(generateRoomCode(true))}
+            size="small"
+          />
+        </Box>
+
         <Box
           sx={{
             p: 2,

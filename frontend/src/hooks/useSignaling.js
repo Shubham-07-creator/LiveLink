@@ -10,6 +10,8 @@ export default function useSignaling({
     onUserJoined,
     onUserLeft,
     onForceMute,
+    onForceVideoOff,
+    onMeetingEndedByHost,
     onUserRemoved,
     onRoomFull
 } = {}) {
@@ -18,6 +20,8 @@ export default function useSignaling({
     const [socketId, setSocketId] = useState('');
     const [hostSocketId, setHostSocketId] = useState('');
     const [isRoomLocked, setIsRoomLocked] = useState(false);
+    const [roomPermissions, setRoomPermissions] = useState({ allowScreenShare: true, allowChat: true });
+    const [isPrivateCall, setIsPrivateCall] = useState(false);
     const [messages, setMessages] = useState([]);
     const [newMessagesCount, setNewMessagesCount] = useState(0);
     const [typingUser, setTypingUser] = useState(null);
@@ -41,6 +45,8 @@ export default function useSignaling({
         onUserJoined,
         onUserLeft,
         onForceMute,
+        onForceVideoOff,
+        onMeetingEndedByHost,
         onUserRemoved,
         onRoomFull
     };
@@ -78,12 +84,14 @@ export default function useSignaling({
             socket.emit('join-call', roomUrl, displayName, token, avatar);
         });
 
-        // User joined room
-        socket.on('user-joined', (id, clients, namesMap, avatarsMap, roomHost, locked) => {
+        // User joined room (with host designation, lock status, permissions, and private mode)
+        socket.on('user-joined', (id, clients, namesMap, avatarsMap, roomHost, locked, permissions, isPrivate) => {
             if (id !== socket.id) playChime('join');
             if (roomHost) setHostSocketId(roomHost);
             if (locked !== undefined) setIsRoomLocked(Boolean(locked));
-            callbacksRef.current.onUserJoined?.(id, clients, namesMap, avatarsMap, roomHost, socket.id);
+            if (permissions) setRoomPermissions(permissions);
+            if (isPrivate !== undefined) setIsPrivateCall(Boolean(isPrivate));
+            callbacksRef.current.onUserJoined?.(id, clients, namesMap, avatarsMap, roomHost, socket.id, isPrivate);
         });
 
         // WebRTC Signaling relay
@@ -179,12 +187,43 @@ export default function useSignaling({
                 setRemoteCaption(null);
             }, 4000);
         });
+
+        // Meeting ended for all by host
+        socket.on('meeting-ended-by-host', (data) => {
+            callbacksRef.current.onMeetingEndedByHost?.(data);
+        });
+
+        // Meeting permissions changed by host
+        socket.on('permissions-changed', (perms) => {
+            if (perms) setRoomPermissions(perms);
+        });
+
+        // Forced video stop by host
+        socket.on('force-video-off', (data) => {
+            callbacksRef.current.onForceVideoOff?.(data);
+        });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [roomUrl, userData, hostSocketId]);
 
     // Host actions
     const lockRoom = useCallback((lock) => {
         if (isHost) socketRef.current?.emit('lock-room', lock);
+    }, [isHost]);
+
+    const endMeetingForAll = useCallback(() => {
+        if (isHost) socketRef.current?.emit('end-meeting-for-all');
+    }, [isHost]);
+
+    const toggleScreenSharePermission = useCallback((allow) => {
+        if (isHost) socketRef.current?.emit('toggle-screen-share-permission', allow);
+    }, [isHost]);
+
+    const toggleChatPermission = useCallback((allow) => {
+        if (isHost) socketRef.current?.emit('toggle-chat-permission', allow);
+    }, [isHost]);
+
+    const forceStopVideo = useCallback((targetId) => {
+        if (isHost) socketRef.current?.emit('force-stop-video', targetId);
     }, [isHost]);
 
     const admitUser = useCallback((targetId) => {
@@ -265,6 +304,8 @@ export default function useSignaling({
         hostSocketId,
         isHost,
         isRoomLocked,
+        roomPermissions,
+        isPrivateCall,
         messages,
         newMessagesCount,
         typingUser,
@@ -286,6 +327,10 @@ export default function useSignaling({
         sendReaction,
         toggleRaiseHand,
         lockRoom,
+        endMeetingForAll,
+        toggleScreenSharePermission,
+        toggleChatPermission,
+        forceStopVideo,
         admitUser,
         denyUser,
         muteParticipant,

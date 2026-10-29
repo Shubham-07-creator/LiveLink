@@ -17,6 +17,7 @@ const socketToRoom = new Map();
 let roomHosts = {};
 let roomLocked = {};
 let waitingRooms = {};
+let roomPermissions = {}; // path -> { allowScreenShare: boolean, allowChat: boolean }
 
 // Join rate limiter tracking (max 20 join attempts per minute per IP)
 const joinAttempts = new Map();
@@ -112,8 +113,8 @@ export const connectToSocket = (server) => {
         next();
     });
 
-    // Room code validation helpers
-    const roomCodeRegex = /^[a-z0-9]{3,6}-[a-z0-9]{3,6}-[a-z0-9]{3,6}$/i;
+    // Room code validation helpers (supports group calls and p- private calls)
+    const roomCodeRegex = /^(p-)?[a-z0-9]{3,6}-[a-z0-9]{3,6}-[a-z0-9]{3,6}$/i;
     const slugRegex = /^[a-zA-Z0-9_-]{3,50}$/;
 
     const normalizeRoomCode = (rawPath) => {
@@ -180,11 +181,15 @@ export const connectToSocket = (server) => {
                 : (socket.user?.username || "User");
             const safeAvatar = (typeof avatar === "string" && /^https:\/\/[^\s$.?#].[^\s]*$/i.test(avatar)) ? avatar : null;
 
+            const isPrivateCall = path.startsWith("p-") || path.includes("priv");
+            const effectiveMax = isPrivateCall ? 2 : MAX_ROOM_PARTICIPANTS;
+
             if (!connections[path]) {
                 connections[path] = [];
                 roomHosts[path] = socket.id;
                 roomLocked[path] = false;
                 waitingRooms[path] = [];
+                roomPermissions[path] = { allowScreenShare: true, allowChat: true };
             }
 
             // WAITING ROOM CHECK: When locked, non-host users wait unless admitted
@@ -219,11 +224,14 @@ export const connectToSocket = (server) => {
                 return;
             }
 
-            // MESH LIMIT: 4 participants maximum (env-configurable)
-            if (connections[path].length >= MAX_ROOM_PARTICIPANTS) {
+            // ROOM CAPACITY LIMIT (Strict 2 participants for Private Calls, 4 for Group Meetings)
+            if (connections[path].length >= effectiveMax) {
                 socket.emit("room-full", {
-                    message: `This meeting room has reached the maximum capacity of ${MAX_ROOM_PARTICIPANTS} participants for peer-to-peer mesh calling.`,
-                    max: MAX_ROOM_PARTICIPANTS
+                    message: isPrivateCall
+                        ? "This is a private 1-on-1 call. The room is at full capacity (maximum 2 participants)."
+                        : `This meeting room has reached the maximum capacity of ${MAX_ROOM_PARTICIPANTS} participants for peer-to-peer mesh calling.`,
+                    max: effectiveMax,
+                    isPrivate: isPrivateCall
                 });
                 return;
             }
@@ -259,7 +267,9 @@ export const connectToSocket = (server) => {
                     roomUserNamesMap, 
                     roomUserAvatarsMap, 
                     hostSocketId,
-                    Boolean(roomLocked[path])
+                    Boolean(roomLocked[path]),
+                    roomPermissions[path] || { allowScreenShare: true, allowChat: true },
+                    Boolean(isPrivateCall)
                 );
             }
 
@@ -312,6 +322,11 @@ export const connectToSocket = (server) => {
             const [matchingRoom, found] = getSocketRoom(socket.id);
 
             if (found === true) {
+                if (roomPermissions[matchingRoom]?.allowChat === false && roomHosts[matchingRoom] !== socket.id) {
+                    socket.emit("chat-error", "In-call chat has been disabled by the meeting host.");
+                    return;
+                }
+
                 if (messages[matchingRoom] === undefined) {
                     messages[matchingRoom] = [];
                 }
@@ -567,6 +582,82 @@ export const connectToSocket = (server) => {
             });
         });
 
+        // Host Control: End Meeting for Everyone (Terminates Call for All Participants)
+        socket.on("end-meeting-for-all", () => {
+            const [matchingRoom, found] = getSocketRoom(socket.id);
+            if (!found) return;
+
+            if (roomHosts[matchingRoom] !== socket.id) {
+                return socket.emit("host-action-error", "Only the host can end the meeting for everyone.");
+            }
+
+            const hostName = userNames[socket.id] || "Host";
+            const clients = [...(connections[matchingRoom] || [])];
+
+            clients.forEach((elem) => {
+                io.to(elem).emit("meeting-ended-by-host", {
+                    hostName,
+                    message: "The host has ended this meeting for all participants."
+                });
+                socketToRoom.delete(elem);
+            });
+
+            delete connections[matchingRoom];
+            delete messages[matchingRoom];
+            delete roomHosts[matchingRoom];
+            delete roomLocked[matchingRoom];
+            delete waitingRooms[matchingRoom];
+            delete roomPermissions[matchingRoom];
+        });
+
+        // Host Control: Toggle Screen Share Permission for Participants
+        socket.on("toggle-screen-share-permission", (allow) => {
+            const [matchingRoom, found] = getSocketRoom(socket.id);
+            if (!found) return;
+
+            if (roomHosts[matchingRoom] !== socket.id) {
+                return socket.emit("host-action-error", "Only the host can manage meeting permissions.");
+            }
+
+            if (!roomPermissions[matchingRoom]) roomPermissions[matchingRoom] = { allowScreenShare: true, allowChat: true };
+            roomPermissions[matchingRoom].allowScreenShare = Boolean(allow);
+
+            connections[matchingRoom].forEach((elem) => {
+                io.to(elem).emit("permissions-changed", roomPermissions[matchingRoom]);
+            });
+        });
+
+        // Host Control: Toggle Chat Permission for Participants
+        socket.on("toggle-chat-permission", (allow) => {
+            const [matchingRoom, found] = getSocketRoom(socket.id);
+            if (!found) return;
+
+            if (roomHosts[matchingRoom] !== socket.id) {
+                return socket.emit("host-action-error", "Only the host can manage meeting permissions.");
+            }
+
+            if (!roomPermissions[matchingRoom]) roomPermissions[matchingRoom] = { allowScreenShare: true, allowChat: true };
+            roomPermissions[matchingRoom].allowChat = Boolean(allow);
+
+            connections[matchingRoom].forEach((elem) => {
+                io.to(elem).emit("permissions-changed", roomPermissions[matchingRoom]);
+            });
+        });
+
+        // Host Control: Force Turn Off Video for a Participant
+        socket.on("force-stop-video", (targetSocketId) => {
+            const [matchingRoom, found] = getSocketRoom(socket.id);
+            if (!found) return;
+
+            if (roomHosts[matchingRoom] !== socket.id) {
+                return socket.emit("host-action-error", "Only the host can turn off participant cameras.");
+            }
+
+            io.to(targetSocketId).emit("force-video-off", {
+                requestedBy: userNames[socket.id] || "Host"
+            });
+        });
+
         socket.on("disconnect", () => {
             const [key, found] = getSocketRoom(socket.id);
 
@@ -599,6 +690,7 @@ export const connectToSocket = (server) => {
                         delete roomLocked[key];
                         delete waitingRooms[key];
                         delete messages[key];
+                        delete roomPermissions[key];
                     }
                 }
 
@@ -609,6 +701,7 @@ export const connectToSocket = (server) => {
                     delete roomHosts[key];
                     delete roomLocked[key];
                     delete waitingRooms[key];
+                    delete roomPermissions[key];
                 }
             }
 

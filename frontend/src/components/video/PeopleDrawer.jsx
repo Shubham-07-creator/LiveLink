@@ -13,11 +13,11 @@ import Tooltip from "@mui/material/Tooltip";
 
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import MicOffOutlinedIcon from "@mui/icons-material/MicOffOutlined";
+import VideocamOffOutlinedIcon from "@mui/icons-material/VideocamOffOutlined";
 import PersonRemoveOutlinedIcon from "@mui/icons-material/PersonRemoveOutlined";
 import PanToolOutlinedIcon from "@mui/icons-material/PanToolOutlined";
 
 import HostPanel from "./HostPanel";
-import { Badge } from "../ui";
 import { getInitials, getAvatarColor } from "../../utils/audioChimes";
 import tokens from "../../tokens";
 
@@ -27,12 +27,17 @@ export default function PeopleDrawer({
   participants = [],
   isHost = false,
   isRoomLocked = false,
+  roomPermissions = { allowScreenShare: true, allowChat: true },
   waitingUsers = [],
   onLockRoom,
   onMuteAll,
+  onToggleScreenSharePermission,
+  onToggleChatPermission,
+  onEndMeetingForAll,
   onAdmitUser,
   onDenyUser,
   onMuteParticipant,
+  onForceStopVideo,
   onRemoveParticipant
 }) {
   return (
@@ -82,8 +87,12 @@ export default function PeopleDrawer({
           <HostPanel
             isRoomLocked={isRoomLocked}
             waitingUsers={waitingUsers}
+            roomPermissions={roomPermissions}
             onLockRoom={onLockRoom}
             onMuteAll={onMuteAll}
+            onToggleScreenSharePermission={onToggleScreenSharePermission}
+            onToggleChatPermission={onToggleChatPermission}
+            onEndMeetingForAll={onEndMeetingForAll}
             onAdmitUser={onAdmitUser}
             onDenyUser={onDenyUser}
           />
@@ -122,9 +131,23 @@ export default function PeopleDrawer({
                       {p.name} {p.isLocal && "(You)"}
                     </Typography>
                     {p.isHost && (
-                      <Badge variant="primary" sx={{ fontSize: "11px", py: "1px", px: "6px" }}>
-                        Host
-                      </Badge>
+                      <Box
+                        sx={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 0.3,
+                          px: 0.8,
+                          py: 0.2,
+                          borderRadius: "4px",
+                          bgcolor: "rgba(245, 158, 11, 0.2)",
+                          color: "#fbbf24",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          border: "1px solid rgba(245, 158, 11, 0.4)"
+                        }}
+                      >
+                        👑 Host
+                      </Box>
                     )}
                     {p.isHandRaised && (
                       <Tooltip title="Hand raised">
@@ -139,6 +162,11 @@ export default function PeopleDrawer({
                   <Tooltip title="Mute participant">
                     <IconButton size="small" onClick={() => onMuteParticipant?.(p.socketId)} sx={{ color: "#94a3b8" }}>
                       <MicOffOutlinedIcon sx={{ fontSize: 18 }} />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Turn off camera">
+                    <IconButton size="small" onClick={() => onForceStopVideo?.(p.socketId)} sx={{ color: "#94a3b8" }}>
+                      <VideocamOffOutlinedIcon sx={{ fontSize: 18 }} />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Remove participant">

@@ -15,6 +15,7 @@ export default function TopBar({
   duration = 0,
   participantCount = 1,
   isRecording = false,
+  isPrivateCall = false,
   isVisible = true,
   onCopyLink,
   onTogglePeople,
@@ -89,7 +90,7 @@ export default function TopBar({
 
       {/* Right: Security Badge + Participant Count */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-        {/* Encrypted peer-to-peer badge (Click to view live network diagnostics) */}
+        {/* Security / Private badge (Click to view live network diagnostics) */}
         <Tooltip title="Call Health & Network Diagnostics (MAANG Telemetry)">
           <Box
             onClick={onOpenDiagnostics}
@@ -99,18 +100,18 @@ export default function TopBar({
               gap: 1,
               p: "6px 14px",
               borderRadius: tokens.radii.badge,
-              bgcolor: tokens.colors.call.dockBg,
+              bgcolor: isPrivateCall ? "rgba(124, 58, 237, 0.25)" : tokens.colors.call.dockBg,
               backdropFilter: "blur(16px)",
-              border: `1px solid ${tokens.colors.call.dockBorder}`,
+              border: `1px solid ${isPrivateCall ? "rgba(168, 85, 247, 0.4)" : tokens.colors.call.dockBorder}`,
               cursor: onOpenDiagnostics ? "pointer" : "default",
               transition: "background-color 0.15s ease",
-              "&:hover": onOpenDiagnostics ? { bgcolor: "rgba(255, 255, 255, 0.12)" } : {}
+              "&:hover": onOpenDiagnostics ? { bgcolor: isPrivateCall ? "rgba(124, 58, 237, 0.4)" : "rgba(255, 255, 255, 0.12)" } : {}
             }}
           >
-            <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: tokens?.accent?.dotGreen || tokens?.colors?.accent?.dotGreen || "#16a34a" }} />
-            <LockOutlinedIcon sx={{ fontSize: 15, color: "#cbd5e1" }} />
-            <Typography sx={{ fontSize: "12px", fontWeight: 600, color: "#cbd5e1" }}>
-              Encrypted peer-to-peer
+            <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: isPrivateCall ? "#a855f7" : (tokens?.accent?.dotGreen || "#16a34a") }} />
+            <LockOutlinedIcon sx={{ fontSize: 15, color: isPrivateCall ? "#e9d5ff" : "#cbd5e1" }} />
+            <Typography sx={{ fontSize: "12px", fontWeight: 600, color: isPrivateCall ? "#e9d5ff" : "#cbd5e1" }}>
+              {isPrivateCall ? "Private 1-to-1 (Encrypted)" : "Encrypted peer-to-peer"}
             </Typography>
           </Box>
         </Tooltip>

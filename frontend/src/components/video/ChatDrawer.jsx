@@ -15,6 +15,7 @@ export default function ChatDrawer({
   messages = [],
   typingUser = null,
   currentUserId,
+  isChatDisabled = false,
   onSendMessage,
   onSendTyping
 }) {
@@ -168,60 +169,75 @@ export default function ChatDrawer({
         </Box>
       )}
 
-      {/* Input Bar */}
-      <Box
-        sx={{
-          p: 1.5,
-          borderTop: `1px solid ${tokens.colors.dark.border}`,
-          display: "flex",
-          alignItems: "center",
-          gap: 1
-        }}
-      >
-        <input
-          type="file"
-          accept="image/*"
-          ref={fileInputRef}
-          style={{ display: "none" }}
-          onChange={(e) => {
-            handleImageFile(e.target.files?.[0]);
-            e.target.value = "";
-          }}
-        />
-        <IconButton size="small" onClick={() => fileInputRef.current?.click()} sx={{ color: "#94a3b8" }}>
-          <ImageOutlinedIcon sx={{ fontSize: 20 }} />
-        </IconButton>
-        <TextField
-          size="small"
-          fullWidth
-          placeholder="Type a message..."
-          value={inputText}
-          onChange={(e) => {
-            setInputText(e.target.value);
-            onSendTyping?.();
-          }}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
+      {/* Input Bar or Disabled Notice */}
+      {isChatDisabled ? (
+        <Box
           sx={{
-            "& .MuiOutlinedInput-root": {
-              color: "#ffffff",
-              bgcolor: "#1e293b",
-              borderRadius: tokens.radii.input,
-              fontSize: "14px"
-            }
-          }}
-        />
-        <IconButton
-          onClick={handleSend}
-          disabled={!inputText.trim()}
-          sx={{
-            color: tokens.colors.light.primary,
-            "&:disabled": { color: "#475569" }
+            p: 2,
+            borderTop: `1px solid ${tokens.colors.dark.border}`,
+            bgcolor: "rgba(239, 68, 68, 0.08)",
+            textAlign: "center"
           }}
         >
-          <SendOutlinedIcon sx={{ fontSize: 20 }} />
-        </IconButton>
-      </Box>
+          <Typography sx={{ fontSize: "12px", color: "#f87171", fontWeight: 600 }}>
+            🔒 Meeting host has disabled chat for participants
+          </Typography>
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            p: 1.5,
+            borderTop: `1px solid ${tokens.colors.dark.border}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 1
+          }}
+        >
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            style={{ display: "none" }}
+            onChange={(e) => {
+              handleImageFile(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+          <IconButton size="small" onClick={() => fileInputRef.current?.click()} sx={{ color: "#94a3b8" }}>
+            <ImageOutlinedIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+          <TextField
+            size="small"
+            fullWidth
+            placeholder="Type a message..."
+            value={inputText}
+            onChange={(e) => {
+              setInputText(e.target.value);
+              onSendTyping?.();
+            }}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                color: "#ffffff",
+                bgcolor: "#1e293b",
+                borderRadius: tokens.radii.input,
+                fontSize: "14px"
+              }
+            }}
+          />
+          <IconButton
+            onClick={handleSend}
+            disabled={!inputText.trim()}
+            sx={{
+              color: tokens.colors.light.primary,
+              "&:disabled": { color: "#475569" }
+            }}
+          >
+            <SendOutlinedIcon sx={{ fontSize: 20 }} />
+          </IconButton>
+        </Box>
+      )}
     </Drawer>
   );
 }

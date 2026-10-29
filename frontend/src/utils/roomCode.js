@@ -6,10 +6,11 @@ const generateChunk = customAlphabet(alphabet, 4);
 
 /**
  * Generates secure, collision-resistant room codes formatted as:
- * xxxx-xxxx-xxxx (e.g., "kx9m-p2qr-7vtz")
+ * xxxx-xxxx-xxxx (e.g., "kx9m-p2qr-7vtz") or p-xxxx-xxxx-xxxx for Private 1-on-1 Calls.
  */
-export const generateRoomCode = () => {
-    return `${generateChunk()}-${generateChunk()}-${generateChunk()}`;
+export const generateRoomCode = (isPrivate = false) => {
+    const code = `${generateChunk()}-${generateChunk()}-${generateChunk()}`;
+    return isPrivate ? `p-${code}` : code;
 };
 
 export default generateRoomCode;

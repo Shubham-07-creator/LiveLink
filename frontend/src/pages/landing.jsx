@@ -9,6 +9,7 @@ import {
   Card,
   Input,
   Badge,
+  Chip,
   Modal,
   Toast
 } from "../components/ui";
@@ -55,6 +56,11 @@ export default function LandingPage() {
 
   const handleStartInstant = () => {
     const randomCode = generateRoomCode();
+    navigate(`/${randomCode}`);
+  };
+
+  const handleStartPrivate = () => {
+    const randomCode = generateRoomCode(true);
     navigate(`/${randomCode}`);
   };
 
@@ -267,6 +273,14 @@ export default function LandingPage() {
 
               {/* Secondary Actions */}
               <Box sx={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap", mt: 1 }}>
+                <Button
+                  variant="ghost"
+                  size="small"
+                  onClick={handleStartPrivate}
+                  leftIcon={<LockOutlinedIcon />}
+                >
+                  Private call (1-on-1)
+                </Button>
                 <Button
                   variant="ghost"
                   size="small"
@@ -623,6 +637,21 @@ export default function LandingPage() {
           </>
         }
       >
+        <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+          <Chip
+            label="Group meeting (up to 4)"
+            selected={!createdRoom?.startsWith("p-")}
+            onClick={() => setCreatedRoom(generateRoomCode(false))}
+            size="small"
+          />
+          <Chip
+            label="Private 1-to-1 (max 2)"
+            selected={createdRoom?.startsWith("p-")}
+            onClick={() => setCreatedRoom(generateRoomCode(true))}
+            size="small"
+          />
+        </Box>
+
         <Box
           sx={{
             p: 2,

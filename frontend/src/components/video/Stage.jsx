@@ -11,6 +11,7 @@ export default function Stage({
   localName = "You",
   localAvatar,
   localSocketId,
+  hostSocketId,
   videoEnabled,
   audioEnabled,
   localSpeaking,
@@ -39,6 +40,7 @@ export default function Stage({
       name: localName,
       avatar: localAvatar,
       isLocal: true,
+      isHost: Boolean(hostSocketId && localSocketId && hostSocketId === localSocketId),
       isVideoOff: !videoEnabled,
       isMuted: !audioEnabled,
       isSpeaking: Boolean(localSpeaking),
@@ -51,6 +53,7 @@ export default function Stage({
       name: r.name || "Participant",
       avatar: r.avatar,
       isLocal: false,
+      isHost: Boolean(hostSocketId && r.socketId === hostSocketId),
       isVideoOff: !r.videoEnabled,
       isMuted: false,
       isSpeaking: Boolean(activeSpeakingPeers[r.socketId]),
@@ -128,6 +131,7 @@ export default function Stage({
               name={heroParticipant.name}
               avatar={heroParticipant.avatar}
               isLocal={heroParticipant.isLocal}
+              isHost={heroParticipant.isHost}
               isVideoOff={heroParticipant.isVideoOff}
               isMuted={heroParticipant.isMuted}
               isSpeaking={heroParticipant.isSpeaking}
@@ -148,6 +152,7 @@ export default function Stage({
                     name={part.name}
                     avatar={part.avatar}
                     isLocal={part.isLocal}
+                    isHost={part.isHost}
                     isVideoOff={part.isVideoOff}
                     isMuted={part.isMuted}
                     isSpeaking={part.isSpeaking}
@@ -186,6 +191,7 @@ export default function Stage({
                 name={part.name}
                 avatar={part.avatar}
                 isLocal={part.isLocal}
+                isHost={part.isHost}
                 isVideoOff={part.isVideoOff}
                 isMuted={part.isMuted}
                 isSpeaking={part.isSpeaking}

@@ -14,6 +14,7 @@ export default function VideoTile({
   name,
   avatar,
   isLocal,
+  isHost,
   isMuted,
   isVideoOff,
   isSpeaking,
@@ -259,6 +260,25 @@ export default function VideoTile({
         >
           {name} {isLocal && "(You)"}
         </Typography>
+        {isHost && (
+          <Box
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.3,
+              px: 0.6,
+              py: 0.1,
+              borderRadius: "4px",
+              bgcolor: "rgba(245, 158, 11, 0.2)",
+              color: "#fbbf24",
+              fontSize: "10px",
+              fontWeight: 700,
+              border: "1px solid rgba(245, 158, 11, 0.4)"
+            }}
+          >
+            👑 Host
+          </Box>
+        )}
         {isSpeaking && (
           <Box
             sx={{
