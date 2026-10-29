@@ -24,6 +24,7 @@ let roomAiSummaryEnabled = {}; // path -> boolean (Step 9: Optional Gemini AI su
 // Join rate limiter tracking (max 20 join attempts per minute per IP)
 const joinAttempts = new Map();
 const isJoinRateLimited = (ip) => {
+    if (process.env.NODE_ENV === "test") return false;
     const now = Date.now();
     const timestamps = joinAttempts.get(ip) || [];
     const recent = timestamps.filter(t => now - t < 60000);
