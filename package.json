@@ -1,0 +1,29 @@
+{
+  "name": "livelink",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "LiveLink is a secure, reliable, real-time video conferencing web application built with the MERN Stack, WebRTC Peer-to-Peer Mesh, and Socket.IO.",
+  "scripts": {
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:signaling": "vitest run tests/signaling",
+    "test:coverage": "vitest run tests/unit tests/integration tests/signaling --coverage",
+    "test:e2e": "playwright test",
+    "test:network": "playwright test --project=network-chaos",
+    "test:load": "node tests/load/signalingLoad.js",
+    "test:security": "npm audit --audit-level=high && node tests/security/securityScan.js",
+    "test:a11y": "playwright test tests/e2e/a11y.spec.js",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:signaling && npm run test:e2e && npm run test:security"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Shubham-07-creator/LiveLink.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.5",
+    "happy-dom": "^21.0.4",
+    "vitest": "^5.0.5"
+  }
+}
