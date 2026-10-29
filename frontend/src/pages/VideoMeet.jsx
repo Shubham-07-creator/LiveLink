@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef, useContext, useCallback } from 'rea
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import io from 'socket.io-client';
-import { Box, useMediaQuery } from '@mui/material';
+import { Box, Typography, useMediaQuery } from '@mui/material';
 
 import server from '../environment';
+import tokens from '../tokens';
 import { AuthContext } from '../contexts/AuthContext';
 import useMedia from '../hooks/useMedia';
 import usePeers from '../hooks/usePeers';
@@ -89,6 +90,10 @@ export default function VideoMeet() {
     const [isRecording, setIsRecording] = useState(false);
     const [captionsActive, setCaptionsActive] = useState(false);
     const [captionText, setCaptionText] = useState('');
+    const [aiSummaryModalOpen, setAiSummaryModalOpen] = useState(false);
+    const [aiSummaryText, setAiSummaryText] = useState('');
+    const [isGeneratingAiSummary, setIsGeneratingAiSummary] = useState(false);
+    const transcriptHistoryRef = useRef([]);
     const recognitionRef = useRef(null);
     const callStartTimeRef = useRef(null);
     const peersRef = useRef(null);
@@ -234,6 +239,9 @@ export default function VideoMeet() {
     }, [isInMeeting, peers.remoteVideos.length, media.audioVolume, media.audioEnabled, media.isScreenSharing, isMobile, stats.overallQuality, peers]);
 
     useEffect(() => {
+        // Step 8: Ping health endpoint immediately to wake Render free-tier container
+        fetch(`${server}/health`).catch(() => {});
+
         try {
             const cachedIce = sessionStorage.getItem("livelink_ice_servers");
             if (cachedIce) {
@@ -253,6 +261,13 @@ export default function VideoMeet() {
         media.initMedia();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Step 9: Accumulate remote captions into transcript history for AI summary
+    useEffect(() => {
+        if (signaling.remoteCaption?.text) {
+            transcriptHistoryRef.current.push(`${signaling.remoteCaption.speaker || 'Participant'}: ${signaling.remoteCaption.text}`);
+        }
+    }, [signaling.remoteCaption]);
 
     // Call duration timer
     useEffect(() => {
@@ -309,12 +324,39 @@ export default function VideoMeet() {
             const transcript = Array.from(e.results).map(r => r[0].transcript).join('');
             setCaptionText(transcript);
             signaling.sendCaption?.(transcript, displayName);
+            const last = e.results[e.results.length - 1];
+            if (last?.isFinal && last[0]?.transcript?.trim()) {
+                transcriptHistoryRef.current.push(`${displayName || 'You'}: ${last[0].transcript.trim()}`);
+            }
         };
         rec.onerror = () => setCaptionsActive(false);
         rec.start();
         recognitionRef.current = rec;
         setCaptionsActive(true);
     }, [captionsActive, displayName, signaling]);
+
+    // Step 9: Generate Gemini Meeting Summary from in-memory transcript
+    const handleGenerateAiSummary = async () => {
+        const transcript = transcriptHistoryRef.current.join("\n").trim();
+        if (!transcript) {
+            setToast({ open: true, message: "No transcript recorded yet. Enable captions during your meeting first.", severity: 'warning' });
+            return;
+        }
+        setIsGeneratingAiSummary(true);
+        try {
+            const res = await axios.post(`${server}/api/v1/users/ai_summary`, {
+                roomCode: url,
+                transcript
+            }, { withCredentials: true });
+            setAiSummaryText(res.data?.summary || "No summary returned.");
+            setAiSummaryModalOpen(true);
+        } catch (err) {
+            const msg = err.response?.data?.message || (err.response?.status === 429 ? "AI rate limit reached. Please try again in a minute." : "Failed to generate AI summary.");
+            setToast({ open: true, message: msg, severity: 'warning' });
+        } finally {
+            setIsGeneratingAiSummary(false);
+        }
+    };
 
     const togglePiP = useCallback(async () => {
         if (!document.pictureInPictureEnabled) {
@@ -393,6 +435,8 @@ export default function VideoMeet() {
                     audioOutputDevices={media.audioOutputDevices} selectedCamera={media.selectedCamera}
                     selectedMicrophone={media.selectedMicrophone} selectedSpeaker={media.selectedSpeaker}
                     lobbyParticipants={lobbyParticipants}
+                    isServerWaking={signaling.isServerWaking}
+                    onRetryServer={() => signaling.retryConnection(displayName)}
                     onToggleVideo={media.toggleVideo} onToggleAudio={media.toggleAudio} onSwitchCamera={media.switchCamera}
                     onSwitchMicrophone={media.switchMicrophone} onSwitchSpeaker={media.switchSpeaker}
                     onJoinWithoutMedia={media.joinWithoutMedia} onJoinMeeting={handleJoin} />
@@ -405,6 +449,34 @@ export default function VideoMeet() {
                         onTogglePeople={() => setPeopleOpen(d => !d)}
                         onToggleHelp={() => setShortcutsOpen(s => !s)}
                         onOpenDiagnostics={() => setDiagnosticsOpen(true)} />
+
+                    {/* Step 9: Participant Consent Banner for Gemini AI Summary */}
+                    {signaling.aiSummaryEnabled && (
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                top: { xs: 58, sm: 66 },
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                zIndex: 28,
+                                bgcolor: 'rgba(15, 23, 42, 0.92)',
+                                border: '1px solid rgba(59, 130, 246, 0.5)',
+                                borderRadius: tokens.radii.pill,
+                                px: 2,
+                                py: 0.6,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1.2,
+                                boxShadow: '0 4px 14px rgba(0,0,0,0.4)',
+                                backdropFilter: 'blur(8px)'
+                            }}
+                        >
+                            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#3b82f6' }} />
+                            <Typography sx={{ fontSize: '12px', fontWeight: 600, color: '#93c5fd' }}>
+                                AI Summary Active: Transcript will be sent to Google Gemini
+                            </Typography>
+                        </Box>
+                    )}
 
                     <Stage localStream={media.localStream} screenStream={media.screenStream} isScreenSharing={media.isScreenSharing}
                         remoteVideos={peers.remoteVideos} localName={displayName} localAvatar={userData?.avatar}
@@ -438,6 +510,10 @@ export default function VideoMeet() {
                     <PeopleDrawer open={peopleOpen} onClose={() => setPeopleOpen(false)} participants={participantList}
                         isHost={signaling.isHost} isRoomLocked={signaling.isRoomLocked} roomPermissions={signaling.roomPermissions}
                         waitingUsers={signaling.waitingUsers}
+                        aiSummaryEnabled={signaling.aiSummaryEnabled}
+                        onToggleAiSummary={signaling.toggleAiSummary}
+                        onGenerateAiSummary={handleGenerateAiSummary}
+                        isGeneratingAiSummary={isGeneratingAiSummary}
                         onLockRoom={signaling.lockRoom} onMuteAll={signaling.muteAll}
                         onEndMeetingForAll={() => setLeaveConfirmOpen(true)}
                         onToggleScreenSharePermission={signaling.toggleScreenSharePermission}
@@ -495,6 +571,44 @@ export default function VideoMeet() {
             <Modal open={Boolean(roomFullInfo)} onClose={() => navigate('/')} title="Room capacity reached"
                 description={roomFullInfo?.message || "This room has reached the maximum of 4 participants for peer-to-peer calling."}
                 actions={<Button variant="primary" size="normal" onClick={() => navigate('/')}>Return to home</Button>} />
+
+            {/* Step 9: Gemini AI Meeting Summary Modal */}
+            <Modal
+                open={aiSummaryModalOpen}
+                onClose={() => setAiSummaryModalOpen(false)}
+                title="Google Gemini Meeting Summary"
+                description="Executive summary generated via Gemini. The raw transcript was not stored on any server."
+                actions={
+                    <>
+                        <Button variant="ghost" size="normal" onClick={() => {
+                            navigator.clipboard.writeText(aiSummaryText);
+                            setToast({ open: true, message: "Summary copied to clipboard", severity: 'success' });
+                        }}>
+                            Copy Summary
+                        </Button>
+                        <Button variant="primary" size="normal" onClick={() => setAiSummaryModalOpen(false)}>
+                            Close
+                        </Button>
+                    </>
+                }
+            >
+                <Box
+                    sx={{
+                        maxHeight: '50vh',
+                        overflowY: 'auto',
+                        p: 2,
+                        borderRadius: tokens.radii.tile,
+                        bgcolor: 'rgba(0,0,0,0.3)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        color: '#f8fafc',
+                        fontSize: '13.5px',
+                        lineHeight: 1.6,
+                        whiteSpace: 'pre-wrap'
+                    }}
+                >
+                    {aiSummaryText}
+                </Box>
+            </Modal>
 
             <Toast open={media.showMutedHint} message="You are speaking while muted" severity="info" />
             <Toast open={toast.open} message={toast.message} severity={toast.severity} onClose={() => setToast(t => ({ ...t, open: false }))} />

@@ -19,6 +19,7 @@ let roomLocked = {};
 let waitingRooms = {};
 let roomPermissions = {}; // path -> { allowScreenShare: boolean, allowChat: boolean }
 let activePresenters = {}; // path -> socketId (Only one screen presenter at a time)
+let roomAiSummaryEnabled = {}; // path -> boolean (Step 9: Optional Gemini AI summary, off by default)
 
 // Join rate limiter tracking (max 20 join attempts per minute per IP)
 const joinAttempts = new Map();
@@ -288,6 +289,14 @@ export const connectToSocket = (server) => {
                 socket.emit("screen-presenter-changed", {
                     presenterId: activePresenters[path],
                     presenterName: userNames[activePresenters[path]] || "Presenter"
+                });
+            }
+
+            // Sync Gemini AI summary status to the joining user
+            if (roomAiSummaryEnabled[path]) {
+                socket.emit("ai-summary-status-changed", {
+                    enabled: true,
+                    toggledBy: userNames[roomHosts[path]] || "Host"
                 });
             }
 
@@ -630,10 +639,29 @@ export const connectToSocket = (server) => {
             delete waitingRooms[matchingRoom];
             delete roomPermissions[matchingRoom];
             delete activePresenters[matchingRoom];
+            delete roomAiSummaryEnabled[matchingRoom];
         };
 
         socket.on("end-meeting-for-all", () => handleTerminateRoom(socket));
         socket.on("end-call-for-both", () => handleTerminateRoom(socket, `${userNames[socket.id] || "The other participant"} ended the private call.`));
+
+        // Step 9: Host Control - Toggle AI Summary (Host must enable it, off by default)
+        socket.on("toggle-ai-summary", (enable) => {
+            const [matchingRoom, found] = getSocketRoom(socket.id);
+            if (!found) return;
+
+            if (roomHosts[matchingRoom] !== socket.id) {
+                return socket.emit("host-action-error", "Only the meeting host can enable or disable AI summaries.");
+            }
+
+            roomAiSummaryEnabled[matchingRoom] = Boolean(enable);
+            connections[matchingRoom].forEach((elem) => {
+                io.to(elem).emit("ai-summary-status-changed", {
+                    enabled: roomAiSummaryEnabled[matchingRoom],
+                    toggledBy: userNames[socket.id] || "Host"
+                });
+            });
+        });
 
         // Host Control: Toggle Screen Share Permission for Participants
         socket.on("toggle-screen-share-permission", (allow) => {
@@ -768,6 +796,7 @@ export const connectToSocket = (server) => {
                         delete messages[key];
                         delete roomPermissions[key];
                         delete activePresenters[key];
+                        delete roomAiSummaryEnabled[key];
                     }
                 }
 
@@ -780,6 +809,7 @@ export const connectToSocket = (server) => {
                     delete waitingRooms[key];
                     delete roomPermissions[key];
                     delete activePresenters[key];
+                    delete roomAiSummaryEnabled[key];
                 }
             }
 

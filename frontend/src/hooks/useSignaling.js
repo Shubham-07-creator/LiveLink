@@ -35,6 +35,8 @@ export default function useSignaling({
     const [remoteRecording, setRemoteRecording] = useState({ isRecording: false, host: '' });
     const [remoteCaption, setRemoteCaption] = useState(null);
     const [activePresenter, setActivePresenter] = useState(null);
+    const [isServerWaking, setIsServerWaking] = useState(false);
+    const [aiSummaryEnabled, setAiSummaryEnabled] = useState(false);
 
     const typingTimeoutRef = useRef(null);
     const captionTimeoutRef = useRef(null);
@@ -65,6 +67,13 @@ export default function useSignaling({
     const connect = useCallback((displayName) => {
         if (socketRef.current) return;
 
+        setIsServerWaking(false);
+        const wakingTimer = setTimeout(() => {
+            if (!socketRef.current?.connected) {
+                setIsServerWaking(true);
+            }
+        }, 3500);
+
         const token = userData?.token || localStorage.getItem('token') || '';
         const avatar = userData?.avatar || null;
         const isSecure = server.startsWith("https");
@@ -73,16 +82,22 @@ export default function useSignaling({
             withCredentials: true,
             transports: ['websocket', 'polling'],
             upgrade: true,
-            reconnectionAttempts: 10,
-            reconnectionDelay: 500,
-            timeout: 8000
+            reconnectionAttempts: 15,
+            reconnectionDelay: 1000,
+            timeout: 10000
         });
         socketRef.current = socket;
 
         socket.on('connect', () => {
+            clearTimeout(wakingTimer);
+            setIsServerWaking(false);
             socketIdRef.current = socket.id;
             setSocketId(socket.id);
             socket.emit('join-call', roomUrl, displayName, token, avatar);
+        });
+
+        socket.on('connect_error', () => {
+            setIsServerWaking(true);
         });
 
         // User joined room (with host designation, lock status, permissions, and private mode)
@@ -175,6 +190,11 @@ export default function useSignaling({
         // Step 3: Single presenter coordination
         socket.on('screen-presenter-changed', ({ presenterId, presenterName }) => {
             setActivePresenter(presenterId ? { presenterId, presenterName } : null);
+        });
+
+        // Step 9: AI Summary status broadcast
+        socket.on('ai-summary-status-changed', ({ enabled }) => {
+            setAiSummaryEnabled(Boolean(enabled));
         });
 
         // Room full (capacity limit reached)
@@ -332,6 +352,25 @@ export default function useSignaling({
         socketRef.current?.emit('stop-screen-share');
     }, []);
 
+    // Step 9: Host toggle AI summary
+    const toggleAiSummary = useCallback((enable) => {
+        socketRef.current?.emit('toggle-ai-summary', Boolean(enable));
+    }, []);
+
+    // Step 8: Retry signaling connection on cold-start
+    const retryConnection = useCallback((displayName) => {
+        if (socketRef.current) {
+            socketRef.current.disconnect();
+            socketRef.current = null;
+        }
+        setIsServerWaking(true);
+        // Wake server container via HTTP health check
+        fetch(`${server}/health`).catch(() => {});
+        setTimeout(() => {
+            connect(displayName);
+        }, 800);
+    }, [connect]);
+
     const disconnect = useCallback(() => {
         if (socketRef.current) {
             socketRef.current.disconnect();
@@ -365,9 +404,13 @@ export default function useSignaling({
         remoteRecording,
         remoteCaption,
         activePresenter,
+        isServerWaking,
+        aiSummaryEnabled,
         sendCaption,
         requestStartScreenShare,
         stopScreenShareSignal,
+        toggleAiSummary,
+        retryConnection,
         connect,
         sendSignal,
         sendMessage,

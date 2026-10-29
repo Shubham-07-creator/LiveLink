@@ -7,6 +7,7 @@ import ScreenShareOutlinedIcon from '@mui/icons-material/ScreenShareOutlined';
 import ChatBubbleOutlineOutlinedIcon from '@mui/icons-material/ChatBubbleOutlineOutlined';
 import CallEndOutlinedIcon from '@mui/icons-material/CallEndOutlined';
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined';
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 
 import Button from '../ui/Button';
 import tokens from '../../tokens';
@@ -15,10 +16,14 @@ export default function HostPanel({
     isRoomLocked,
     waitingUsers = [],
     roomPermissions = { allowScreenShare: true, allowChat: true },
+    aiSummaryEnabled = false,
     onLockRoom,
     onMuteAll,
     onToggleScreenSharePermission,
     onToggleChatPermission,
+    onToggleAiSummary,
+    onGenerateAiSummary,
+    isGeneratingAiSummary = false,
     onEndMeetingForAll,
     onAdmitUser,
     onDenyUser
@@ -109,6 +114,41 @@ export default function HostPanel({
                             checked={roomPermissions?.allowChat !== false}
                             onChange={(e) => onToggleChatPermission?.(e.target.checked)}
                         />
+                    </Box>
+
+                    {/* Step 9: Optional Gemini AI Summary (Off by default) */}
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8, pt: 0.8, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <AutoAwesomeOutlinedIcon sx={{ fontSize: 15, color: '#60a5fa' }} />
+                                <Box>
+                                    <Typography sx={{ fontSize: '12px', color: '#cbd5e1' }}>
+                                        AI Summary (Google Gemini)
+                                    </Typography>
+                                    <Typography sx={{ fontSize: '10px', color: '#64748b' }}>
+                                        Consent banner shown to all participants
+                                    </Typography>
+                                </Box>
+                            </Box>
+                            <Switch
+                                size="small"
+                                checked={Boolean(aiSummaryEnabled)}
+                                onChange={(e) => onToggleAiSummary?.(e.target.checked)}
+                            />
+                        </Box>
+
+                        {aiSummaryEnabled && onGenerateAiSummary && (
+                            <Button
+                                size="small"
+                                variant="primary"
+                                startIcon={<AutoAwesomeOutlinedIcon sx={{ fontSize: 14 }} />}
+                                onClick={onGenerateAiSummary}
+                                disabled={isGeneratingAiSummary}
+                                sx={{ fontSize: '0.75rem', py: 0.4, mt: 0.5 }}
+                            >
+                                {isGeneratingAiSummary ? "Generating Summary..." : "Generate Gemini Summary"}
+                            </Button>
+                        )}
                     </Box>
                 </Box>
             </Box>

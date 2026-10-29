@@ -29,10 +29,14 @@ export default function PeopleDrawer({
   isRoomLocked = false,
   roomPermissions = { allowScreenShare: true, allowChat: true },
   waitingUsers = [],
+  aiSummaryEnabled = false,
   onLockRoom,
   onMuteAll,
   onToggleScreenSharePermission,
   onToggleChatPermission,
+  onToggleAiSummary,
+  onGenerateAiSummary,
+  isGeneratingAiSummary = false,
   onEndMeetingForAll,
   onAdmitUser,
   onDenyUser,
@@ -88,10 +92,14 @@ export default function PeopleDrawer({
             isRoomLocked={isRoomLocked}
             waitingUsers={waitingUsers}
             roomPermissions={roomPermissions}
+            aiSummaryEnabled={aiSummaryEnabled}
             onLockRoom={onLockRoom}
             onMuteAll={onMuteAll}
             onToggleScreenSharePermission={onToggleScreenSharePermission}
             onToggleChatPermission={onToggleChatPermission}
+            onToggleAiSummary={onToggleAiSummary}
+            onGenerateAiSummary={onGenerateAiSummary}
+            isGeneratingAiSummary={isGeneratingAiSummary}
             onEndMeetingForAll={onEndMeetingForAll}
             onAdmitUser={onAdmitUser}
             onDenyUser={onDenyUser}

@@ -24,6 +24,7 @@ import {
     refreshToken,
     getIceServers
 } from "../controllers/user.controller.js";
+import { generateMeetingSummary } from "../controllers/ai.controller.js";
 import {
     validateBody,
     registerSchema,
@@ -77,6 +78,7 @@ router.route("/logout_all").post(logoutAllDevices);
 router.route("/delete_account").delete(deleteAccount).post(deleteAccount);
 router.route("/ice_servers").get(turnLimiter, getIceServers);
 router.route("/get_turn_credentials").get(turnLimiter, getIceServers);
+router.route("/ai_summary").post(generalLimiter, generateMeetingSummary);
 
 // Password Reset & Email Verification Flow
 router.route("/forgot_password").post(authLimiter, validateBody(forgotPasswordSchema), forgotPassword);

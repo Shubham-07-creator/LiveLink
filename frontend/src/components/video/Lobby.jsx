@@ -5,7 +5,8 @@ import {
   Alert,
   AvatarGroup,
   Avatar,
-  Tooltip
+  Tooltip,
+  CircularProgress
 } from "@mui/material";
 
 import MicNoneOutlinedIcon from "@mui/icons-material/MicNoneOutlined";
@@ -42,6 +43,8 @@ export default function Lobby({
   onSwitchCamera,
   onSwitchMicrophone,
   onSwitchSpeaker,
+  isServerWaking = false,
+  onRetryServer,
   onJoinWithoutMedia,
   onJoinMeeting
 }) {
@@ -231,6 +234,39 @@ export default function Lobby({
 
           {/* Right: Device Dropdowns & Join Form */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {/* Step 8: Cold-start waking notification with retry */}
+            {isServerWaking && (
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: tokens.radii.card,
+                  bgcolor: "rgba(234, 179, 8, 0.12)",
+                  border: "1px solid rgba(234, 179, 8, 0.35)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 1.5
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <CircularProgress size={18} sx={{ color: "#eab308" }} />
+                  <Box>
+                    <Typography sx={{ fontSize: "13px", fontWeight: 600, color: "#fef08a" }}>
+                      Waking up the server, this can take up to a minute...
+                    </Typography>
+                    <Typography sx={{ fontSize: "11px", color: "#ca8a04" }}>
+                      Render free tier instances sleep when idle.
+                    </Typography>
+                  </Box>
+                </Box>
+                {onRetryServer && (
+                  <Button variant="ghost" size="small" onClick={onRetryServer} sx={{ fontSize: "12px", py: 0.2 }}>
+                    Retry
+                  </Button>
+                )}
+              </Box>
+            )}
+
             <Box>
               <Typography
                 variant="h2"
