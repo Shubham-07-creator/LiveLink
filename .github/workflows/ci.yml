@@ -1,0 +1,61 @@
+name: LiveLink Quality & Test Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test-suite:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm ci || npm install
+
+      - name: Install Backend Dependencies
+        run: cd backend && npm install
+
+      - name: Install Frontend Dependencies
+        run: cd frontend && npm install
+
+      - name: Link Dependencies for Root Testing
+        run: |
+          mkdir -p node_modules
+          ln -s ../backend/node_modules/express node_modules/express || true
+
+      - name: Layer 1 - Run Unit Tests
+        run: npm run test:unit
+
+      - name: Layer 2 - Run Backend Integration Tests
+        run: npm run test:integration
+        env:
+          NODE_ENV: test
+          CLIENT_URLS: http://localhost:3000
+
+      - name: Layer 3 - Run Socket.IO Signaling Tests
+        run: npm run test:signaling
+        env:
+          NODE_ENV: test
+
+      - name: Layer 6 - Run Signaling Load Test
+        run: npm run test:load
+
+      - name: Layer 7 - Run Security Audit & Secret Scanner
+        run: npm run test:security
