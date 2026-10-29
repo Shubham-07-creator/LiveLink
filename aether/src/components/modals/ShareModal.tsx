@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Share2, Download, Copy, Check, X, Globe, Shield } from 'lucide-react';
+import { Share2, Download, Copy, Check, X, Globe, Shield, Flag } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useToast } from '@/contexts/ToastContext';
 import type { MessageData } from '../chat/MessageBubble';
@@ -131,6 +131,33 @@ export function ShareModal({ open, onClose, conversationTitle, messages }: Share
               <span>JSON (.json)</span>
             </button>
           </div>
+        </div>
+
+        {/* Safety & Report Footer */}
+        <div className="mt-4 pt-3 border-t border-outline flex items-center justify-between text-[11px] text-ink-muted">
+          <span>Read-only link</span>
+          <button
+            onClick={() => {
+              const reason = prompt('Please specify reason for reporting this shared conversation:');
+              if (reason) {
+                fetch('/api/safety/report', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    messageId: `shared-${Date.now()}`,
+                    content: `Report on shared link: ${publicUrl}`,
+                    reason
+                  })
+                })
+                  .then(() => success('Report submitted for review'))
+                  .catch(() => {});
+              }
+            }}
+            className="hover:text-rose-600 transition-colors flex items-center gap-1 text-[10px]"
+          >
+            <Flag className="w-3 h-3 text-rose-500" />
+            <span>Report shared link</span>
+          </button>
         </div>
       </div>
     </div>

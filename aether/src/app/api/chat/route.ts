@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { streamChat } from '@/lib/llm/router';
 import { checkRateLimit, checkDailyUsage, recordDailyUsage } from '@/lib/rate-limit/limiter';
+import { checkSafety } from '@/lib/safety/moderation';
 import { retrieveProjectContext } from '@/lib/rag/retrieval';
 import { db, schema } from '@/lib/db';
 import { logger } from '@/lib/logger';
@@ -42,6 +43,15 @@ export async function POST(req: Request) {
     }
 
     const { messages, conversationId, projectId, modelTier, system } = parsed.data;
+
+    // Safety and Content Moderation Pre-Hook
+    const lastUserMsg = messages.filter((m) => m.role === 'user').pop();
+    if (lastUserMsg) {
+      const safety = checkSafety(lastUserMsg.content);
+      if (safety.flagged) {
+        return NextResponse.json({ error: safety.reason }, { status: 400 });
+      }
+    }
 
     // Upstream abort controller linked to client disconnect
     const abortController = new AbortController();

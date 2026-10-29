@@ -13,6 +13,8 @@ import { SearchModal } from '@/components/modals/SearchModal';
 import { ShortcutsModal } from '@/components/modals/ShortcutsModal';
 import { ShareModal } from '@/components/modals/ShareModal';
 import { CustomStylesModal } from '@/components/modals/CustomStylesModal';
+import { ReportModal } from '@/components/modals/ReportModal';
+import { DataControlsModal } from '@/components/modals/DataControlsModal';
 import { translations, type Language } from '@/lib/i18n/translations';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/contexts/ToastContext';
@@ -44,6 +46,12 @@ export default function HomePage() {
   const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [stylesModalOpen, setStylesModalOpen] = useState(false);
+  const [dataControlsModalOpen, setDataControlsModalOpen] = useState(false);
+  const [reportModalState, setReportModalState] = useState<{ open: boolean; messageId: string; content: string }>({
+    open: false,
+    messageId: '',
+    content: ''
+  });
   const [language, setLanguage] = useState<Language>('en');
   const [customStyleDirective, setCustomStyleDirective] = useState('');
 
@@ -361,6 +369,7 @@ Please fix the error and provide the updated complete artifact.`;
             prev.map((c) => (c.id === id ? { ...c, isStarred: !c.isStarred } : c))
           )
         }
+        onOpenDataControls={() => setDataControlsModalOpen(true)}
       />
 
       {/* 2. Main Content Area with Resizable Split-Screen Panels */}
@@ -487,6 +496,7 @@ Please fix the error and provide the updated complete artifact.`;
                       <MessageBubble
                         message={m}
                         isStreaming={isStreaming && m.id === messages[messages.length - 1]?.id}
+                        onReport={(id, content) => setReportModalState({ open: true, messageId: id, content })}
                       />
                       {/* If message generated an artifact, show clickable Artifact Card */}
                       {Object.values(artifactMap).map((art) => (
@@ -562,6 +572,21 @@ Please fix the error and provide the updated complete artifact.`;
         open={stylesModalOpen}
         onClose={() => setStylesModalOpen(false)}
         onSaveStyle={(directive) => setCustomStyleDirective(directive)}
+      />
+      <DataControlsModal
+        open={dataControlsModalOpen}
+        onClose={() => setDataControlsModalOpen(false)}
+        onDataPurged={() => {
+          setConversations([]);
+          setMessages([]);
+          setActiveArtifact(null);
+        }}
+      />
+      <ReportModal
+        open={reportModalState.open}
+        onClose={() => setReportModalState({ open: false, messageId: '', content: '' })}
+        messageId={reportModalState.messageId}
+        messageContent={reportModalState.content}
       />
     </div>
   );

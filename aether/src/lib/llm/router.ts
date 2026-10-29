@@ -3,6 +3,7 @@ import { GeminiAdapter } from './adapters/gemini';
 import { GroqAdapter } from './adapters/groq';
 import { OpenRouterAdapter } from './adapters/openrouter';
 import { OllamaAdapter } from './adapters/ollama';
+import { recordProviderCall } from '../telemetry/metrics';
 import { logger } from '../logger';
 
 const adapters: Record<string, LLMAdapter> = {
@@ -39,6 +40,7 @@ export async function* streamChat(options: StreamChatOptions): AsyncGenerator<St
     if (!adapter) continue;
 
     logger.info({ provider: currentProviderId, attempt: i + 1 }, 'Initiating LLM stream');
+    recordProviderCall({ provider: currentProviderId, isFallback: i > 0 });
 
     let providerFailed = false;
     let streamGenerator: AsyncGenerator<StreamEvent, void, unknown>;
@@ -47,6 +49,7 @@ export async function* streamChat(options: StreamChatOptions): AsyncGenerator<St
       streamGenerator = adapter.streamChat(options);
     } catch (err) {
       logger.warn({ err, provider: currentProviderId }, 'Could not initialize adapter stream');
+      recordProviderCall({ provider: currentProviderId, isError: true });
       continue;
     }
 
@@ -54,6 +57,9 @@ export async function* streamChat(options: StreamChatOptions): AsyncGenerator<St
       for await (const event of streamGenerator) {
         if (event.type === 'error') {
           lastError = event;
+          const is429 = Boolean(event.isRateLimit || (event.error && /rate\s*limit|429/i.test(event.error)));
+          recordProviderCall({ provider: currentProviderId, isError: true, is429 });
+
           // If we haven't emitted text to the user yet and there are remaining fallback providers, failover
           if (!didEmitContent && i < providerChain.length - 1) {
             logger.warn(
@@ -61,6 +67,12 @@ export async function* streamChat(options: StreamChatOptions): AsyncGenerator<St
               'Provider failed or hit free rate limit. Failing over to backup provider.'
             );
             providerFailed = true;
+
+            // Short jittered backoff on 429 to avoid hammering free endpoints
+            if (is429) {
+              const backoffMs = 150 + Math.floor(Math.random() * 150);
+              await new Promise((resolve) => setTimeout(resolve, backoffMs));
+            }
             break;
           } else {
             yield event;
@@ -84,6 +96,8 @@ export async function* streamChat(options: StreamChatOptions): AsyncGenerator<St
         return;
       }
       logger.error({ err, provider: currentProviderId }, 'Unexpected error during stream execution');
+      recordProviderCall({ provider: currentProviderId, isError: true });
+
       if (i < providerChain.length - 1 && !didEmitContent) {
         continue;
       }

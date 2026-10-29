@@ -13,9 +13,12 @@ import {
   User,
   Star,
   Trash2,
-  Settings
+  Settings,
+  ShieldCheck,
+  Database
 } from 'lucide-react';
 import { ThemeSelector } from './ThemeSelector';
+import { UsageMeter } from './UsageMeter';
 
 export interface ConversationItem {
   id: string;
@@ -34,6 +37,7 @@ export interface SidebarProps {
   userName?: string;
   userEmail?: string;
   onSignOut?: () => void;
+  onOpenDataControls?: () => void;
 }
 
 export function Sidebar({
@@ -45,7 +49,8 @@ export function Sidebar({
   onToggleStar,
   userName = 'Guest User',
   userEmail,
-  onSignOut
+  onSignOut,
+  onOpenDataControls
 }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -122,6 +127,26 @@ export function Sidebar({
             <FolderKanban className="w-4 h-4 text-accent shrink-0" />
             <span>Projects & Knowledge Base</span>
           </Link>
+
+          {/* Admin & Quotas Dashboard */}
+          <Link
+            href="/admin"
+            className="flex items-center gap-2 px-2.5 py-1.5 rounded-input text-xs font-medium text-ink-muted hover:text-ink hover:bg-sidebar-active transition-colors duration-150"
+          >
+            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>Admin & Free-Tier Quotas</span>
+          </Link>
+
+          {/* Data Controls Trigger */}
+          {onOpenDataControls && (
+            <button
+              onClick={onOpenDataControls}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-input text-xs font-medium text-ink-muted hover:text-ink hover:bg-sidebar-active transition-colors duration-150 text-left"
+            >
+              <Database className="w-4 h-4 text-ink-muted shrink-0" />
+              <span>Data & Privacy Controls</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -178,6 +203,9 @@ export function Sidebar({
           );
         })}
       </div>
+
+      {/* Free-Tier Daily Usage Meter */}
+      {!isCollapsed && <UsageMeter />}
 
       {/* Bottom Footer: User Profile, Theme & Sign Out */}
       <div className="p-3 border-t border-outline/60 flex flex-col gap-2">

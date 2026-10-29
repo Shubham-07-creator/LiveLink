@@ -7,7 +7,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
-import { Copy, Check, RotateCw, Trash2, Edit3, ChevronLeft, ChevronRight, X, Volume2 } from 'lucide-react';
+import { Copy, Check, RotateCw, Trash2, Edit3, ChevronLeft, ChevronRight, X, Volume2, Flag } from 'lucide-react';
 import { CodeBlock } from './CodeBlock';
 import { ThoughtProcess } from './ThoughtProcess';
 import { speakText } from './VoiceInput';
@@ -30,6 +30,7 @@ export interface MessageBubbleProps {
   onRetry?: (messageId: string) => void;
   onDelete?: (messageId: string) => void;
   onSwitchVersion?: (messageId: string, targetIndex: number) => void;
+  onReport?: (messageId: string, content: string) => void;
 }
 
 export function MessageBubble({
@@ -38,7 +39,8 @@ export function MessageBubble({
   onEdit,
   onRetry,
   onDelete,
-  onSwitchVersion
+  onSwitchVersion,
+  onReport
 }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -212,6 +214,17 @@ export function MessageBubble({
               aria-label="Read aloud"
             >
               <Volume2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {!isUser && onReport && (
+            <button
+              onClick={() => onReport(message.id, message.content)}
+              className="p-1 hover:text-rose-500 rounded transition-colors"
+              title="Report response"
+              aria-label="Report response"
+            >
+              <Flag className="w-3.5 h-3.5" />
             </button>
           )}
 
