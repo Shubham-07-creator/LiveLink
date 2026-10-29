@@ -46,12 +46,21 @@ setInterval(() => {
 }, 5 * 60 * 1000).unref();
 
 export const connectToSocket = (server) => {
-    const allowedOrigins = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://livelink-svqx.onrender.com",
-        process.env.CLIENT_URL
-    ].filter(Boolean);
+    // Step 6: Socket.IO fixed CORS allowlist from env (CLIENT_URLS, comma separated). Never reflect request origin.
+    const envRaw = process.env.CLIENT_URLS || process.env.CLIENT_URL || "http://localhost:3000";
+    const allowedOrigins = envRaw
+        .split(",")
+        .map(u => u.trim().replace(/\/+$/, ""))
+        .filter(Boolean);
+
+    const socketCorsOriginHandler = (origin, callback) => {
+        if (!origin) return callback(null, true);
+        const normalized = origin.trim().replace(/\/+$/, "");
+        if (allowedOrigins.includes(normalized)) {
+            return callback(null, normalized);
+        }
+        return callback(new Error("CORS policy violation: Origin not allowed"), false);
+    };
 
     const io = new Server(server, {
         transports: ["websocket", "polling"],
@@ -59,17 +68,7 @@ export const connectToSocket = (server) => {
         pingInterval: 10000,
         pingTimeout: 5000,
         cors: {
-            origin: (origin, callback) => {
-                if (!origin) return callback(null, true);
-                if (
-                    allowedOrigins.includes(origin) ||
-                    origin.endsWith(".onrender.com") ||
-                    origin.startsWith("http://localhost:")
-                ) {
-                    return callback(null, true);
-                }
-                return callback(new Error("CORS policy violation: " + origin));
-            },
+            origin: socketCorsOriginHandler,
             methods: ["GET", "POST"],
             allowedHeaders: ["Content-Type", "Authorization"],
             credentials: true

@@ -827,7 +827,7 @@ const getIceServers = async (req, res) => {
 
         // Ephemeral short-lived credentials using HMAC-SHA1 (RFC 5766 TURN REST API)
         if (process.env.TURN_SECRET) {
-            const ttl = parseInt(process.env.TURN_TTL_SECONDS, 10) || 86400; // 24 hours
+            const ttl = parseInt(process.env.TURN_TTL_SECONDS, 10) || 3600; // Short-lived (1 hour)
             const expiryTimestamp = Math.floor(Date.now() / 1000) + ttl;
             const clientIdentifier = req.user?.username || "livelink-peer";
             username = `${expiryTimestamp}:${clientIdentifier}`;

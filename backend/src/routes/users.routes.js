@@ -59,6 +59,15 @@ const generalLimiter = rateLimit({
     message: { message: "Too many requests. Please slow down." }
 });
 
+// Step 7: Rate limiter for short-lived ICE/TURN credentials
+const turnLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many TURN credential requests. Please slow down." }
+});
+
 router.route("/login").post(authLimiter, validateBody(loginSchema), login);
 router.route("/register").post(authLimiter, validateBody(registerSchema), register);
 router.route("/google_auth").post(authLimiter, validateBody(googleAuthSchema), googleAuth);
@@ -66,7 +75,8 @@ router.route("/refresh_token").post(authLimiter, refreshToken);
 router.route("/logout").post(logout);
 router.route("/logout_all").post(logoutAllDevices);
 router.route("/delete_account").delete(deleteAccount).post(deleteAccount);
-router.route("/ice_servers").get(getIceServers);
+router.route("/ice_servers").get(turnLimiter, getIceServers);
+router.route("/get_turn_credentials").get(turnLimiter, getIceServers);
 
 // Password Reset & Email Verification Flow
 router.route("/forgot_password").post(authLimiter, validateBody(forgotPasswordSchema), forgotPassword);

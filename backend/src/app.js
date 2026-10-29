@@ -40,29 +40,32 @@ app.use(helmet({
   contentSecurityPolicy: false
 }));
 
-// CORS configured with dynamic multi-origin support for local and deployed domains
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-  "https://livelink-svqx.onrender.com",
-  process.env.CLIENT_URL
-].filter(Boolean);
+// Step 6: CORS configured with a fixed allowlist from env (CLIENT_URLS, comma-separated).
+// Never reflect the request origin or match arbitrary subdomains.
+const parseClientUrls = () => {
+  const envRaw = process.env.CLIENT_URLS || process.env.CLIENT_URL || "http://localhost:3000";
+  return envRaw
+    .split(",")
+    .map(u => u.trim().replace(/\/+$/, ""))
+    .filter(Boolean);
+};
+
+const allowedOrigins = parseClientUrls();
+
+const corsOriginHandler = (origin, callback) => {
+  if (!origin) return callback(null, true); // Allow requests with no origin (e.g. mobile apps / curl / health checks)
+  const normalized = origin.trim().replace(/\/+$/, "");
+  if (allowedOrigins.includes(normalized)) {
+    return callback(null, normalized); // Explicitly return the matched allowlisted origin
+  }
+  return callback(new Error("CORS policy violation: Origin not allowed"), false);
+};
 
 // Enable GZIP compression for all responses (reduces JSON payload size by ~70%)
 app.use(compression());
 
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (
-      allowedOrigins.includes(origin) ||
-      origin.endsWith(".onrender.com") ||
-      origin.startsWith("http://localhost:")
-    ) {
-      return callback(null, true);
-    }
-    return callback(new Error("CORS policy violation: " + origin));
-  },
+  origin: corsOriginHandler,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
