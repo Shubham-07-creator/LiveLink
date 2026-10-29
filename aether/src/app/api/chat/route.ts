@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { streamChat } from '@/lib/llm/router';
 import { checkRateLimit, checkDailyUsage, recordDailyUsage } from '@/lib/rate-limit/limiter';
+import { retrieveProjectContext } from '@/lib/rag/retrieval';
 import { db, schema } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
@@ -13,6 +14,7 @@ const chatRequestSchema = z.object({
     })
   ).min(1),
   conversationId: z.string().optional(),
+  projectId: z.string().optional(),
   modelTier: z.enum(['fast', 'smart']).default('smart'),
   system: z.string().optional()
 });
@@ -39,7 +41,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: parsed.error.errors[0]?.message || 'Invalid request body' }, { status: 400 });
     }
 
-    const { messages, conversationId, modelTier, system } = parsed.data;
+    const { messages, conversationId, projectId, modelTier, system } = parsed.data;
 
     // Upstream abort controller linked to client disconnect
     const abortController = new AbortController();
@@ -48,9 +50,23 @@ export async function POST(req: Request) {
       abortController.abort();
     });
 
+    // 3. RAG Knowledge Base Retrieval (if inside a project)
+    let ragContext = '';
+    let citations: { documentName: string; chunkIndex: number; excerpt: string }[] = [];
+    if (projectId) {
+      const lastUserMsg = messages.filter((m) => m.role === 'user').pop();
+      if (lastUserMsg) {
+        const retrieval = await retrieveProjectContext(lastUserMsg.content, projectId, 3);
+        ragContext = retrieval.contextPrompt;
+        citations = retrieval.citations;
+      }
+    }
+
+    const combinedSystem = [system, ragContext].filter(Boolean).join('\n\n');
+
     const stream = streamChat({
       messages,
-      system,
+      system: combinedSystem,
       modelTier,
       signal: abortController.signal
     });
@@ -62,6 +78,12 @@ export async function POST(req: Request) {
     const customReadable = new ReadableStream({
       async start(controller) {
         try {
+          // If citations exist, send them first
+          if (citations.length > 0) {
+            const citationEvent = `data: ${JSON.stringify({ type: 'citations', citations })}\n\n`;
+            controller.enqueue(encoder.encode(citationEvent));
+          }
+
           for await (const event of stream) {
             if (abortController.signal.aborted) break;
 
