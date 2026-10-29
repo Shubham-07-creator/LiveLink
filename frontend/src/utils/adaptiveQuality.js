@@ -1,4 +1,8 @@
-// WebRTC Adaptive Bitrate & Resolution Calculation
+/**
+ * WebRTC Adaptive Bitrate & Resolution Calculation
+ * Bitrate table per participant count (2, 3, 4 peers) with network degradation handling.
+ * Audio is prioritized and protected from video downscaling.
+ */
 
 export const calculateAdaptiveParams = ({
     participantCount = 1,
@@ -7,44 +11,46 @@ export const calculateAdaptiveParams = ({
     isMobile = false,
     qualityTier = 'Good'
 } = {}) => {
-    let targetBitrate = 1800000; // 1.8 Mbps default for crystal-clear HD
+    // 1. Bitrate Table by Participant Count
+    // 2 peers = 720p / 30fps / 1.5 Mbps
+    // 3 peers = 480p / 30fps / 800 kbps
+    // 4 peers = 360p / 24fps / 450 kbps
+    let targetBitrate = 1500000;
     let targetFps = 30;
     let targetScale = 1.0;
 
     if (isScreenSharing) {
-        // Screen share priority: full clarity, 30fps
-        targetBitrate = 2500000;
-        targetFps = 30;
+        // Screen share handled separately (capped at 1.2 Mbps, 15 fps)
+        targetBitrate = 1200000;
+        targetFps = 15;
         targetScale = 1.0;
     } else if (participantCount <= 2) {
-        // 1-on-1 calls: Full HD / 720p 30fps fluid video
-        targetBitrate = isMobile ? 1200000 : 1800000;
-        targetFps = 30;
-        targetScale = 1.0;
-    } else if (isLocalSpeaker) {
-        // Active speaker priority: 720p / 30fps
-        targetBitrate = isMobile ? 1000000 : 1500000;
+        // 2 participants: 720p / 30fps / 1.5 Mbps
+        targetBitrate = 1500000;
         targetFps = 30;
         targetScale = 1.0;
     } else if (participantCount === 3) {
-        // 3 people mesh: Balanced 540p / 30fps
-        targetBitrate = isMobile ? 650000 : 900000;
+        // 3 participants: 480p / 30fps / 800 kbps (scale 1.5: 720 / 1.5 = 480)
+        targetBitrate = 800000;
         targetFps = 30;
-        targetScale = isMobile ? 1.5 : 1.25;
+        targetScale = 1.5;
     } else {
-        // 4 people mesh: 360p / 30fps (mobile 24fps)
-        targetBitrate = isMobile ? 450000 : 650000;
-        targetFps = isMobile ? 24 : 30;
-        targetScale = isMobile ? 2.0 : 1.5;
+        // 4 participants: 360p / 24fps / 450 kbps (scale 2.0: 720 / 2.0 = 360)
+        targetBitrate = 450000;
+        targetFps = 24;
+        targetScale = 2.0;
     }
 
-    // Network degradation adjustment (Audio is NEVER dropped or degraded)
+    // 2. Network Degradation Adjustments
+    // Weak = half the table bitrate (minimum 250 kbps floor)
+    // Poor = 250 kbps / 15fps / scaleResolutionDownBy 2.0
     if (qualityTier === 'Poor') {
-        targetBitrate = Math.round(targetBitrate * 0.55);
-        targetScale = Math.min(3.0, targetScale * 1.5);
-        targetFps = Math.min(targetFps, 24);
+        targetBitrate = 250000;
+        targetFps = 15;
+        targetScale = Math.max(targetScale, 2.0);
     } else if (qualityTier === 'Weak') {
-        targetBitrate = Math.round(targetBitrate * 0.8);
+        targetBitrate = Math.max(250000, Math.round(targetBitrate / 2));
+        targetFps = Math.min(targetFps, 24);
     }
 
     return { targetBitrate, targetFps, targetScale };

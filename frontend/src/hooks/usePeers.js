@@ -124,17 +124,29 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
             } catch (e) {}
         }
 
-        // Hardware-Accelerated Codec Optimization (VP8 & H264 Prioritization)
+        // Codec preferences: prefer H.264 first on mobile, VP8 first on desktop; VP9/AV1 last
         try {
             if (typeof RTCRtpSender.getCapabilities === "function") {
                 const capabilities = RTCRtpSender.getCapabilities("video");
                 if (capabilities && Array.isArray(capabilities.codecs)) {
-                    const preferred = capabilities.codecs.filter(c => 
-                        c.mimeType.toLowerCase() === "video/vp8" || 
-                        c.mimeType.toLowerCase() === "video/h264"
+                    const isMobileClient = typeof navigator !== "undefined" && (
+                        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                        (typeof window !== "undefined" && window.innerWidth < 768)
                     );
-                    const others = capabilities.codecs.filter(c => !preferred.includes(c));
-                    const sortedCodecs = [...preferred, ...others];
+
+                    const codecs = [...capabilities.codecs];
+                    const h264Codecs = codecs.filter(c => c.mimeType.toLowerCase() === "video/h264");
+                    const vp8Codecs = codecs.filter(c => c.mimeType.toLowerCase() === "video/vp8");
+                    const vp9Codecs = codecs.filter(c => c.mimeType.toLowerCase() === "video/vp9");
+                    const av1Codecs = codecs.filter(c => c.mimeType.toLowerCase() === "video/av1");
+                    const otherCodecs = codecs.filter(c => {
+                        const m = c.mimeType.toLowerCase();
+                        return m !== "video/h264" && m !== "video/vp8" && m !== "video/vp9" && m !== "video/av1";
+                    });
+
+                    const sortedCodecs = isMobileClient
+                        ? [...h264Codecs, ...vp8Codecs, ...otherCodecs, ...vp9Codecs, ...av1Codecs]
+                        : [...vp8Codecs, ...h264Codecs, ...otherCodecs, ...vp9Codecs, ...av1Codecs];
 
                     pc.getTransceivers().forEach(transceiver => {
                         if (transceiver.sender?.track?.kind === "video" && typeof transceiver.setCodecPreferences === "function") {
@@ -145,7 +157,17 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
             }
         } catch (e) {}
 
-        // Enforce maintain-framerate for buttery-smooth video transmission
+        // Audio Priority: protect audio transmission
+        if (peerEntry.senders['audio'] && typeof peerEntry.senders['audio'].getParameters === 'function') {
+            try {
+                const audioParams = peerEntry.senders['audio'].getParameters();
+                if (!audioParams.encodings || audioParams.encodings.length === 0) audioParams.encodings = [{}];
+                audioParams.encodings[0].networkPriority = 'high';
+                peerEntry.senders['audio'].setParameters(audioParams).catch(() => {});
+            } catch (e) {}
+        }
+
+        // Camera sender initial settings
         if (peerEntry.senders['video'] && typeof peerEntry.senders['video'].getParameters === 'function') {
             try {
                 const params = peerEntry.senders['video'].getParameters();
@@ -323,7 +345,7 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
             if (videoSender && typeof videoSender.getParameters === 'function') {
                 try {
                     const params = videoSender.getParameters();
-                    params.degradationPreference = 'maintain-framerate';
+                    params.degradationPreference = options.isScreenSharing ? 'maintain-resolution' : 'maintain-framerate';
                     if (!params.encodings || params.encodings.length === 0) params.encodings = [{}];
                     params.encodings[0].maxBitrate = targetBitrate;
                     params.encodings[0].maxFramerate = targetFps;
