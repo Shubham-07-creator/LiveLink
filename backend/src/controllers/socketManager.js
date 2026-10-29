@@ -115,8 +115,8 @@ export const connectToSocket = (server) => {
     });
 
     // Room code validation helpers (supports group calls and p- private calls)
-    const roomCodeRegex = /^(p-)?[a-z0-9]{3,6}-[a-z0-9]{3,6}-[a-z0-9]{3,6}$/i;
-    const slugRegex = /^[a-zA-Z0-9_-]{3,50}$/;
+    // Step 4: Strict ONE format everywhere: xxxx-xxxx-xxxx or p-xxxx-xxxx-xxxx with unambiguous alphabet [2-9a-km-z]
+    const ROOM_CODE_REGEX = /^(p-)?[2-9a-km-z]{4}-[2-9a-km-z]{4}-[2-9a-km-z]{4}$/i;
 
     const normalizeRoomCode = (rawPath) => {
         if (!rawPath || typeof rawPath !== "string") return "";
@@ -124,7 +124,7 @@ export const connectToSocket = (server) => {
     };
 
     const isValidRoomCode = (code) => {
-        return Boolean(code && (roomCodeRegex.test(code) || slugRegex.test(code)));
+        return Boolean(code && ROOM_CODE_REGEX.test(code));
     };
 
     io.on("connection", (socket) => {
@@ -182,7 +182,7 @@ export const connectToSocket = (server) => {
                 : (socket.user?.username || "User");
             const safeAvatar = (typeof avatar === "string" && /^https:\/\/[^\s$.?#].[^\s]*$/i.test(avatar)) ? avatar : null;
 
-            const isPrivateCall = path.startsWith("p-") || path.includes("priv");
+            const isPrivateCall = path.startsWith("p-");
             const effectiveMax = isPrivateCall ? 2 : MAX_ROOM_PARTICIPANTS;
 
             if (!connections[path]) {
@@ -191,6 +191,18 @@ export const connectToSocket = (server) => {
                 roomLocked[path] = false;
                 waitingRooms[path] = [];
                 roomPermissions[path] = { allowScreenShare: true, allowChat: true };
+            }
+
+            // ATOMIC ROOM CAPACITY LIMIT (Strict 2 participants for Private Calls, 4 for Group Meetings)
+            if (connections[path].length >= effectiveMax) {
+                socket.emit("room-full", {
+                    message: isPrivateCall
+                        ? "This is a private 1-on-1 call. The room is at full capacity (maximum 2 participants)."
+                        : `This meeting room has reached the maximum capacity of ${MAX_ROOM_PARTICIPANTS} participants for peer-to-peer mesh calling.`,
+                    max: effectiveMax,
+                    isPrivate: isPrivateCall
+                });
+                return;
             }
 
             // WAITING ROOM CHECK: When locked, non-host users wait unless admitted
@@ -225,20 +237,13 @@ export const connectToSocket = (server) => {
                 return;
             }
 
-            // ROOM CAPACITY LIMIT (Strict 2 participants for Private Calls, 4 for Group Meetings)
-            if (connections[path].length >= effectiveMax) {
-                socket.emit("room-full", {
-                    message: isPrivateCall
-                        ? "This is a private 1-on-1 call. The room is at full capacity (maximum 2 participants)."
-                        : `This meeting room has reached the maximum capacity of ${MAX_ROOM_PARTICIPANTS} participants for peer-to-peer mesh calling.`,
-                    max: effectiveMax,
-                    isPrivate: isPrivateCall
-                });
-                return;
-            }
-
             if (!connections[path].includes(socket.id)) {
                 connections[path].push(socket.id);
+            }
+
+            // ATOMIC AUTO-LOCK: When the 2nd user joins a private call, auto-lock immediately
+            if (isPrivateCall && connections[path].length === 2) {
+                roomLocked[path] = true;
             }
             socketToRoom.set(socket.id, path);
 
@@ -598,22 +603,23 @@ export const connectToSocket = (server) => {
             });
         });
 
-        // Host Control: End Meeting for Everyone (Terminates Call for All Participants)
-        socket.on("end-meeting-for-all", () => {
+        // End Meeting for Everyone (In private calls, either participant can end for both; in group calls, host only)
+        const handleTerminateRoom = (socket, customMessage) => {
             const [matchingRoom, found] = getSocketRoom(socket.id);
             if (!found) return;
 
-            if (roomHosts[matchingRoom] !== socket.id) {
+            const isPrivateCall = matchingRoom.startsWith("p-");
+            if (!isPrivateCall && roomHosts[matchingRoom] !== socket.id) {
                 return socket.emit("host-action-error", "Only the host can end the meeting for everyone.");
             }
 
-            const hostName = userNames[socket.id] || "Host";
+            const senderName = userNames[socket.id] || (isPrivateCall ? "The other participant" : "Host");
             const clients = [...(connections[matchingRoom] || [])];
 
             clients.forEach((elem) => {
                 io.to(elem).emit("meeting-ended-by-host", {
-                    hostName,
-                    message: "The host has ended this meeting for all participants."
+                    hostName: senderName,
+                    message: customMessage || (isPrivateCall ? `${senderName} ended the call.` : "The host has ended this meeting for all participants.")
                 });
                 socketToRoom.delete(elem);
             });
@@ -625,7 +631,10 @@ export const connectToSocket = (server) => {
             delete waitingRooms[matchingRoom];
             delete roomPermissions[matchingRoom];
             delete activePresenters[matchingRoom];
-        });
+        };
+
+        socket.on("end-meeting-for-all", () => handleTerminateRoom(socket));
+        socket.on("end-call-for-both", () => handleTerminateRoom(socket, `${userNames[socket.id] || "The other participant"} ended the private call.`));
 
         // Host Control: Toggle Screen Share Permission for Participants
         socket.on("toggle-screen-share-permission", (allow) => {

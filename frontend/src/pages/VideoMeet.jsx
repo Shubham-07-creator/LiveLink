@@ -29,6 +29,7 @@ import CaptionsOverlay from '../components/video/CaptionsOverlay';
 import FeedbackModal from '../components/video/FeedbackModal';
 import { Button, Modal, Toast } from '../components/ui';
 import { MeetingRecorder } from '../utils/meetingRecorder';
+import { isValidRoomCode } from '../utils/roomCode';
 
 export default function VideoMeet() {
     const { url } = useParams();
@@ -56,6 +57,16 @@ export default function VideoMeet() {
             }
         }
     }, [userData]);
+
+    // Step 4: Strict room code validation on join
+    useEffect(() => {
+        if (url && !isValidRoomCode(url)) {
+            navigate('/', {
+                replace: true,
+                state: { toast: "Invalid room code format. Room codes must follow xxxx-xxxx-xxxx or p-xxxx-xxxx-xxxx." }
+            });
+        }
+    }, [url, navigate]);
 
     const [viewMode, setViewMode] = useState('grid');
     const [pinnedUser, setPinnedUser] = useState(null);
@@ -452,24 +463,27 @@ export default function VideoMeet() {
 
             {/* Leave Meeting Confirmation Dialog */}
             <Modal open={leaveConfirmOpen} onClose={() => setLeaveConfirmOpen(false)}
-                title={signaling.isHost ? "Host Controls: Leave or End Meeting" : "Leave meeting?"}
-                description={signaling.isHost
-                    ? "As the host, you can leave the call or permanently end the meeting for all participants."
-                    : "Are you sure you want to disconnect from this call?"
+                title={(signaling.isPrivateCall || url?.startsWith("p-")) ? "Leave or End Call" : (signaling.isHost ? "Host Controls: Leave or End Meeting" : "Leave meeting?")}
+                description={(signaling.isPrivateCall || url?.startsWith("p-"))
+                    ? "You can leave this call or end the call for both participants."
+                    : (signaling.isHost
+                        ? "As the host, you can leave the call or permanently end the meeting for all participants."
+                        : "Are you sure you want to disconnect from this call?"
+                    )
                 }
                 actions={
                     <>
                         <Button variant="ghost" size="normal" onClick={() => setLeaveConfirmOpen(false)}>Cancel</Button>
                         <Button variant="secondary" size="normal" onClick={confirmLeave}>Leave call</Button>
-                        {signaling.isHost && (
+                        {(signaling.isHost || signaling.isPrivateCall || url?.startsWith("p-")) && (
                             <Button variant="danger" size="normal" onClick={() => {
                                 setLeaveConfirmOpen(false);
                                 if (isRecording) toggleRecording();
                                 peers.closeAllPeers();
                                 signaling.endMeetingForAll();
-                                navigate('/', { state: { toast: "You ended the meeting for all participants." } });
+                                navigate('/', { state: { toast: (signaling.isPrivateCall || url?.startsWith("p-")) ? "You ended the call for both participants." : "You ended the meeting for all participants." } });
                             }}>
-                                End for all
+                                {(signaling.isPrivateCall || url?.startsWith("p-")) ? "End call for both" : "End for all"}
                             </Button>
                         )}
                     </>

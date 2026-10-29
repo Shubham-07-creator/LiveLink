@@ -5,7 +5,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { AuthContext } from "../contexts/AuthContext";
 import { useThemeMode } from "../contexts/ThemeContext";
-import { generateRoomCode } from "../utils/roomCode";
+import { generateRoomCode, isValidRoomCode } from "../utils/roomCode";
 import {
   Button,
   IconButton,
@@ -206,7 +206,11 @@ function HomeComponent() {
       showToast("Please enter a meeting code or paste a room link", "warning");
       return;
     }
-    const cleanCode = code.replace(/https?:\/\/[^/]+\//, "").trim();
+    const cleanCode = code.replace(/^https?:\/\/[^/]+\//, "").trim().toLowerCase();
+    if (!isValidRoomCode(cleanCode)) {
+      showToast("Invalid room code format. Room codes must be formatted as xxxx-xxxx-xxxx or p-xxxx-xxxx-xxxx", "error");
+      return;
+    }
     try {
       await addToUserHistory(cleanCode);
     } catch (e) {

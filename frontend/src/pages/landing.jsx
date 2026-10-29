@@ -2,7 +2,7 @@ import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { useThemeMode } from "../contexts/ThemeContext";
-import { generateRoomCode } from "../utils/roomCode";
+import { generateRoomCode, isValidRoomCode } from "../utils/roomCode";
 import {
   Button,
   IconButton,
@@ -72,9 +72,13 @@ export default function LandingPage() {
 
   const handleJoinCall = (e) => {
     if (e) e.preventDefault();
-    const clean = meetingCode.trim().replace(/https?:\/\/[^/]+\//, "");
+    const clean = meetingCode.trim().replace(/^https?:\/\/[^/]+\//, "").toLowerCase();
     if (!clean) {
       showToast("Please enter a meeting code or paste an invite link", "warning");
+      return;
+    }
+    if (!isValidRoomCode(clean)) {
+      showToast("Invalid room code format. Room codes must follow xxxx-xxxx-xxxx or p-xxxx-xxxx-xxxx", "error");
       return;
     }
     navigate(`/${clean}`);
@@ -292,7 +296,7 @@ export default function LandingPage() {
                 <Button
                   variant="ghost"
                   size="small"
-                  onClick={() => navigate(`/test-${generateRoomCode().substring(0, 4)}`)}
+                  onClick={() => navigate(`/${generateRoomCode()}`)}
                   leftIcon={<TuneOutlinedIcon />}
                 >
                   Test camera and mic
