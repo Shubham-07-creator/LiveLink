@@ -21,12 +21,21 @@ export default function VideoTile({
   isPinned,
   isSpotlighted,
   isHandRaised,
+  isScreenShare = false,
   networkQuality = "Good",
   onPin,
   onSpotlight
 }) {
   const videoRef = useRef(null);
   const callTokens = tokens?.colors?.call || tokens?.call || {};
+
+  // Auto-detect whether this tile contains a screen share track (either locally marked or remote displaySurface/label)
+  const videoTrack = stream?.getVideoTracks?.()[0];
+  const isScreen = Boolean(
+    isScreenShare ||
+    videoTrack?.getSettings?.()?.displaySurface !== undefined ||
+    /screen|window|monitor|display/i.test(videoTrack?.label || "")
+  );
 
   useEffect(() => {
     const videoEl = videoRef.current;
@@ -103,11 +112,12 @@ export default function VideoTile({
         style={{
           width: "100%",
           height: "100%",
-          objectFit: "cover",
-          transform: isLocal ? "scaleX(-1) translateZ(0)" : "translateZ(0)",
+          objectFit: isScreen ? "contain" : "cover",
+          transform: isScreen ? "translateZ(0)" : (isLocal ? "scaleX(-1) translateZ(0)" : "translateZ(0)"),
           willChange: "transform",
           backfaceVisibility: "hidden",
-          display: isVideoOff ? "none" : "block"
+          display: isVideoOff ? "none" : "block",
+          backgroundColor: isScreen ? "#000000" : "transparent"
         }}
       />
 

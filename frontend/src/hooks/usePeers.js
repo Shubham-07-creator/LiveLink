@@ -116,6 +116,13 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
                 } catch (e) {}
             });
         }
+        // Ensure a video sender exists even if user joined with camera muted/off so replaceTrack works seamlessly
+        if (!peerEntry.senders['video']) {
+            try {
+                const videoTransceiver = pc.addTransceiver('video', { direction: 'sendrecv' });
+                peerEntry.senders['video'] = videoTransceiver.sender;
+            } catch (e) {}
+        }
 
         // Hardware-Accelerated Codec Optimization (VP8 & H264 Prioritization)
         try {
@@ -285,17 +292,24 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
         }
     }, [createPeer]);
 
-    // Live track replacement
+    // Live track replacement (Instant seamless track swap without renegotiation)
     const replaceTrackOnPeers = useCallback(async (kind, newTrack) => {
-        const activeLocal = localStreamRef.current;
         const promises = Object.values(peersRef.current).map(async (peer) => {
-            const sender = peer.senders?.[kind];
+            let sender = peer.senders?.[kind];
+            if (!sender && peer.pc) {
+                const existing = peer.pc.getSenders?.().find(s => s.track?.kind === kind || (s.track === null && kind === 'video'));
+                if (existing) {
+                    if (!peer.senders) peer.senders = {};
+                    peer.senders[kind] = existing;
+                    sender = existing;
+                }
+            }
             if (sender && typeof sender.replaceTrack === 'function') {
-                try { await sender.replaceTrack(newTrack); } catch (e) {}
-            } else if (peer.pc && newTrack) {
                 try {
-                    peer.senders[kind] = peer.pc.addTrack(newTrack, activeLocal);
-                } catch (e) {}
+                    await sender.replaceTrack(newTrack || null);
+                } catch (e) {
+                    console.warn(`[usePeers] replaceTrack failed for ${kind}:`, e?.message);
+                }
             }
         });
         await Promise.all(promises);

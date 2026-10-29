@@ -38,6 +38,7 @@ export default function useMedia({ onTrackReplaced, onSpeakingStateChange } = {}
     const analyserRef = useRef(null);
     const animFrameRef = useRef(null);
     const localStreamRef = useRef(null);
+    const screenStreamRef = useRef(null);
 
     const loadDevices = useCallback(async () => {
         try {
@@ -181,23 +182,64 @@ export default function useMedia({ onTrackReplaced, onSpeakingStateChange } = {}
     }, []);
 
     const stopScreenShare = useCallback(() => {
-        screenStream?.getTracks().forEach(t => t.stop());
+        if (screenStreamRef.current) {
+            screenStreamRef.current.getTracks().forEach(t => {
+                try { t.stop(); } catch(e){}
+            });
+            screenStreamRef.current = null;
+        }
         setScreenStream(null);
         setIsScreenSharing(false);
+
+        // Switch back to camera video track
         const cam = localStreamRef.current?.getVideoTracks()[0];
-        if (cam) onTrackReplaced?.('video', cam);
-    }, [screenStream, onTrackReplaced]);
+        if (cam) {
+            onTrackReplaced?.('video', cam);
+        } else {
+            onTrackReplaced?.('video', null);
+        }
+    }, [onTrackReplaced]);
 
     const startScreenShare = useCallback(async () => {
         try {
-            const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+            // First attempt with displaySurface and audio capture
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        cursor: "always",
+                        displaySurface: "monitor"
+                    },
+                    audio: true
+                });
+            } catch (errWithAudio) {
+                // Graceful fallback to video-only if audio capture is unsupported on user's window/OS
+                stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        cursor: "always"
+                    }
+                });
+            }
+
+            if (!stream) return null;
             const track = stream.getVideoTracks()[0];
+            if (!track) return null;
+
+            screenStreamRef.current = stream;
             setScreenStream(stream);
             setIsScreenSharing(true);
-            track.onended = () => stopScreenShare();
+
+            // Handle when user stops sharing via browser's native floating banner
+            track.onended = () => {
+                stopScreenShare();
+            };
+
             onTrackReplaced?.('video', track);
             return stream;
-        } catch (e) { return null; }
+        } catch (e) {
+            console.warn('[useMedia] Screen share cancelled or rejected:', e);
+            return null;
+        }
     }, [onTrackReplaced, stopScreenShare]);
 
     useEffect(() => {
@@ -206,9 +248,11 @@ export default function useMedia({ onTrackReplaced, onSpeakingStateChange } = {}
             navigator.mediaDevices?.removeEventListener?.('devicechange', loadDevices);
             stopAudioVisualizer();
             localStreamRef.current?.getTracks().forEach(t => t.stop());
-            screenStream?.getTracks().forEach(t => t.stop());
+            if (screenStreamRef.current) {
+                screenStreamRef.current.getTracks().forEach(t => t.stop());
+            }
         };
-    }, [loadDevices, stopAudioVisualizer, screenStream]);
+    }, [loadDevices, stopAudioVisualizer]);
 
     return {
         localStream, screenStream, videoEnabled, audioEnabled, isScreenSharing, permissionDenied,

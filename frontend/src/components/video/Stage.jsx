@@ -62,12 +62,24 @@ export default function Stage({
     }))
   ];
 
-  // Determine hero participant for speaker view
+  // Check if a remote participant is currently sharing their screen
+  const remoteScreenParticipant = participants.find((p) => {
+    if (p.isLocal) return false;
+    const track = p.stream?.getVideoTracks?.()[0];
+    return Boolean(
+      track?.getSettings?.()?.displaySurface !== undefined ||
+      /screen|window|monitor|display/i.test(track?.label || "")
+    );
+  });
+
+  // Determine hero participant for speaker view or remote screen share presentation
   let heroParticipant = null;
   if (pinnedUser) {
     heroParticipant = participants.find((p) => p.socketId === pinnedUser);
   } else if (spotlightUser) {
     heroParticipant = participants.find((p) => p.socketId === spotlightUser);
+  } else if (remoteScreenParticipant) {
+    heroParticipant = remoteScreenParticipant;
   } else {
     heroParticipant =
       participants.find((p) => p.isSpeaking && !p.isLocal) ||
@@ -75,7 +87,7 @@ export default function Stage({
       participants[0];
   }
 
-  const isHeroLayout = (viewMode === "speaker" || isScreenSharing) && heroParticipant;
+  const isHeroLayout = (viewMode === "speaker" || Boolean(remoteScreenParticipant)) && heroParticipant;
   const thumbnailParticipants = participants.filter((p) => p.socketId !== heroParticipant?.socketId);
 
   // Dynamic grid layout for up to 4 participants
@@ -107,46 +119,25 @@ export default function Stage({
         bgcolor: callTokens.stageBg
       }}
     >
-      {/* Screen Share Hero Tile if active */}
-      {isScreenSharing && screenStream && (
-        <Box sx={{ flex: 1, minHeight: 0, borderRadius: tokens.radii.tile, overflow: "hidden", bgcolor: "#000000" }}>
-          <VideoTile
-            stream={screenStream}
-            name={`${localName}'s screen`}
-            isLocal={true}
-            isMuted={true}
-            isVideoOff={false}
-            isSpeaking={false}
-            networkQuality={overallQuality}
-          />
-        </Box>
-      )}
-
-      {/* Speaker View: Large Hero Tile + Bottom Thumbnails */}
-      {isHeroLayout && !isScreenSharing && (
-        <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, gap: 2 }}>
-          <Box sx={{ flex: 1, minHeight: 0 }}>
+      {/* 1. When Local User is Sharing Screen: Large Hero Screen Share + Bottom Thumbnails of All Participants */}
+      {isScreenSharing && screenStream ? (
+        <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, gap: { xs: 1, sm: 2 } }}>
+          <Box sx={{ flex: 1, minHeight: 0, borderRadius: tokens.radii.tile, overflow: "hidden", bgcolor: "#000000" }}>
             <VideoTile
-              stream={heroParticipant.stream}
-              name={heroParticipant.name}
-              avatar={heroParticipant.avatar}
-              isLocal={heroParticipant.isLocal}
-              isHost={heroParticipant.isHost}
-              isVideoOff={heroParticipant.isVideoOff}
-              isMuted={heroParticipant.isMuted}
-              isSpeaking={heroParticipant.isSpeaking}
-              isPinned={pinnedUser === heroParticipant.socketId}
-              isSpotlighted={spotlightUser === heroParticipant.socketId}
-              isHandRaised={heroParticipant.isHandRaised}
-              networkQuality={heroParticipant.quality}
-              onPin={() => onPinUser?.(pinnedUser === heroParticipant.socketId ? null : heroParticipant.socketId)}
-              onSpotlight={() => onSpotlightUser?.(heroParticipant.socketId)}
+              stream={screenStream}
+              name={`${localName}'s screen (Sharing)`}
+              isLocal={true}
+              isMuted={true}
+              isVideoOff={false}
+              isSpeaking={false}
+              isScreenShare={true}
+              networkQuality={overallQuality}
             />
           </Box>
-          {thumbnailParticipants.length > 0 && (
-            <Box sx={{ height: "130px", display: "flex", gap: 2, overflowX: "auto", py: 0.5 }}>
-              {thumbnailParticipants.map((part) => (
-                <Box key={part.socketId} sx={{ width: "200px", height: "100%", flexShrink: 0 }}>
+          {participants.length > 0 && (
+            <Box sx={{ height: { xs: "90px", sm: "125px" }, display: "flex", gap: 1.5, overflowX: "auto", py: 0.5, flexShrink: 0 }}>
+              {participants.map((part) => (
+                <Box key={part.socketId} sx={{ width: { xs: "130px", sm: "180px" }, height: "100%", flexShrink: 0 }}>
                   <VideoTile
                     stream={part.stream}
                     name={part.name}
@@ -168,10 +159,55 @@ export default function Stage({
             </Box>
           )}
         </Box>
-      )}
-
-      {/* Grid View: Responsive 1 to 4 Tiles */}
-      {!isHeroLayout && !isScreenSharing && (
+      ) : isHeroLayout ? (
+        /* 2. Speaker View / Remote Screen Share Hero View + Bottom Thumbnails */
+        <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, gap: 2 }}>
+          <Box sx={{ flex: 1, minHeight: 0, borderRadius: tokens.radii.tile, overflow: "hidden", bgcolor: "#000000" }}>
+            <VideoTile
+              stream={heroParticipant.stream}
+              name={heroParticipant === remoteScreenParticipant ? `${heroParticipant.name}'s screen` : heroParticipant.name}
+              avatar={heroParticipant.avatar}
+              isLocal={heroParticipant.isLocal}
+              isHost={heroParticipant.isHost}
+              isVideoOff={heroParticipant.isVideoOff}
+              isMuted={heroParticipant.isMuted}
+              isSpeaking={heroParticipant.isSpeaking}
+              isPinned={pinnedUser === heroParticipant.socketId}
+              isSpotlighted={spotlightUser === heroParticipant.socketId}
+              isHandRaised={heroParticipant.isHandRaised}
+              isScreenShare={heroParticipant === remoteScreenParticipant}
+              networkQuality={heroParticipant.quality}
+              onPin={() => onPinUser?.(pinnedUser === heroParticipant.socketId ? null : heroParticipant.socketId)}
+              onSpotlight={() => onSpotlightUser?.(heroParticipant.socketId)}
+            />
+          </Box>
+          {thumbnailParticipants.length > 0 && (
+            <Box sx={{ height: { xs: "90px", sm: "125px" }, display: "flex", gap: 1.5, overflowX: "auto", py: 0.5, flexShrink: 0 }}>
+              {thumbnailParticipants.map((part) => (
+                <Box key={part.socketId} sx={{ width: { xs: "130px", sm: "180px" }, height: "100%", flexShrink: 0 }}>
+                  <VideoTile
+                    stream={part.stream}
+                    name={part.name}
+                    avatar={part.avatar}
+                    isLocal={part.isLocal}
+                    isHost={part.isHost}
+                    isVideoOff={part.isVideoOff}
+                    isMuted={part.isMuted}
+                    isSpeaking={part.isSpeaking}
+                    isPinned={pinnedUser === part.socketId}
+                    isSpotlighted={spotlightUser === part.socketId}
+                    isHandRaised={part.isHandRaised}
+                    networkQuality={part.quality}
+                    onPin={() => onPinUser?.(pinnedUser === part.socketId ? null : part.socketId)}
+                    onSpotlight={() => onSpotlightUser?.(part.socketId)}
+                  />
+                </Box>
+              ))}
+            </Box>
+          )}
+        </Box>
+      ) : (
+        /* 3. Grid View: Responsive 1 to 4 Tiles (When no screen share) */
         <Box
           sx={{
             flex: 1,
