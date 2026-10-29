@@ -34,6 +34,7 @@ export default function useSignaling({
     const [spotlightUser, setSpotlightUser] = useState(null);
     const [remoteRecording, setRemoteRecording] = useState({ isRecording: false, host: '' });
     const [remoteCaption, setRemoteCaption] = useState(null);
+    const [activePresenter, setActivePresenter] = useState(null);
 
     const typingTimeoutRef = useRef(null);
     const captionTimeoutRef = useRef(null);
@@ -171,6 +172,11 @@ export default function useSignaling({
             playChime('hand');
         });
 
+        // Step 3: Single presenter coordination
+        socket.on('screen-presenter-changed', ({ presenterId, presenterName }) => {
+            setActivePresenter(presenterId ? { presenterId, presenterName } : null);
+        });
+
         // Room full (capacity limit reached)
         socket.on('room-full', (info) => callbacksRef.current.onRoomFull?.(info));
 
@@ -286,6 +292,46 @@ export default function useSignaling({
         socketRef.current?.emit('live-caption', transcript, speaker);
     }, []);
 
+    // Step 3: Single presenter coordination requests
+    const requestStartScreenShare = useCallback(() => {
+        return new Promise((resolve, reject) => {
+            if (!socketRef.current?.connected) {
+                return reject(new Error("Signaling connection unavailable"));
+            }
+
+            let timeoutId;
+            const handleApproved = () => {
+                cleanup();
+                resolve(true);
+            };
+
+            const handleRejected = ({ message }) => {
+                cleanup();
+                reject(new Error(message || "Screen sharing request was rejected."));
+            };
+
+            const cleanup = () => {
+                clearTimeout(timeoutId);
+                socketRef.current?.off('screen-share-approved', handleApproved);
+                socketRef.current?.off('screen-share-rejected', handleRejected);
+            };
+
+            socketRef.current.once('screen-share-approved', handleApproved);
+            socketRef.current.once('screen-share-rejected', handleRejected);
+            socketRef.current.emit('start-screen-share');
+
+            // Fallback timeout to prevent UI hang
+            timeoutId = setTimeout(() => {
+                cleanup();
+                resolve(true);
+            }, 4000);
+        });
+    }, []);
+
+    const stopScreenShareSignal = useCallback(() => {
+        socketRef.current?.emit('stop-screen-share');
+    }, []);
+
     const disconnect = useCallback(() => {
         if (socketRef.current) {
             socketRef.current.disconnect();
@@ -318,7 +364,10 @@ export default function useSignaling({
         spotlightUser,
         remoteRecording,
         remoteCaption,
+        activePresenter,
         sendCaption,
+        requestStartScreenShare,
+        stopScreenShareSignal,
         connect,
         sendSignal,
         sendMessage,

@@ -18,7 +18,7 @@ const getVideoConstraints = (cameraId) => ({
     facingMode: "user"
 });
 
-export default function useMedia({ onTrackReplaced, onSpeakingStateChange } = {}) {
+export default function useMedia({ onTrackReplaced, onSpeakingStateChange, onScreenShareEnded } = {}) {
     const [localStream, setLocalStream] = useState(null);
     const [screenStream, setScreenStream] = useState(null);
     const [videoEnabled, setVideoEnabled] = useState(true);
@@ -194,11 +194,12 @@ export default function useMedia({ onTrackReplaced, onSpeakingStateChange } = {}
         // Switch back to camera video track
         const cam = localStreamRef.current?.getVideoTracks()[0];
         if (cam) {
-            onTrackReplaced?.('video', cam);
+            onTrackReplaced?.('video', cam, { isScreenSharing: false });
         } else {
-            onTrackReplaced?.('video', null);
+            onTrackReplaced?.('video', null, { isScreenSharing: false });
         }
-    }, [onTrackReplaced]);
+        onScreenShareEnded?.();
+    }, [onTrackReplaced, onScreenShareEnded]);
 
     const startScreenShare = useCallback(async () => {
         try {
@@ -225,6 +226,15 @@ export default function useMedia({ onTrackReplaced, onSpeakingStateChange } = {}
             const track = stream.getVideoTracks()[0];
             if (!track) return null;
 
+            // Step 3: Content hint 'detail' optimizes text rendering / sharpness
+            if ('contentHint' in track) {
+                try {
+                    track.contentHint = 'detail';
+                } catch (e) {
+                    console.debug('[useMedia] contentHint detail unsupported:', e);
+                }
+            }
+
             screenStreamRef.current = stream;
             setScreenStream(stream);
             setIsScreenSharing(true);
@@ -234,7 +244,7 @@ export default function useMedia({ onTrackReplaced, onSpeakingStateChange } = {}
                 stopScreenShare();
             };
 
-            onTrackReplaced?.('video', track);
+            onTrackReplaced?.('video', track, { isScreenSharing: true });
             return stream;
         } catch (e) {
             console.warn('[useMedia] Screen share cancelled or rejected:', e);

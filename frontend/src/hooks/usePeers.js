@@ -315,7 +315,7 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
     }, [createPeer]);
 
     // Live track replacement (Instant seamless track swap without renegotiation)
-    const replaceTrackOnPeers = useCallback(async (kind, newTrack) => {
+    const replaceTrackOnPeers = useCallback(async (kind, newTrack, options = {}) => {
         const promises = Object.values(peersRef.current).map(async (peer) => {
             let sender = peer.senders?.[kind];
             if (!sender && peer.pc) {
@@ -329,6 +329,27 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
             if (sender && typeof sender.replaceTrack === 'function') {
                 try {
                     await sender.replaceTrack(newTrack || null);
+
+                    // Step 3: Screen share degradationPreference 'maintain-resolution' vs camera 'maintain-framerate'
+                    if (kind === 'video' && typeof sender.getParameters === 'function') {
+                        try {
+                            const params = sender.getParameters();
+                            if (params) {
+                                try {
+                                    params.degradationPreference = options.isScreenSharing ? 'maintain-resolution' : 'maintain-framerate';
+                                } catch (degErr) {
+                                    // Feature detect: silently ignore if unsupported
+                                }
+                                if (!params.encodings || params.encodings.length === 0) params.encodings = [{}];
+                                if (options.isScreenSharing) {
+                                    params.encodings[0].maxBitrate = 1200000; // Cap screen bitrate to 1.2Mbps
+                                    params.encodings[0].maxFramerate = 15;    // Cap screen framerate to 10-15fps
+                                    params.encodings[0].scaleResolutionDownBy = 1.0;
+                                }
+                                await sender.setParameters(params);
+                            }
+                        } catch (pErr) {}
+                    }
                 } catch (e) {
                     console.warn(`[usePeers] replaceTrack failed for ${kind}:`, e?.message);
                 }
@@ -345,7 +366,11 @@ export default function usePeers({ sendSignal, localStream, myId, onPeerStream, 
             if (videoSender && typeof videoSender.getParameters === 'function') {
                 try {
                     const params = videoSender.getParameters();
-                    params.degradationPreference = options.isScreenSharing ? 'maintain-resolution' : 'maintain-framerate';
+                    try {
+                        params.degradationPreference = options.isScreenSharing ? 'maintain-resolution' : 'maintain-framerate';
+                    } catch (degErr) {
+                        // Feature-detect: ignore if unsupported
+                    }
                     if (!params.encodings || params.encodings.length === 0) params.encodings = [{}];
                     params.encodings[0].maxBitrate = targetBitrate;
                     params.encodings[0].maxFramerate = targetFps;

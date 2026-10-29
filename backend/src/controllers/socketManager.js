@@ -18,6 +18,7 @@ let roomHosts = {};
 let roomLocked = {};
 let waitingRooms = {};
 let roomPermissions = {}; // path -> { allowScreenShare: boolean, allowChat: boolean }
+let activePresenters = {}; // path -> socketId (Only one screen presenter at a time)
 
 // Join rate limiter tracking (max 20 join attempts per minute per IP)
 const joinAttempts = new Map();
@@ -276,6 +277,14 @@ export const connectToSocket = (server) => {
             // Send host the current waiting room list
             if (socket.id === hostSocketId && waitingRooms[path] && waitingRooms[path].length > 0) {
                 io.to(socket.id).emit("waiting-users-list", waitingRooms[path]);
+            }
+
+            // Sync current active screen presenter to the joining user
+            if (activePresenters[path]) {
+                socket.emit("screen-presenter-changed", {
+                    presenterId: activePresenters[path],
+                    presenterName: userNames[activePresenters[path]] || "Presenter"
+                });
             }
 
             if (messages[path] !== undefined) {
@@ -560,6 +569,13 @@ export const connectToSocket = (server) => {
             }
             socketToRoom.delete(targetSocketId);
 
+            if (activePresenters[matchingRoom] === targetSocketId) {
+                delete activePresenters[matchingRoom];
+                connections[matchingRoom].forEach((elem) => {
+                    io.to(elem).emit("screen-presenter-changed", { presenterId: null, presenterName: null });
+                });
+            }
+
             connections[matchingRoom].forEach((elem) => {
                 io.to(elem).emit("user-left", targetSocketId);
             });
@@ -608,6 +624,7 @@ export const connectToSocket = (server) => {
             delete roomLocked[matchingRoom];
             delete waitingRooms[matchingRoom];
             delete roomPermissions[matchingRoom];
+            delete activePresenters[matchingRoom];
         });
 
         // Host Control: Toggle Screen Share Permission for Participants
@@ -658,6 +675,49 @@ export const connectToSocket = (server) => {
             });
         });
 
+        // Screen Share: Atomic Single-Presenter Coordination & Bitrate Cap
+        socket.on("start-screen-share", () => {
+            const [matchingRoom, found] = getSocketRoom(socket.id);
+            if (!found || !matchingRoom) return;
+
+            // Reject if someone else is actively presenting
+            if (activePresenters[matchingRoom] && activePresenters[matchingRoom] !== socket.id) {
+                const presenterName = userNames[activePresenters[matchingRoom]] || "Another participant";
+                return socket.emit("screen-share-rejected", {
+                    message: `${presenterName} is already sharing their screen. Only one presenter is allowed at a time.`
+                });
+            }
+
+            // Check if screen sharing was disabled by the room host
+            if (roomPermissions[matchingRoom]?.allowScreenShare === false && roomHosts[matchingRoom] !== socket.id) {
+                return socket.emit("screen-share-rejected", {
+                    message: "Screen sharing has been disabled by the meeting host."
+                });
+            }
+
+            activePresenters[matchingRoom] = socket.id;
+            socket.emit("screen-share-approved");
+            (connections[matchingRoom] || []).forEach((elem) => {
+                io.to(elem).emit("screen-presenter-changed", {
+                    presenterId: socket.id,
+                    presenterName: userNames[socket.id] || "Presenter"
+                });
+            });
+        });
+
+        socket.on("stop-screen-share", () => {
+            const [matchingRoom, found] = getSocketRoom(socket.id);
+            if (found && matchingRoom && activePresenters[matchingRoom] === socket.id) {
+                delete activePresenters[matchingRoom];
+                (connections[matchingRoom] || []).forEach((elem) => {
+                    io.to(elem).emit("screen-presenter-changed", {
+                        presenterId: null,
+                        presenterName: null
+                    });
+                });
+            }
+        });
+
         socket.on("disconnect", () => {
             const [key, found] = getSocketRoom(socket.id);
 
@@ -665,6 +725,14 @@ export const connectToSocket = (server) => {
                 const index = connections[key].indexOf(socket.id);
                 if (index !== -1) {
                     connections[key].splice(index, 1);
+                }
+
+                // If this user was presenting, release the screen lock immediately
+                if (activePresenters[key] === socket.id) {
+                    delete activePresenters[key];
+                    connections[key].forEach((elem) => {
+                        io.to(elem).emit("screen-presenter-changed", { presenterId: null, presenterName: null });
+                    });
                 }
 
                 // Notify remaining participants
@@ -691,6 +759,7 @@ export const connectToSocket = (server) => {
                         delete waitingRooms[key];
                         delete messages[key];
                         delete roomPermissions[key];
+                        delete activePresenters[key];
                     }
                 }
 
@@ -702,6 +771,7 @@ export const connectToSocket = (server) => {
                     delete roomLocked[key];
                     delete waitingRooms[key];
                     delete roomPermissions[key];
+                    delete activePresenters[key];
                 }
             }
 

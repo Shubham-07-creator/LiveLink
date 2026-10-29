@@ -81,8 +81,12 @@ export default function VideoMeet() {
     const recognitionRef = useRef(null);
     const callStartTimeRef = useRef(null);
     const peersRef = useRef(null);
+    const signalingRef = useRef(null);
 
-    const media = useMedia({ onTrackReplaced: (kind, track) => peersRef.current?.replaceTrackOnPeers(kind, track) });
+    const media = useMedia({
+        onTrackReplaced: (kind, track, options) => peersRef.current?.replaceTrackOnPeers(kind, track, options),
+        onScreenShareEnded: () => signalingRef.current?.stopScreenShareSignal?.()
+    });
 
     const signaling = useSignaling({
         roomUrl: url,
@@ -143,7 +147,49 @@ export default function VideoMeet() {
         myId: signaling.socketIdRef?.current || signaling.socketId
     });
     peersRef.current = peers;
+    signalingRef.current = signaling;
     const stats = useStats({ peersRef: peers.peersRef, isCallActive: isInMeeting });
+
+    // Handle screen share toggling with atomic single presenter check
+    const handleToggleScreenShare = async () => {
+        if (media.isScreenSharing) {
+            media.stopScreenShare();
+            signaling.stopScreenShareSignal?.();
+            return;
+        }
+
+        // Host permission check
+        if (!signaling.isHost && signaling.roomPermissions?.allowScreenShare === false) {
+            setToast({ open: true, message: "Screen sharing has been locked by the meeting host.", severity: 'warning' });
+            return;
+        }
+
+        // Single presenter check: Only one presenter at a time
+        if (signaling.activePresenter && signaling.activePresenter.presenterId && signaling.activePresenter.presenterId !== (signaling.socketIdRef?.current || signaling.socketId)) {
+            setToast({
+                open: true,
+                message: `${signaling.activePresenter.presenterName || 'Another participant'} is already sharing their screen. Only one presenter is allowed at a time.`,
+                severity: 'warning'
+            });
+            return;
+        }
+
+        // Request approval from signaling server
+        try {
+            await signaling.requestStartScreenShare();
+            const stream = await media.startScreenShare();
+            if (!stream) {
+                // User cancelled browser dialog
+                signaling.stopScreenShareSignal?.();
+            }
+        } catch (err) {
+            setToast({
+                open: true,
+                message: err?.message || "Someone is already sharing their screen.",
+                severity: 'warning'
+            });
+        }
+    };
 
     // Client-side real-time voice activity detection (VAD) for active speaker pulse
     const { localSpeaking, speakingPeers } = useVoiceActivity(media.localStream, !media.audioEnabled, peers.remoteVideos);
@@ -152,7 +198,7 @@ export default function VideoMeet() {
     useHotkeys({
         onToggleAudio: media.toggleAudio,
         onToggleVideo: media.toggleVideo,
-        onToggleScreenShare: () => media.isScreenSharing ? media.stopScreenShare() : media.startScreenShare(),
+        onToggleScreenShare: handleToggleScreenShare,
         onToggleHand: () => signaling.toggleRaiseHand(displayName),
         onToggleChat: () => setChatOpen(prev => !prev),
         onTogglePeople: () => setPeopleOpen(prev => !prev),
@@ -362,13 +408,7 @@ export default function VideoMeet() {
                         isHandRaised={signaling.isHandRaised} isRecording={isRecording} isHost={signaling.isHost} viewMode={viewMode}
                         captionsActive={captionsActive} unreadMessages={signaling.newMessagesCount} onToggleAudio={media.toggleAudio}
                         onToggleVideo={media.toggleVideo}
-                        onToggleScreenShare={() => {
-                            if (!signaling.isHost && signaling.roomPermissions?.allowScreenShare === false) {
-                                setToast({ open: true, message: "Screen sharing has been locked by the meeting host.", severity: 'warning' });
-                                return;
-                            }
-                            media.isScreenSharing ? media.stopScreenShare() : media.startScreenShare();
-                        }}
+                        onToggleScreenShare={handleToggleScreenShare}
                         onToggleHand={() => signaling.toggleRaiseHand(displayName)} onSendReaction={(em) => signaling.sendReaction(em, displayName)}
                         onToggleViewMode={() => setViewMode(v => v === 'grid' ? 'speaker' : 'grid')} onToggleCaptions={toggleCaptions}
                         onToggleChat={() => { setChatOpen(d => !d); signaling.setNewMessagesCount(0); }}
