@@ -7,9 +7,10 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
-import { Copy, Check, RotateCw, Trash2, Edit3, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Copy, Check, RotateCw, Trash2, Edit3, ChevronLeft, ChevronRight, X, Volume2 } from 'lucide-react';
 import { CodeBlock } from './CodeBlock';
 import { ThoughtProcess } from './ThoughtProcess';
+import { speakText } from './VoiceInput';
 import { useToast } from '@/contexts/ToastContext';
 
 export interface MessageData {
@@ -200,6 +201,17 @@ export function MessageBubble({
               aria-label="Edit message"
             >
               <Edit3 className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {!isUser && (
+            <button
+              onClick={() => speakText(message.content)}
+              className="p-1 hover:text-ink rounded transition-colors"
+              title="Read aloud"
+              aria-label="Read aloud"
+            >
+              <Volume2 className="w-3.5 h-3.5" />
             </button>
           )}
 

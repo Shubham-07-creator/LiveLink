@@ -9,12 +9,17 @@ import { SuggestedFollowUps } from '@/components/chat/SuggestedFollowUps';
 import { ArtifactCard } from '@/components/artifacts/ArtifactCard';
 import { ArtifactPanel } from '@/components/artifacts/ArtifactPanel';
 import { ThemeSelector } from '@/components/layout/ThemeSelector';
+import { SearchModal } from '@/components/modals/SearchModal';
+import { ShortcutsModal } from '@/components/modals/ShortcutsModal';
+import { ShareModal } from '@/components/modals/ShareModal';
+import { CustomStylesModal } from '@/components/modals/CustomStylesModal';
+import { translations, type Language } from '@/lib/i18n/translations';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/contexts/ToastContext';
 import { ArtifactStreamParser, type ArtifactMeta } from '@/lib/artifacts/parser';
 import { ARTIFACT_SYSTEM_PROMPT } from '@/lib/artifacts/prompt';
 import type { ArtifactVersionItem } from '@/components/artifacts/VersionHistory';
-import { Sparkles, LayoutDashboard, Code2, Cpu, Compass } from 'lucide-react';
+import { Sparkles, LayoutDashboard, Code2, Cpu, Compass, Share2, Sliders, Keyboard, Languages, Search } from 'lucide-react';
 
 interface ActiveArtifactState {
   meta: ArtifactMeta;
@@ -35,21 +40,51 @@ export default function HomePage() {
   const [activeArtifact, setActiveArtifact] = useState<ActiveArtifactState | null>(null);
   const [artifactMap, setArtifactMap] = useState<Record<string, ActiveArtifactState>>({});
 
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [stylesModalOpen, setStylesModalOpen] = useState(false);
+  const [language, setLanguage] = useState<Language>('en');
+  const [customStyleDirective, setCustomStyleDirective] = useState('');
+
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  const t = translations[language];
   const fastModel = process.env.NEXT_PUBLIC_MODEL_FAST || 'Gemini 1.5 Flash';
   const smartModel = process.env.NEXT_PUBLIC_MODEL_SMART || 'Gemini 1.5 Flash';
 
-  // Abort on Esc key press
+  const handleNewChat = useCallback(() => {
+    const newId = `c-${Date.now()}`;
+    setConversations((prev) => [{ id: newId, title: 'New conversation', updatedAt: 'Just now' }, ...prev]);
+    setCurrentChatId(newId);
+    setMessages([]);
+    setSuggestions([]);
+    setActiveArtifact(null);
+  }, []);
+
+  // Global Shortcuts: Ctrl+K, Ctrl+Shift+O, ?, Esc
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isStreaming) {
-        handleStopStreaming();
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchModalOpen((p) => !p);
+      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'o') {
+        e.preventDefault();
+        handleNewChat();
+      } else if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+        e.preventDefault();
+        setShortcutsModalOpen((p) => !p);
+      } else if (e.key === 'Escape') {
+        if (isStreaming) handleStopStreaming();
+        setSearchModalOpen(false);
+        setShortcutsModalOpen(false);
+        setShareModalOpen(false);
+        setStylesModalOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isStreaming]);
+  }, [isStreaming, handleNewChat]);
 
   const handleStopStreaming = useCallback(() => {
     if (abortControllerRef.current) {
@@ -94,6 +129,10 @@ export default function HomePage() {
 
     const parser = new ArtifactStreamParser();
 
+    const systemPrompt = customStyleDirective
+      ? `${customStyleDirective}\n\n${ARTIFACT_SYSTEM_PROMPT}`
+      : ARTIFACT_SYSTEM_PROMPT;
+
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -102,7 +141,7 @@ export default function HomePage() {
           messages: updatedMessages.map((m) => ({ role: m.sender, content: m.content })),
           conversationId: currentChatId,
           modelTier,
-          system: ARTIFACT_SYSTEM_PROMPT
+          system: systemPrompt
         }),
         signal: abortController.signal
       });
@@ -315,14 +354,7 @@ Please fix the error and provide the updated complete artifact.`;
           setCurrentChatId(id);
           setMessages([]);
         }}
-        onNewChat={() => {
-          const newId = `c-${Date.now()}`;
-          setConversations((prev) => [{ id: newId, title: 'New conversation', updatedAt: 'Just now' }, ...prev]);
-          setCurrentChatId(newId);
-          setMessages([]);
-          setSuggestions([]);
-          setActiveArtifact(null);
-        }}
+        onNewChat={handleNewChat}
         onDeleteChat={(id) => setConversations((prev) => prev.filter((c) => c.id !== id))}
         onToggleStar={(id) =>
           setConversations((prev) =>
@@ -345,7 +377,59 @@ Please fix the error and provide the updated complete artifact.`;
                 <Badge variant="accent">Free Tier</Badge>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <button
+                  onClick={() => setSearchModalOpen(true)}
+                  className="p-1.5 text-ink-muted hover:text-ink hover:bg-surface-elevated rounded-button border border-transparent hover:border-outline transition-colors"
+                  title="Search (Ctrl+K)"
+                  aria-label="Search conversations"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => setStylesModalOpen(true)}
+                  className={`p-1.5 rounded-button border transition-colors ${
+                    customStyleDirective
+                      ? 'text-accent bg-accent-subtle border-accent/30'
+                      : 'text-ink-muted hover:text-ink hover:bg-surface-elevated border-transparent hover:border-outline'
+                  }`}
+                  title="Custom Style Presets"
+                  aria-label="Custom Style"
+                >
+                  <Sliders className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => setShareModalOpen(true)}
+                  className="p-1.5 text-ink-muted hover:text-ink hover:bg-surface-elevated rounded-button border border-transparent hover:border-outline transition-colors"
+                  title="Share or Export"
+                  aria-label="Share or Export conversation"
+                >
+                  <Share2 className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => setShortcutsModalOpen(true)}
+                  className="p-1.5 text-ink-muted hover:text-ink hover:bg-surface-elevated rounded-button border border-transparent hover:border-outline transition-colors"
+                  title="Keyboard Shortcuts (?)"
+                  aria-label="Keyboard Shortcuts"
+                >
+                  <Keyboard className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => setLanguage((prev) => (prev === 'en' ? 'hi' : 'en'))}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-semibold text-ink-muted hover:text-ink bg-surface-elevated border border-outline rounded-chip transition-colors"
+                  title="Toggle Language (English / Hinglish)"
+                  aria-label="Language switcher"
+                >
+                  <Languages className="w-3.5 h-3.5 text-accent" />
+                  <span>{language === 'en' ? 'EN' : 'HI'}</span>
+                </button>
+
+                <div className="h-4 w-px bg-outline mx-0.5" />
+
                 <ThemeSelector />
               </div>
             </header>
@@ -358,10 +442,10 @@ Please fix the error and provide the updated complete artifact.`;
                     <Sparkles className="w-6 h-6" />
                   </div>
                   <h1 className="font-heading text-3xl sm:text-4xl font-semibold text-ink tracking-tight">
-                    Where should we begin today?
+                    {t.emptyPromptTitle}
                   </h1>
                   <p className="text-sm text-ink-muted mt-2 max-w-md leading-relaxed font-body">
-                    Aether creates interactive live artifacts, renders markdown & math, and searches project knowledge at zero cost.
+                    {t.emptyPromptDesc}
                   </p>
 
                   {/* Starter Grid */}
@@ -456,6 +540,29 @@ Please fix the error and provide the updated complete artifact.`;
           )}
         </PanelGroup>
       </div>
+
+      {/* Product Feature Modals (Phase 5) */}
+      <SearchModal
+        open={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+        conversations={conversations}
+        onSelectChat={(id) => {
+          setCurrentChatId(id);
+          setMessages([]);
+        }}
+      />
+      <ShortcutsModal open={shortcutsModalOpen} onClose={() => setShortcutsModalOpen(false)} />
+      <ShareModal
+        open={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        conversationTitle={currentTitle}
+        messages={messages}
+      />
+      <CustomStylesModal
+        open={stylesModalOpen}
+        onClose={() => setStylesModalOpen(false)}
+        onSaveStyle={(directive) => setCustomStyleDirective(directive)}
+      />
     </div>
   );
 }

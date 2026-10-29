@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect, type KeyboardEvent } from 'react';
 import { Paperclip, ArrowUp, X, FileText, Zap, Sparkles, StopCircle } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
+import { VoiceInput } from './VoiceInput';
 
 export interface AttachedFile {
   id: string;
@@ -166,6 +167,9 @@ export function ChatComposer({
             >
               <Paperclip className="w-4 h-4" />
             </button>
+
+            {/* Voice Input (Web Speech API Beta) */}
+            <VoiceInput onTranscript={(txt) => setInput((prev) => prev + (prev ? ' ' : '') + txt)} />
 
             {/* Model Selector Pill */}
             <div className="flex items-center bg-surface-elevated border border-outline rounded-chip p-0.5 text-xs">
