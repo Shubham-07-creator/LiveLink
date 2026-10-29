@@ -62,7 +62,7 @@ button {
   user-select: none;
 }
 
-/* MAANG Video Waveform & Voice Animations */
+/* Video Waveform & Voice Animations */
 @keyframes soundWave {
   0% {
     height: 4px;

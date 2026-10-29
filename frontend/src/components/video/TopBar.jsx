@@ -91,7 +91,7 @@ export default function TopBar({
       {/* Right: Security Badge + Participant Count */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
         {/* Security / Private badge (Click to view live network diagnostics) */}
-        <Tooltip title="Call Health & Network Diagnostics (MAANG Telemetry)">
+        <Tooltip title="Call Health & Network Diagnostics (Encrypted DTLS-SRTP)">
           <Box
             onClick={onOpenDiagnostics}
             sx={{

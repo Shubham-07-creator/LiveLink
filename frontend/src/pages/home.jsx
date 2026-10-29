@@ -421,7 +421,7 @@ function HomeComponent() {
                 Private 1-to-1
               </Typography>
               <Typography variant="body2" sx={{ color: c.textMuted, fontSize: { xs: "11px", sm: "13px" }, lineHeight: 1.3 }}>
-                Strict 2-person • E2EE
+                Strict 2-person • DTLS-SRTP
               </Typography>
             </Card>
           </Grid>

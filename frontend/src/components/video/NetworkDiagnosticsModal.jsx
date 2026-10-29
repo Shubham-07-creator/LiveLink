@@ -80,7 +80,7 @@ export default function NetworkDiagnosticsModal({ open, onClose, statsSummary = 
       open={open}
       onClose={onClose}
       title="Call Health & Network Diagnostics"
-      description="Live MAANG-grade telemetry measured from active WebRTC PeerConnections:"
+      description="Live telemetry measured from active WebRTC PeerConnections. Encrypted peer-to-peer (DTLS-SRTP). Server only handles signaling."
       maxWidth="sm"
       actions={
         <Button variant="primary" size="small" onClick={onClose}>
@@ -211,7 +211,7 @@ export default function NetworkDiagnosticsModal({ open, onClose, statsSummary = 
         >
           <InfoOutlinedIcon sx={{ fontSize: 18, flexShrink: 0 }} />
           <span>
-            Adaptive Bitrate Control is continuously optimizing your video encoder for sub-50ms latency.
+            Adaptive Bitrate Control is continuously optimizing your video encoder according to participant count and prioritizing audio.
           </span>
         </Box>
       </Box>
