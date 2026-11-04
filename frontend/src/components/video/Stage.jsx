@@ -220,26 +220,39 @@ export default function Stage({
             height: "100%"
           }}
         >
-          {participants.map((part) => (
-            <Box key={part.socketId} sx={{ width: "100%", height: "100%", minHeight: 0 }}>
-              <VideoTile
-                stream={part.stream}
-                name={part.name}
-                avatar={part.avatar}
-                isLocal={part.isLocal}
-                isHost={part.isHost}
-                isVideoOff={part.isVideoOff}
-                isMuted={part.isMuted}
-                isSpeaking={part.isSpeaking}
-                isPinned={pinnedUser === part.socketId}
-                isSpotlighted={spotlightUser === part.socketId}
-                isHandRaised={part.isHandRaised}
-                networkQuality={part.quality}
-                onPin={() => onPinUser?.(pinnedUser === part.socketId ? null : part.socketId)}
-                onSpotlight={() => onSpotlightUser?.(part.socketId)}
-              />
-            </Box>
-          ))}
+          {participants.map((part, index) => {
+            const isThirdOfThree = totalTiles === 3 && index === 2;
+            return (
+              <Box
+                key={part.socketId}
+                sx={{
+                  width: "100%",
+                  height: "100%",
+                  minHeight: 0,
+                  gridColumn: isThirdOfThree ? { xs: "auto", sm: "1 / -1" } : "auto",
+                  maxWidth: isThirdOfThree ? { xs: "100%", sm: "calc(50% - 8px)" } : "100%",
+                  justifySelf: isThirdOfThree ? "center" : "stretch"
+                }}
+              >
+                <VideoTile
+                  stream={part.stream}
+                  name={part.name}
+                  avatar={part.avatar}
+                  isLocal={part.isLocal}
+                  isHost={part.isHost}
+                  isVideoOff={part.isVideoOff}
+                  isMuted={part.isMuted}
+                  isSpeaking={part.isSpeaking}
+                  isPinned={pinnedUser === part.socketId}
+                  isSpotlighted={spotlightUser === part.socketId}
+                  isHandRaised={part.isHandRaised}
+                  networkQuality={part.quality}
+                  onPin={() => onPinUser?.(pinnedUser === part.socketId ? null : part.socketId)}
+                  onSpotlight={() => onSpotlightUser?.(part.socketId)}
+                />
+              </Box>
+            );
+          })}
         </Box>
       )}
     </Box>

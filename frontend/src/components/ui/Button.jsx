@@ -103,6 +103,19 @@ export default function AppButton({
           }
         };
 
+      case "success":
+        return {
+          backgroundColor: c?.success || "#15803d",
+          color: "#ffffff",
+          border: "1px solid transparent",
+          "&:hover": {
+            backgroundColor: isDark ? "#16a34a" : "#166534"
+          },
+          "&:active": {
+            backgroundColor: isDark ? "#15803d" : "#14532d"
+          }
+        };
+
       case "ghost":
         return {
           backgroundColor: "transparent",

@@ -75,7 +75,7 @@ export default function ControlDock({
           setIsVisible(false);
           onActivity?.(false);
         }
-      }, 3000);
+      }, 3500);
     };
 
     window.addEventListener("mousemove", resetTimer);
