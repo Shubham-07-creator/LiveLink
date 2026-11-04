@@ -135,6 +135,38 @@ describe('Design Tokens & Theme Resolver', () => {
       expect(theme.custom.shadow).toBeDefined();
     });
 
+    it('resolves system mode into valid dark or light MUI theme via matchMedia', () => {
+      // Mock dark matchMedia
+      vi.spyOn(window, 'matchMedia').mockImplementation((query) => ({
+        matches: query.includes('dark'),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+      const themeDark = createAppTheme('system');
+      expect(themeDark.palette.mode).toBe('dark');
+      expect(themeDark.custom).toBeDefined();
+
+      // Mock light matchMedia
+      vi.spyOn(window, 'matchMedia').mockImplementation(() => ({
+        matches: false,
+        media: '',
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }));
+      const themeLight = createAppTheme('system');
+      expect(themeLight.palette.mode).toBe('light');
+      expect(themeLight.custom).toBeDefined();
+    });
+
     it('falls back gracefully to light theme for null or undefined input', () => {
       const themeNull = createAppTheme(null);
       expect(themeNull.palette.mode).toBe('light');
