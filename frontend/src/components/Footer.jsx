@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
@@ -8,11 +8,18 @@ import Divider from "@mui/material/Divider";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import CheckCircleOutlineOutlinedIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import { useThemeMode } from "../contexts/ThemeContext";
+import LegalModal from "./ui/LegalModal";
 
 export default function Footer() {
+  const [legalModal, setLegalModal] = useState({ open: false, type: "privacy" });
   const themeContext = useThemeMode();
   const tokens = themeContext?.tokens || {};
   const c = tokens?.colors || {};
+
+  const handleOpenLegal = (type) => (e) => {
+    e.preventDefault();
+    setLegalModal({ open: true, type });
+  };
 
   return (
     <Box
@@ -101,12 +108,18 @@ export default function Footer() {
             © {new Date().getFullYear()} LiveLink. Encrypted peer-to-peer video calling.
           </Typography>
           <Box sx={{ display: "flex", gap: 3 }}>
-            <Link href="#" underline="hover" sx={{ color: c.textMuted, fontSize: "13px" }}>Privacy policy</Link>
-            <Link href="#" underline="hover" sx={{ color: c.textMuted, fontSize: "13px" }}>Terms of service</Link>
-            <Link href="#" underline="hover" sx={{ color: c.textMuted, fontSize: "13px" }}>Security</Link>
+            <Link href="#privacy" onClick={handleOpenLegal("privacy")} underline="hover" sx={{ color: c.textMuted, fontSize: "13px", cursor: "pointer" }}>Privacy policy</Link>
+            <Link href="#terms" onClick={handleOpenLegal("terms")} underline="hover" sx={{ color: c.textMuted, fontSize: "13px", cursor: "pointer" }}>Terms of service</Link>
+            <Link href="#security" onClick={handleOpenLegal("security")} underline="hover" sx={{ color: c.textMuted, fontSize: "13px", cursor: "pointer" }}>Security</Link>
           </Box>
         </Box>
       </Container>
+
+      <LegalModal
+        open={legalModal.open}
+        type={legalModal.type}
+        onClose={() => setLegalModal(prev => ({ ...prev, open: false }))}
+      />
     </Box>
   );
 }

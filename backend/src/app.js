@@ -143,6 +143,15 @@ const start = async () => {
   }
 };
 
+// Process-level safety against unhandled rejections or crashes
+process.on("unhandledRejection", (reason) => {
+  logger.error({ event: "unhandled_promise_rejection", reason: reason?.message || String(reason) });
+});
+
+process.on("uncaughtException", (err) => {
+  logger.fatal({ event: "uncaught_exception", error: err.message, stack: err.stack });
+});
+
 if (process.env.NODE_ENV !== "test" || process.env.RUN_SERVER === "true") {
   start();
 }
