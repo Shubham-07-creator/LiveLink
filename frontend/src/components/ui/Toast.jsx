@@ -88,7 +88,7 @@ export default function AppToast({
   const buttonRadius = tokens?.radii?.button || "12px";
   const shadowValue = isDark
     ? "0 10px 25px -5px rgba(0,0,0,0.6)"
-    : (c?.shadow || tokens?.colors?.light?.shadow || "0 10px 25px -5px rgba(0,0,0,0.05)");
+    : (c?.shadow || tokens?.shadow || themeContext?.theme?.custom?.shadow || tokens?.colors?.light?.shadow || "0 10px 25px -5px rgba(0,0,0,0.05)");
 
   return (
     <Snackbar

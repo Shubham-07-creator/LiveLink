@@ -86,32 +86,94 @@ describe('Design Tokens & Theme Resolver', () => {
       // Ensure root raw token structure is intact
       expect(tokens.colors).toBeDefined();
       expect(tokens.colors.light.shadow).toBeDefined();
+      expect(tokens.colors.system).toBeDefined();
+      expect(tokens.colors.system.shadow).toBeDefined();
+      expect(tokens.system).toBeDefined();
+      expect(tokens.shadow).toBeDefined();
+      expect(tokens.custom).toBeDefined();
+      expect(tokens.custom.shadow).toBeDefined();
+
+      // Regression: indexing tokens[mode] where mode is "system" must never be undefined
+      const systemIndexed = tokens['system'];
+      expect(systemIndexed).toBeDefined();
+      expect(systemIndexed.shadow).toBeDefined();
+      expect(systemIndexed.surface).toBeDefined();
+    });
+
+    it('guarantees getTokens returns top-level and nested shadow on all modes', () => {
+      const modes = ['system', 'light', 'dark', 'invalid', '', null, undefined];
+      for (const m of modes) {
+        const res = getTokens(m);
+        expect(res.shadow).toBeDefined();
+        expect(typeof res.shadow).toBe('string');
+        expect(res.colors.shadow).toBeDefined();
+        expect(typeof res.colors.shadow).toBe('string');
+        expect(res.custom).toBeDefined();
+        expect(res.custom.shadow).toBeDefined();
+      }
     });
   });
 
   describe('createAppTheme', () => {
-    it('creates a valid MUI theme object in light mode', () => {
+    it('creates a valid MUI theme object in light mode with custom shadow', () => {
       const theme = createAppTheme('light');
       expect(theme).toBeDefined();
       expect(theme.palette.mode).toBe('light');
       expect(theme.palette.primary.main).toBe(tokens.colors.light.primary);
       expect(theme.palette.background.default).toBe(tokens.colors.light.bg);
+      expect(theme.custom).toBeDefined();
+      expect(theme.custom.shadow).toBeDefined();
     });
 
-    it('creates a valid MUI theme object in dark mode', () => {
+    it('creates a valid MUI theme object in dark mode with custom shadow', () => {
       const theme = createAppTheme('dark');
       expect(theme).toBeDefined();
       expect(theme.palette.mode).toBe('dark');
       expect(theme.palette.primary.main).toBe(tokens.colors.dark.primary);
       expect(theme.palette.background.default).toBe(tokens.colors.dark.bg);
+      expect(theme.custom).toBeDefined();
+      expect(theme.custom.shadow).toBeDefined();
     });
 
     it('falls back gracefully to light theme for null or undefined input', () => {
       const themeNull = createAppTheme(null);
       expect(themeNull.palette.mode).toBe('light');
+      expect(themeNull.custom).toBeDefined();
+      expect(themeNull.custom.shadow).toBeDefined();
 
       const themeUndefined = createAppTheme(undefined);
       expect(themeUndefined.palette.mode).toBe('light');
+      expect(themeUndefined.custom).toBeDefined();
+      expect(themeUndefined.custom.shadow).toBeDefined();
+    });
+  });
+
+  describe('Theme Mode Resolver Safety Logic', () => {
+    // Pure function logic mirroring resolveMode in ThemeContext
+    const resolveModeTest = (pref, matchDark = false) => {
+      if (pref === 'dark') return 'dark';
+      if (pref === 'light') return 'light';
+      if (pref === 'system') {
+        return matchDark ? 'dark' : 'light';
+      }
+      return 'light';
+    };
+
+    it('resolves explicit light and dark preferences', () => {
+      expect(resolveModeTest('light')).toBe('light');
+      expect(resolveModeTest('dark')).toBe('dark');
+    });
+
+    it('resolves system mode according to matchMedia query', () => {
+      expect(resolveModeTest('system', true)).toBe('dark');
+      expect(resolveModeTest('system', false)).toBe('light');
+    });
+
+    it('strictly falls back to light on any invalid or missing preference', () => {
+      const invalidValues = [null, undefined, '', 'auto', 'blue', 0, 1, {}, []];
+      for (const val of invalidValues) {
+        expect(resolveModeTest(val)).toBe('light');
+      }
     });
   });
 });

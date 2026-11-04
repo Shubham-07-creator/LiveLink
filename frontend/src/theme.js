@@ -21,6 +21,13 @@ export const createAppTheme = (mode = "light") => {
   const c = t?.colors || {};
 
   return createTheme({
+    custom: {
+      shadow: c?.shadow || (t.isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05), 0 10px 25px -5px rgba(0,0,0,0.04)"),
+      cardShadow: c?.cardShadow || "",
+      modalShadow: c?.modalShadow || "",
+      colors: c,
+      tokens: t
+    },
     palette: {
       mode: normalizedMode,
       primary: {

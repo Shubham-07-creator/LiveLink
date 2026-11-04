@@ -84,6 +84,7 @@ export const tokens = {
   colors: {
     light: lightColors,
     dark: darkColors,
+    system: lightColors,
     call: callColors,
     accent: accentColors
   },
@@ -91,6 +92,11 @@ export const tokens = {
   call: callColors,
   light: lightColors,
   dark: darkColors,
+  system: lightColors,
+  shadow: lightColors.shadow,
+  custom: {
+    shadow: lightColors.shadow
+  },
   spacing: {
     scale: [4, 8, 12, 16, 24, 32, 48, 64, 96],
     xxs: 4,
@@ -202,23 +208,30 @@ export const getTokens = (mode = "light") => {
   const modeColors = isDark ? (tokens?.colors?.dark || {}) : (tokens?.colors?.light || {});
   const lightColors = tokens?.colors?.light || {};
   const darkColors = tokens?.colors?.dark || {};
+  const shadowValue = modeColors?.shadow || (isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05), 0 10px 25px -5px rgba(0,0,0,0.04)");
 
   return {
     mode: resolved,
     isDark,
+    shadow: shadowValue,
+    custom: {
+      shadow: shadowValue
+    },
     colors: {
       ...modeColors,
       light: lightColors,
       dark: darkColors,
+      system: lightColors,
       call: callColors,
       accent: accentColors,
-      shadow: modeColors?.shadow || (isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05), 0 10px 25px -5px rgba(0,0,0,0.04)"),
+      shadow: shadowValue,
       cardShadow: modeColors?.cardShadow || (isDark ? "0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)" : "0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04)"),
       modalShadow: modeColors?.modalShadow || (isDark ? "0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.6)" : "0 25px 50px -12px rgba(0, 0, 0, 0.25)")
     },
     raw: tokens,
     light: lightColors,
     dark: darkColors,
+    system: lightColors,
     call: callColors,
     accent: accentColors,
     spacing: tokens?.spacing || [0, 4, 8, 12, 16, 24, 32, 48, 64, 96],
