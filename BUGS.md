@@ -7,6 +7,7 @@ This document records all functional, security, stability, or boundary bugs unco
 | **BUG-001** | High | Fixed | `app.js` automatically invoked `server.listen` and `mongoose.connect` on import with no `export { app, server }` | `backend/src/app.js:146` | `tests/integration/auth.test.js` |
 | **BUG-002** | High | Fixed | Missing `shadow` fallback property in `tokens.js` caused `Toast.jsx` crash on theme read | `frontend/src/tokens.js:215` | `tests/unit/themeAndTokens.test.js` |
 | **BUG-003** | Medium | Fixed | Hardcoded IP-based join rate limiter blocked automated concurrency and load test suites | `backend/src/controllers/socketManager.js:26` | `tests/signaling/raceCondition.test.js` |
+| **BUG-004** | High | Fixed | `Toast.jsx` crashes with `TypeError: Cannot read properties of undefined (reading 'shadow')` when theme preference is 'system' or uninitialized | `frontend/src/tokens.js:215`, `frontend/src/components/ui/Toast.jsx:91` | `tests/unit/themeAndTokens.test.js` |
 
 ---
 
@@ -49,3 +50,19 @@ This document records all functional, security, stability, or boundary bugs unco
 - **Actual Behavior**: High-concurrency test runs stalled waiting for room admission.
 - **Regression Test**: `tests/signaling/raceCondition.test.js`, `tests/load/signalingLoad.js`
 - **Fix Commit**: `875405d`
+
+---
+
+### [BUG-004] TypeError: Cannot read properties of undefined (reading 'shadow') in Toast.jsx
+- **Severity**: High
+- **Status**: Fixed & Verified
+- **Affected File & Line**: `frontend/src/tokens.js:215`, `frontend/src/components/ui/Toast.jsx:91`, `frontend/src/contexts/ThemeContext.jsx:90`
+- **Steps to Reproduce**:
+  1. Open `/home` with theme preference set to `"system"` or with uninitialized `localStorage`.
+  2. A toast is triggered (or component mounts reading theme tokens).
+  3. `Toast.jsx` evaluates `tokens[mode].shadow` or `c.shadow`.
+- **Expected Behavior**: Theme preference resolves strictly to `"light"` or `"dark"` via `window.matchMedia` before passing to tokens; `getTokens(mode)` and `createAppTheme()` guarantee `shadow`, `custom.shadow`, and `colors.shadow` exist on all modes without throwing.
+- **Actual Behavior**: Uncaught TypeError: `Cannot read properties of undefined (reading 'shadow')` causing app to crash into `ErrorBoundary`.
+- **Regression Test**: `tests/unit/themeAndTokens.test.js`
+- **Fix Commit**: `f46e7ec`
+
