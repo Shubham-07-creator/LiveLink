@@ -1,13 +1,17 @@
 # 🐛 LiveLink Discovered Bugs & Regressions Log
 
-This document records all functional, security, stability, or boundary bugs uncovered during the development and execution of the LiveLink test suite. Per SDET engineering rules, every issue logged here receives a dedicated reproduction test and resolution commit.
+This document records all functional, security, stability, or boundary bugs uncovered during the development and execution of the LiveLink layered test suite. Per SDET engineering rules, every issue logged here received a dedicated reproduction test and resolution commit.
 
-| Bug ID | Severity | Status | Summary | Affected Component | Regression Test |
-|:---:|:---:|:---:|:---|:---|:---|
-| **BUG-001** | High | Fixed | `app.js` automatically invoked `server.listen` and `mongoose.connect` on import with no `export { app, server }` | `backend/src/app.js:146` | `tests/integration/auth.test.js` |
-| **BUG-002** | High | Fixed | Missing `shadow` fallback property in `tokens.js` caused `Toast.jsx` crash on theme read | `frontend/src/tokens.js:215` | `tests/unit/themeAndTokens.test.js` |
-| **BUG-003** | Medium | Fixed | Hardcoded IP-based join rate limiter blocked automated concurrency and load test suites | `backend/src/controllers/socketManager.js:26` | `tests/signaling/raceCondition.test.js` |
-| **BUG-004** | High | Fixed | `Toast.jsx` crashes with `TypeError: Cannot read properties of undefined (reading 'shadow')` when theme preference is 'system' or uninitialized | `frontend/src/tokens.js:215`, `frontend/src/components/ui/Toast.jsx:91` | `tests/unit/themeAndTokens.test.js` |
+## Summary Table
+
+| Bug ID | Severity | Status | Summary | Affected Component | Regression Test | Resolution Commit |
+|:---:|:---:|:---:|:---|:---|:---|:---:|
+| **BUG-001** | High | Fixed | `app.js` unconditionally invoked `server.listen` and `mongoose.connect` on import with no `export { app, server }` | `backend/src/app.js:146` | `tests/integration/auth.test.js` | `8de833b` |
+| **BUG-002** | High | Fixed | Missing `shadow` fallback property in `tokens.js` caused `Toast.jsx` crash on theme read | `frontend/src/tokens.js:215` | `tests/unit/themeAndTokens.test.js` | `9497e97` |
+| **BUG-003** | Medium | Fixed | Hardcoded IP-based join rate limiter blocked automated concurrency and load test suites | `backend/src/controllers/socketManager.js:26` | `tests/signaling/raceCondition.test.js` | `875405d` |
+| **BUG-004** | High | Fixed | `Toast.jsx` crashes with `TypeError: Cannot read properties of undefined (reading 'shadow')` when theme preference is 'system' or uninitialized | `frontend/src/tokens.js:215`, `frontend/src/components/ui/Toast.jsx:91` | `tests/unit/themeAndTokens.test.js` | `f46e7ec` |
+
+**Total Open Blockers**: **0** (All discovered bugs resolved and covered by regression tests).
 
 ---
 
@@ -46,7 +50,7 @@ This document records all functional, security, stability, or boundary bugs unco
 - **Steps to Reproduce**:
   1. Connect more than 20 concurrent sockets from `127.0.0.1` during automated race condition or load testing.
   2. Sockets past index 20 are rejected with `join-error` (20 joins/minute limit).
-- **Expected Behavior**: In `NODE_ENV === "test"`, the IP rate limiter should allow automated synthetic test traffic to verify concurrency without artificial failure.
+- **Expected Behavior**: In `NODE_ENV === "test"`, the IP rate limiter allows synthetic test traffic to verify concurrency without artificial failure.
 - **Actual Behavior**: High-concurrency test runs stalled waiting for room admission.
 - **Regression Test**: `tests/signaling/raceCondition.test.js`, `tests/load/signalingLoad.js`
 - **Fix Commit**: `875405d`
@@ -65,4 +69,3 @@ This document records all functional, security, stability, or boundary bugs unco
 - **Actual Behavior**: Uncaught TypeError: `Cannot read properties of undefined (reading 'shadow')` causing app to crash into `ErrorBoundary`.
 - **Regression Test**: `tests/unit/themeAndTokens.test.js`
 - **Fix Commit**: `f46e7ec`
-
