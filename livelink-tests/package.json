@@ -1,0 +1,24 @@
+{
+  "name": "livelink-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Black-box test suite for LiveLink (API, sockets, pages, WebRTC calls, security)",
+  "scripts": {
+    "setup": "npx playwright install chromium",
+    "test": "playwright test",
+    "test:api": "playwright test tests/01-api.spec.js",
+    "test:socket": "playwright test tests/02-socket.spec.js",
+    "test:pages": "playwright test tests/03-pages.spec.js",
+    "test:call": "playwright test tests/04-call.spec.js",
+    "test:network": "playwright test tests/05-network.spec.js",
+    "test:bundle": "playwright test tests/06-bundle.spec.js",
+    "test:destructive": "DESTRUCTIVE=1 playwright test",
+    "show": "playwright show-report"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test": "^1.49.0",
+    "dotenv": "^16.4.5",
+    "socket.io-client": "^4.7.5"
+  }
+}

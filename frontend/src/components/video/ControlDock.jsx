@@ -299,6 +299,8 @@ export default function ControlDock({
           size={isMobile ? "large" : "normal"}
           shape="round"
           onClick={onToggleChat}
+          ariaLabel="In-call chat"
+          data-testid="chat-toggle-btn"
           sx={{ bgcolor: callTokens.dockIconNormal, color: "#ffffff", "&:hover": { bgcolor: callTokens.dockIconHover } }}
         >
           <Badge badgeContent={unreadMessages} color="primary">
@@ -323,6 +325,8 @@ export default function ControlDock({
       <Box
         component="button"
         onClick={onLeaveCall}
+        aria-label="Leave call"
+        data-testid="leave-call-btn"
         sx={{
           display: "inline-flex",
           alignItems: "center",

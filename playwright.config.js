@@ -16,11 +16,11 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'node backend/src/app.js',
+      command: 'node startTestServer.js',
+      cwd: './backend',
       url: 'http://localhost:8000/health',
       reuseExistingServer: true,
       env: {
-        RUN_SERVER: 'true',
         PORT: '8000',
         CLIENT_URLS: 'http://localhost:3000'
       }
@@ -40,6 +40,7 @@ export default defineConfig({
       args: [
         '--use-fake-device-for-media-stream',
         '--use-fake-ui-for-media-stream',
+        '--autoplay-policy=no-user-gesture-required',
         '--disable-blink-features=AutomationControlled'
       ]
     }
