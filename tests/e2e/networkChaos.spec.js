@@ -2,9 +2,11 @@ import { test, expect } from '@playwright/test';
 
 test.describe('E2E Layer 5: Network Chaos, Reconnection & Rapid Toggle Stress', () => {
   test('survives rapid 25x camera & mic toggles in 3 seconds without freezing or UI state desync', async ({ page }) => {
-    const roomCode = 'kmpq-wxyz-4567';
+    const chars = '23456789abcdefghjkmnpqrstuvwxyz';
+    const rand4 = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const roomCode = `${rand4()}-${rand4()}-${rand4()}`;
 
-    await page.goto(`/${roomCode}`);
+    await page.goto(`/${roomCode}`, { waitUntil: 'domcontentloaded' });
     await page.getByPlaceholder(/Enter your name/i).fill('Chaos Tester');
     await page.getByRole('button', { name: 'Join meeting' }).click();
     await expect(page.getByText(roomCode)).toBeVisible();
@@ -25,9 +27,11 @@ test.describe('E2E Layer 5: Network Chaos, Reconnection & Rapid Toggle Stress', 
   });
 
   test('emulates network offline and online recovery via Chrome DevTools Protocol (CDP)', async ({ page, context }) => {
-    const roomCode = 'kmpq-wxyz-5678';
+    const chars = '23456789abcdefghjkmnpqrstuvwxyz';
+    const rand4 = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    const roomCode = `${rand4()}-${rand4()}-${rand4()}`;
 
-    await page.goto(`/${roomCode}`);
+    await page.goto(`/${roomCode}`, { waitUntil: 'domcontentloaded' });
     await page.getByPlaceholder(/Enter your name/i).fill('Network Tester');
     await page.getByRole('button', { name: 'Join meeting' }).click();
     await expect(page.getByText(roomCode)).toBeVisible();
