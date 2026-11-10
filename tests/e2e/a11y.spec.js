@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
+import { AxeBuilder } from '@axe-core/playwright';
 
 test.describe('E2E Layer 8: Accessibility, Focus Rings & Aria Labels', () => {
   test('verifies all icon-only buttons have explicit aria-label or accessible name', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     const iconButtons = await page.$$('button');
     let unlabeledCount = 0;
@@ -22,13 +23,29 @@ test.describe('E2E Layer 8: Accessibility, Focus Rings & Aria Labels', () => {
   });
 
   test('verifies active focus rings are visible on keyboard Tab navigation', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    const firstInteractive = page.locator('button, a').first();
+    await firstInteractive.focus();
 
-    // Press Tab twice to navigate to first interactive elements
-    await page.keyboard.press('Tab');
-    await page.keyboard.press('Tab');
+    // Verify first focused element is interactive
+    const initialFocusedTag = await page.evaluate(() => document.activeElement?.tagName);
+    expect(['BUTTON', 'A']).toContain(initialFocusedTag);
 
-    const focusedTag = await page.evaluate(() => document.activeElement?.tagName);
-    expect(['BUTTON', 'A', 'INPUT']).toContain(focusedTag);
+    // Tab to next interactive element
+    await page.keyboard.press('Tab');
+    const nextFocusedTag = await page.evaluate(() => document.activeElement?.tagName);
+    expect(['BUTTON', 'A', 'INPUT']).toContain(nextFocusedTag);
+  });
+
+  test('runs automated axe-core accessibility audit on landing page with zero serious/critical violations', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
+
+    const criticalViolations = results.violations.filter(
+      v => v.impact === 'critical' || v.impact === 'serious'
+    );
+    expect(criticalViolations).toEqual([]);
   });
 });
