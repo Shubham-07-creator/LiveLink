@@ -7,8 +7,10 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test-suite:
+  quality-gate:
+    name: Full Layered Quality Gate (Layers 1-8)
     runs-on: ubuntu-latest
+    timeout-minutes: 25
 
     services:
       mongodb:
@@ -35,27 +37,55 @@ jobs:
       - name: Install Frontend Dependencies
         run: cd frontend && npm install
 
-      - name: Link Dependencies for Root Testing
+      - name: Install Playwright Browsers & OS Dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Link Backend Dependencies into Root
         run: |
           mkdir -p node_modules
-          ln -s ../backend/node_modules/express node_modules/express || true
+          for pkg in express cors jsonwebtoken bcryptjs zod helmet express-rate-limit cookie-parser mongoose dotenv; do
+            if [ -d "backend/node_modules/$pkg" ]; then
+              ln -s "../../backend/node_modules/$pkg" "node_modules/$pkg" || true
+            fi
+          done
 
-      - name: Layer 1 - Run Unit Tests
+      - name: Build Production Frontend Bundle
+        run: cd frontend && npm run build
+        env:
+          CI: false
+
+      - name: Layer 1 - Run Unit Tests (Vitest)
         run: npm run test:unit
 
-      - name: Layer 2 - Run Backend Integration Tests
+      - name: Layer 2 - Run Backend Integration Tests (Supertest)
         run: npm run test:integration
         env:
           NODE_ENV: test
+          MONGO_URI: mongodb://127.0.0.1:27017/livelink_ci_test
           CLIENT_URLS: http://localhost:3000
 
-      - name: Layer 3 - Run Socket.IO Signaling Tests
+      - name: Layer 3 - Run Socket.IO Signaling & Race Tests
         run: npm run test:signaling
         env:
           NODE_ENV: test
 
-      - name: Layer 6 - Run Signaling Load Test
+      - name: Layer 6 - Run Signaling Load Stress Test
         run: npm run test:load
 
-      - name: Layer 7 - Run Security Audit & Secret Scanner
+      - name: Layer 7 - Run Security Vulnerability & Secret Audit
         run: npm run test:security
+
+      - name: Layer 8 - Run Accessibility & Playwright E2E Tests
+        run: npm run test:e2e
+        env:
+          CI: true
+
+      - name: Upload Test Artifacts & Playwright Traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-artifacts
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

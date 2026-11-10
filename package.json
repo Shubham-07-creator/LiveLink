@@ -13,7 +13,7 @@
     "test:load": "node tests/load/signalingLoad.js",
     "test:security": "npm audit --audit-level=high && node tests/security/securityScan.js",
     "test:a11y": "playwright test tests/e2e/a11y.spec.js",
-    "test:all": "npm run test:unit && npm run test:integration && npm run test:signaling && npm run test:e2e && npm run test:security"
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:signaling && npm run test:load && npm run test:security && npm run test:e2e"
   },
   "repository": {
     "type": "git",
