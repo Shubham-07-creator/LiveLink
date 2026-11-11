@@ -87,6 +87,59 @@ describe('Signaling Layer: Signal Isolation, Chat Security & Memory Leak Cleanup
     guestClient.disconnect();
   });
 
+  it('emits user-left event to remaining peers when a participant disconnects (no ghost tiles)', async () => {
+    const roomCode = '3456-789a-bcde';
+    const clientA = await signaling.createClient();
+    const clientB = await signaling.createClient();
+
+    const joinA = signaling.waitForEvent(clientA, 'user-joined');
+    clientA.emit('join-call', roomCode, 'Alice', null, null);
+    await joinA;
+
+    const joinB = signaling.waitForEvent(clientB, 'user-joined');
+    clientB.emit('join-call', roomCode, 'Bob', null, null);
+    await joinB;
+
+    // Client B disconnects -> Client A must receive user-left with Bob's socket id
+    const leftPromise = signaling.waitForEvent(clientA, 'user-left');
+    const bSocketId = clientB.id;
+    clientB.disconnect();
+
+    const leftSocketId = await leftPromise;
+    expect(leftSocketId).toBe(bSocketId);
+
+    clientA.disconnect();
+  });
+
+  it('sanitizes chat messages on server, stripping HTML and XSS tags before broadcasting', async () => {
+    const roomCode = '2345-6789-abcd';
+    const hostClient = await signaling.createClient();
+    const guestClient = await signaling.createClient();
+
+    const hostJoin = signaling.waitForEvent(hostClient, 'user-joined');
+    hostClient.emit('join-call', roomCode, 'HostUser', null, null);
+    await hostJoin;
+
+    const guestJoin = signaling.waitForEvent(guestClient, 'user-joined');
+    guestClient.emit('join-call', roomCode, 'GuestUser', null, null);
+    await guestJoin;
+
+    // Guest sends an XSS tag payload
+    const hostMsgPromise = new Promise((resolve) => {
+      hostClient.on('chat-message', (data, sender) => resolve({ data, sender }));
+    });
+    guestClient.emit('chat-message', '<img src=x onerror="alert(1)">Hello Safe World', '<script>Hacker</script>Guest');
+
+    const received = await hostMsgPromise;
+    expect(received.data).not.toContain('<img');
+    expect(received.data).not.toContain('<script');
+    expect(received.data).toBe('Hello Safe World');
+    expect(received.sender).not.toContain('<script');
+
+    hostClient.disconnect();
+    guestClient.disconnect();
+  });
+
   it('guarantees complete memory cleanup over 30 create, join and leave cycles (zero ghost rooms)', async () => {
     const chars = '23456789abcdefghjkmnpqrstuvwxyz';
     for (let i = 0; i < 30; i++) {

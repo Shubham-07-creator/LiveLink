@@ -62,12 +62,16 @@ describe('Backend Integration: Authentication Flow', () => {
     expect(loginRes.body.token).toBeDefined();
     expect(loginRes.body.user.email).toBe(testUser.email);
 
-    // Verify cookies set
+    // Verify cookies set individually
     const setCookieHeaders = loginRes.headers['set-cookie'];
     expect(setCookieHeaders).toBeDefined();
-    const cookieStr = Array.isArray(setCookieHeaders) ? setCookieHeaders.join(';') : setCookieHeaders;
-    expect(cookieStr).toContain('token=');
-    expect(cookieStr).toContain('HttpOnly');
+    const tokenCookie = setCookieHeaders.find(c => c.startsWith('token='));
+    expect(tokenCookie).toBeDefined();
+    expect(tokenCookie).toMatch(/;\s*HttpOnly/i);
+
+    const refreshCookie = setCookieHeaders.find(c => c.startsWith('refreshToken='));
+    expect(refreshCookie).toBeDefined();
+    expect(refreshCookie).toMatch(/;\s*HttpOnly/i);
   });
 
   it('rejects login with incorrect password', async () => {
