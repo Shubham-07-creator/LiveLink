@@ -4,6 +4,7 @@
   "type": "module",
   "description": "LiveLink is a secure, reliable, real-time video conferencing web application built with the MERN Stack, WebRTC Peer-to-Peer Mesh, and Socket.IO.",
   "scripts": {
+    "build": "npm run build --prefix frontend",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:signaling": "vitest run tests/signaling",
