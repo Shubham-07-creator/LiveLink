@@ -49,11 +49,19 @@ const server = http.createServer((req, res) => {
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
+    const defaultHeaders = {
+      'Content-Type': contentType,
+      'Cache-Control': 'public, max-age=3600',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'SAMEORIGIN',
+      'Referrer-Policy': 'strict-origin-when-cross-origin'
+    };
+
     if (fileCache.has(filePath)) {
       const cached = fileCache.get(filePath);
       res.writeHead(200, {
-        'Content-Type': cached.contentType,
-        'Cache-Control': 'public, max-age=3600'
+        ...defaultHeaders,
+        'Content-Type': cached.contentType
       });
       res.end(cached.content);
       return;
@@ -67,8 +75,8 @@ const server = http.createServer((req, res) => {
       } else {
         fileCache.set(filePath, { contentType, content });
         res.writeHead(200, {
-          'Content-Type': contentType,
-          'Cache-Control': 'public, max-age=3600'
+          ...defaultHeaders,
+          'Content-Type': contentType
         });
         res.end(content);
       }

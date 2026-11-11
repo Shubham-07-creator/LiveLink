@@ -10,7 +10,7 @@ const lightColors = {
   border: "#d9e2ec",
   textHeading: "#0f172a",
   textBody: "#334155",
-  textMuted: "#627d98",
+  textMuted: "#475569",
   placeholder: "#829ab1",
   primary: "#2563eb",
   primaryHover: "#1d4ed8",

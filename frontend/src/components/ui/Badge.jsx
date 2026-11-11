@@ -25,8 +25,8 @@ export default function AppBadge({
       case "primary":
         return {
           backgroundColor: c?.primarySoftBg || (isDark ? "rgba(59, 130, 246, 0.15)" : "#eff6ff"),
-          color: c?.primary || (isDark ? "#3b82f6" : "#2563eb"),
-          dotColor: c?.primary || (isDark ? "#3b82f6" : "#2563eb")
+          color: isDark ? "#60a5fa" : (c?.primary || "#2563eb"),
+          dotColor: isDark ? "#60a5fa" : (c?.primary || "#2563eb")
         };
       case "success":
         return {
