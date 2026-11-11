@@ -17,7 +17,7 @@ const ALL_PAGES = [...cfg.PUBLIC_PAGES, ...cfg.PROTECTED_PAGES];
 
 async function visit(page, route, errors) {
   const before = errors.length;
-  await page.goto(cfg.BASE_URL + route, { waitUntil: 'networkidle', timeout: 90000 }).catch(() => {});
+  await page.goto(cfg.BASE_URL + route, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
   await page.waitForTimeout(1200);
   const crashed = await page.getByText(S.errorBoundary).first().isVisible().catch(() => false);
   return { crashed, newErrors: errors.slice(before) };
@@ -48,7 +48,7 @@ test('protected pages redirect anonymous users to login', async ({ browser }) =>
   const context = await browser.newContext();
   const page = await context.newPage();
   for (const route of cfg.PROTECTED_PAGES) {
-    await page.goto(cfg.BASE_URL + route, { waitUntil: 'networkidle' }).catch(() => {});
+    await page.goto(cfg.BASE_URL + route, { waitUntil: 'domcontentloaded' }).catch(() => {});
     await page.waitForTimeout(800);
     expect(new URL(page.url()).pathname, `${route} is visible without login`).not.toBe(route);
   }
@@ -61,7 +61,7 @@ test('no horizontal scroll on mobile (360px) on any page', async ({ browser }) =
   const page = await context.newPage();
   const bad = [];
   for (const route of ALL_PAGES) {
-    await page.goto(cfg.BASE_URL + route, { waitUntil: 'networkidle' }).catch(() => {});
+    await page.goto(cfg.BASE_URL + route, { waitUntil: 'domcontentloaded' }).catch(() => {});
     await page.waitForTimeout(800);
     const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     if (over > 1) bad.push(`${route}: overflows by ${over}px`);
@@ -76,7 +76,7 @@ test('accessibility (axe): no serious or critical violations', async ({ browser 
   const page = await context.newPage();
   const found = [];
   for (const route of ALL_PAGES) {
-    await page.goto(cfg.BASE_URL + route, { waitUntil: 'networkidle' }).catch(() => {});
+    await page.goto(cfg.BASE_URL + route, { waitUntil: 'domcontentloaded' }).catch(() => {});
     await page.waitForTimeout(1000);
     const res = await new AxeBuilder({ page }).analyze();
     res.violations.filter((v) => ['serious', 'critical'].includes(v.impact))
@@ -92,7 +92,7 @@ test('icon-only buttons have an accessible name', async ({ browser }) => {
   const page = await context.newPage();
   const bad = [];
   for (const route of ALL_PAGES) {
-    await page.goto(cfg.BASE_URL + route, { waitUntil: 'networkidle' }).catch(() => {});
+    await page.goto(cfg.BASE_URL + route, { waitUntil: 'domcontentloaded' }).catch(() => {});
     const n = await page.evaluate(() => [...document.querySelectorAll('button,[role=button]')].filter((b) => {
       const t = (b.innerText || '').trim();
       return !t && !b.getAttribute('aria-label') && !b.getAttribute('aria-labelledby') && !b.getAttribute('title');

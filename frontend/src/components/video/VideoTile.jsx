@@ -29,10 +29,11 @@ export default function VideoTile({
   const videoRef = useRef(null);
   const callTokens = tokens?.colors?.call || tokens?.call || {};
 
-  // Auto-detect whether this tile contains a screen share track (either locally marked or remote displaySurface/label)
+  // Auto-detect whether this tile contains a screen share track (either locally marked, contentHint detail, or remote displaySurface/label)
   const videoTrack = stream?.getVideoTracks?.()[0];
   const isScreen = Boolean(
     isScreenShare ||
+    videoTrack?.contentHint === "detail" ||
     videoTrack?.getSettings?.()?.displaySurface !== undefined ||
     /screen|window|monitor|display/i.test(videoTrack?.label || "")
   );

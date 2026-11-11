@@ -1,5 +1,5 @@
-import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useContext } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { useThemeMode } from "../contexts/ThemeContext";
 import { generateRoomCode, isValidRoomCode } from "../utils/roomCode";
@@ -49,6 +49,15 @@ export default function LandingPage() {
   const [createdRoom, setCreatedRoom] = useState(null);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [toast, setToast] = useState({ open: false, message: "", severity: "info" });
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.toast) {
+      showToast(location.state.toast, "warning");
+      // Clean up location state so refreshing does not repeatedly re-toast
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const showToast = (message, severity = "info") => {
     setToast({ open: true, message, severity });

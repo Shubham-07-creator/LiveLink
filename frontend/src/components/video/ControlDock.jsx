@@ -164,6 +164,7 @@ export default function ControlDock({
               size="normal"
               shape="round"
               onClick={onToggleScreenShare}
+              ariaLabel={isScreenSharing ? "Stop sharing screen" : "Share screen"}
               sx={{
                 bgcolor: isScreenSharing ? tokens.colors.light.primary : callTokens.dockIconNormal,
                 color: "#ffffff",
@@ -179,6 +180,7 @@ export default function ControlDock({
               size="normal"
               shape="round"
               onClick={onToggleHand}
+              ariaLabel={isHandRaised ? "Lower hand" : "Raise hand"}
               sx={{
                 bgcolor: isHandRaised ? callTokens.raiseHandBg : callTokens.dockIconNormal,
                 color: isHandRaised ? callTokens.raiseHandColor : "#ffffff",

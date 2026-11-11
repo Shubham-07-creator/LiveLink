@@ -485,7 +485,9 @@ export default function VideoMeet() {
                         localSpeaking={localSpeaking || (media.audioVolume > 15 && media.audioEnabled)}
                         activeSpeakingPeers={combinedSpeakingPeers} peerQualities={stats.peerQualities} overallQuality={stats.overallQuality}
                         raisedHands={signaling.raisedHands} isLocalHandRaised={signaling.isHandRaised} viewMode={viewMode}
-                        pinnedUser={pinnedUser} spotlightUser={signaling.spotlightUser} onPinUser={setPinnedUser} onSpotlightUser={signaling.spotlightParticipant} />
+                        pinnedUser={pinnedUser} spotlightUser={signaling.spotlightUser}
+                        activePresenterId={signaling.activePresenter?.presenterId}
+                        onPinUser={setPinnedUser} onSpotlightUser={signaling.spotlightParticipant} />
 
                     <ControlDock videoEnabled={media.videoEnabled} audioEnabled={media.audioEnabled} isScreenSharing={media.isScreenSharing}
                         isHandRaised={signaling.isHandRaised} isRecording={isRecording} isHost={signaling.isHost} viewMode={viewMode}

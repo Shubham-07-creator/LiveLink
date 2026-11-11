@@ -18,36 +18,66 @@ const MIME_TYPES = {
   '.woff2': 'font/woff2'
 };
 
+const fileCache = new Map();
+
 const server = http.createServer((req, res) => {
-  let reqPath = decodeURI(req.url.split('?')[0]);
-  if (reqPath === '/') reqPath = '/index.html';
+  try {
+    let reqPath = decodeURI(req.url.split('?')[0]);
+    if (reqPath === '/') reqPath = '/index.html';
 
-  let filePath = path.join(buildPath, reqPath);
+    let filePath = path.join(buildPath, reqPath);
 
-  // Prevent path traversal
-  if (!filePath.startsWith(buildPath)) {
-    res.writeHead(403);
-    res.end('Forbidden');
-    return;
-  }
-
-  // Check if file exists, else fallback to index.html (SPA routing)
-  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-    filePath = path.join(buildPath, 'index.html');
-  }
-
-  const ext = path.extname(filePath).toLowerCase();
-  const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-
-  fs.readFile(filePath, (err, content) => {
-    if (err) {
-      res.writeHead(500);
-      res.end('Server Error');
-    } else {
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content);
+    // Prevent path traversal
+    if (!filePath.startsWith(buildPath)) {
+      res.writeHead(403);
+      res.end('Forbidden');
+      return;
     }
-  });
+
+    // Check if file exists, else fallback to index.html (SPA routing)
+    let exists = false;
+    try {
+      exists = fs.existsSync(filePath) && !fs.statSync(filePath).isDirectory();
+    } catch (e) {
+      exists = false;
+    }
+
+    if (!exists) {
+      filePath = path.join(buildPath, 'index.html');
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+    if (fileCache.has(filePath)) {
+      const cached = fileCache.get(filePath);
+      res.writeHead(200, {
+        'Content-Type': cached.contentType,
+        'Cache-Control': 'public, max-age=3600'
+      });
+      res.end(cached.content);
+      return;
+    }
+
+    fs.readFile(filePath, (err, content) => {
+      if (err) {
+        console.error('File read error:', filePath, err);
+        res.writeHead(500);
+        res.end('Server Error');
+      } else {
+        fileCache.set(filePath, { contentType, content });
+        res.writeHead(200, {
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=3600'
+        });
+        res.end(content);
+      }
+    });
+  } catch (err) {
+    console.error('Request handling error:', req.url, err);
+    res.writeHead(500);
+    res.end('Internal Server Error');
+  }
 });
 
 const port = process.env.FRONTEND_PORT || 3000;

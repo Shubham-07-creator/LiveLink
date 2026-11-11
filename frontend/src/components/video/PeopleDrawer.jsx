@@ -168,17 +168,17 @@ export default function PeopleDrawer({
               {isHost && !p.isLocal && (
                 <ListItemSecondaryAction>
                   <Tooltip title="Mute participant">
-                    <IconButton size="small" onClick={() => onMuteParticipant?.(p.socketId)} sx={{ color: "#94a3b8" }}>
+                    <IconButton size="small" aria-label="Mute participant" onClick={() => onMuteParticipant?.(p.socketId)} sx={{ color: "#94a3b8" }}>
                       <MicOffOutlinedIcon sx={{ fontSize: 18 }} />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Turn off camera">
-                    <IconButton size="small" onClick={() => onForceStopVideo?.(p.socketId)} sx={{ color: "#94a3b8" }}>
+                    <IconButton size="small" aria-label="Turn off camera" onClick={() => onForceStopVideo?.(p.socketId)} sx={{ color: "#94a3b8" }}>
                       <VideocamOffOutlinedIcon sx={{ fontSize: 18 }} />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Remove participant">
-                    <IconButton size="small" onClick={() => onRemoveParticipant?.(p.socketId)} sx={{ color: tokens.colors.light.danger }}>
+                    <IconButton size="small" aria-label="Remove participant" data-testid="remove-participant-btn" onClick={() => onRemoveParticipant?.(p.socketId)} sx={{ color: tokens.colors.light.danger }}>
                       <PersonRemoveOutlinedIcon sx={{ fontSize: 18 }} />
                     </IconButton>
                   </Tooltip>

@@ -23,6 +23,7 @@ export default function Stage({
   viewMode = "grid", // 'grid' | 'speaker'
   pinnedUser = null,
   spotlightUser = null,
+  activePresenterId = null,
   onPinUser,
   onSpotlightUser
 }) {
@@ -65,8 +66,10 @@ export default function Stage({
   // Check if a remote participant is currently sharing their screen
   const remoteScreenParticipant = participants.find((p) => {
     if (p.isLocal) return false;
+    if (activePresenterId && p.socketId === activePresenterId) return true;
     const track = p.stream?.getVideoTracks?.()[0];
     return Boolean(
+      track?.contentHint === "detail" ||
       track?.getSettings?.()?.displaySurface !== undefined ||
       /screen|window|monitor|display/i.test(track?.label || "")
     );
@@ -246,6 +249,7 @@ export default function Stage({
                   isPinned={pinnedUser === part.socketId}
                   isSpotlighted={spotlightUser === part.socketId}
                   isHandRaised={part.isHandRaised}
+                  isScreenShare={Boolean(activePresenterId && part.socketId === activePresenterId)}
                   networkQuality={part.quality}
                   onPin={() => onPinUser?.(pinnedUser === part.socketId ? null : part.socketId)}
                   onSpotlight={() => onSpotlightUser?.(part.socketId)}

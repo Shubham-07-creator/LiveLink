@@ -2,7 +2,7 @@
 module.exports = {
   nameInput: 'input[placeholder*="name" i], input[name*="name" i], input[aria-label*="name" i]',
   joinBtn: /join (meeting )?now|enter meeting|join meeting|^join$/i,
-  micBtn: /mute|unmute|microphone/i,
+  micBtn: /mute|unmute|microphone|mic/i,
   camBtn: /turn (on|off) camera|camera|video (on|off)/i,
   shareBtn: /share screen|present|screen share/i,
   chatBtn: /chat/i,

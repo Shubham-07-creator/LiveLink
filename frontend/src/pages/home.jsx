@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect, useCallback } from "react";
 import withAuth from "../utils/withAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { AuthContext } from "../contexts/AuthContext";
@@ -62,6 +62,14 @@ function HomeComponent() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [joinModalOpen, setJoinModalOpen] = useState(false);
   const [toast, setToast] = useState({ open: false, message: "", severity: "info" });
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.toast) {
+      showToast(location.state.toast, "warning");
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Recent meetings state
   const [recentMeetings, setRecentMeetings] = useState([]);
