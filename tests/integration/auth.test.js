@@ -51,6 +51,54 @@ describe('Backend Integration: Authentication Flow', () => {
     expect(dupRes.body.message).toMatch(/already registered|already exists/i);
   });
 
+  it('rejects registration with invalid email format', async () => {
+    const res = await request(app)
+      .post('/api/v1/users/register')
+      .send({ ...testUser, email: 'not-a-valid-email' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/valid email/i);
+  });
+
+  it('rejects registration with insecure non-https avatar URL', async () => {
+    const res = await request(app)
+      .post('/api/v1/users/register')
+      .send({ ...testUser, email: 'insecure_avatar@example.com', avatar: 'http://insecure.com/avatar.jpg' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/https:\/\//i);
+  });
+
+  it('allows Google-registered user to set a password by registering with the same email', async () => {
+    // 1. Existing Google user with no password
+    await User.create({
+      name: 'Google User',
+      username: 'google_migrant',
+      email: 'migrant@example.com',
+      googleId: 'google-sub-456',
+      emailVerified: true
+    });
+
+    // 2. Registers with same email and new password
+    const res = await request(app)
+      .post('/api/v1/users/register')
+      .send({
+        name: 'Google Migrant User',
+        email: 'migrant@example.com',
+        password: 'LocalPassword789!'
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toMatch(/Password added to your existing account/i);
+
+    // 3. User can now login with local password
+    const loginRes = await request(app)
+      .post('/api/v1/users/login')
+      .send({ email: 'migrant@example.com', password: 'LocalPassword789!' });
+    expect(loginRes.status).toBe(200);
+    expect(loginRes.body.token).toBeDefined();
+  });
+
   it('logs in with email and password, setting token and refreshToken cookies', async () => {
     await request(app).post('/api/v1/users/register').send(testUser);
 
@@ -214,5 +262,116 @@ describe('Backend Integration: Authentication Flow', () => {
 
     const verifiedUser = await User.findOne({ email: testUser.email });
     expect(verifiedUser.emailVerified).toBe(true);
+  });
+
+  it('rejects login for non-existent user with 404', async () => {
+    const res = await request(app)
+      .post('/api/v1/users/login')
+      .send({ email: 'nonexistent@example.com', password: 'Password123!' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.message).toMatch(/not found/i);
+  });
+
+  it('rejects password login for accounts created exclusively with Google', async () => {
+    // Create user with null/undefined password (Google OAuth only)
+    await User.create({
+      name: 'Google User',
+      username: 'google_user',
+      email: 'google@example.com',
+      googleId: 'google-sub-123',
+      emailVerified: true
+    });
+
+    const res = await request(app)
+      .post('/api/v1/users/login')
+      .send({ email: 'google@example.com', password: 'AnyPassword123!' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/Continue with Google/i);
+  });
+
+  it('rejects refresh_token when no token is provided', async () => {
+    const res = await request(app).post('/api/v1/users/refresh_token');
+    expect(res.status).toBe(401);
+    expect(res.body.message).toMatch(/Refresh token is required/i);
+  });
+
+  it('rejects refresh_token when token is invalid or expired', async () => {
+    const res = await request(app)
+      .post('/api/v1/users/refresh_token')
+      .send({ refreshToken: 'invalid.jwt.token' });
+
+    expect(res.status).toBe(401);
+    expect(res.body.message).toMatch(/failed or expired/i);
+  });
+
+  it('rejects refresh_token when tokenVersion has been incremented (revoked session)', async () => {
+    await request(app).post('/api/v1/users/register').send(testUser);
+    const loginRes = await request(app)
+      .post('/api/v1/users/login')
+      .send({ email: testUser.email, password: testUser.password });
+
+    const cookies = loginRes.headers['set-cookie'];
+    const user = await User.findOne({ email: testUser.email });
+
+    // Invalidate sessions by incrementing tokenVersion directly in database
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save();
+
+    const refreshRes = await request(app)
+      .post('/api/v1/users/refresh_token')
+      .set('Cookie', cookies);
+
+    expect(refreshRes.status).toBe(401);
+    expect(refreshRes.body.message).toMatch(/revoked|Invalid or expired/i);
+  });
+
+  it('rejects refresh_token when token in cookie does not match user.refreshToken in database', async () => {
+    await request(app).post('/api/v1/users/register').send(testUser);
+    const loginRes = await request(app)
+      .post('/api/v1/users/login')
+      .send({ email: testUser.email, password: testUser.password });
+
+    const cookies = loginRes.headers['set-cookie'];
+    const user = await User.findOne({ email: testUser.email });
+
+    // Mutate the saved refresh token in database to simulate concurrent session replacement
+    user.refreshToken = 'different-refresh-token-in-db';
+    await user.save();
+
+    const refreshRes = await request(app)
+      .post('/api/v1/users/refresh_token')
+      .set('Cookie', cookies);
+
+    expect(refreshRes.status).toBe(401);
+    expect(refreshRes.body.message).toMatch(/Invalid or expired refresh token/i);
+  });
+
+  it('returns short-lived HMAC credentials from /api/v1/users/ice_servers when TURN_SECRET is configured', async () => {
+    const prevTurnSecret = process.env.TURN_SECRET;
+    const prevTurnUrl = process.env.TURN_URL;
+    process.env.TURN_SECRET = 'test-ephemeral-turn-secret-32-bytes';
+    process.env.TURN_URL = 'turn:standard.relay.metered.ca:80,turns:standard.relay.metered.ca:443?transport=tcp';
+
+    try {
+      const res = await request(app).get('/api/v1/users/ice_servers');
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.iceServers)).toBe(true);
+
+      const turnServer = res.body.iceServers.find(s => 
+        (Array.isArray(s.urls) && s.urls.some(u => u.includes('metered.ca'))) ||
+        (typeof s.urls === 'string' && s.urls.includes('metered.ca'))
+      );
+
+      expect(turnServer).toBeDefined();
+      expect(turnServer.username).toMatch(/^[0-9]+:/); // Timestamp:client identifier format
+      expect(turnServer.credential).toBeDefined();
+      expect(typeof turnServer.credential).toBe('string');
+      expect(turnServer.credential.length).toBeGreaterThan(10);
+    } finally {
+      process.env.TURN_SECRET = prevTurnSecret;
+      process.env.TURN_URL = prevTurnUrl;
+    }
   });
 });

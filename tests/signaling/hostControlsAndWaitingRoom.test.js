@@ -128,4 +128,97 @@ describe('Signaling Layer: Host Controls, Waiting Room & Succession', () => {
 
     guestClient.disconnect();
   });
+
+  it('allows host to execute force-stop-video, spotlight, mute-all, toggle-ai-summary and end-meeting-for-all', async () => {
+    const roomCode = 'host-exec-2345';
+    const hostClient = await signaling.createClient();
+    const guestClient = await signaling.createClient();
+
+    const hostJoin = signaling.waitForEvent(hostClient, 'user-joined');
+    hostClient.emit('join-call', roomCode, 'HostUser', null, null);
+    await hostJoin;
+
+    const guestJoin = signaling.waitForEvent(guestClient, 'user-joined');
+    guestClient.emit('join-call', roomCode, 'GuestUser', null, null);
+    await guestJoin;
+
+    // 1. Host force-stop-video
+    const forceVideoPromise = signaling.waitForEvent(guestClient, 'force-video-off');
+    hostClient.emit('force-stop-video', guestClient.id);
+    const videoOffEvent = await forceVideoPromise;
+    expect(videoOffEvent.requestedBy).toBe('HostUser');
+
+    // 2. Host spotlight participant
+    const spotlightPromise = signaling.waitForEvent(guestClient, 'spotlight-changed');
+    hostClient.emit('spotlight-participant', guestClient.id);
+    const spotlightEvent = await spotlightPromise;
+    expect(spotlightEvent.spotlightId).toBe(guestClient.id);
+
+    // 3. Host mute all
+    const muteAllPromise = signaling.waitForEvent(guestClient, 'force-mute');
+    hostClient.emit('mute-all');
+    const muteEvent = await muteAllPromise;
+    expect(muteEvent.mutedBy).toBe('HostUser');
+
+    // 4. Host toggle AI summary
+    const aiPromise = signaling.waitForEvent(guestClient, 'ai-summary-status-changed');
+    hostClient.emit('toggle-ai-summary', true);
+    const aiEvent = await aiPromise;
+    expect(aiEvent.enabled).toBe(true);
+
+    // 5. Non-host cannot end-meeting-for-all
+    const nonHostEndPromise = signaling.waitForEvent(guestClient, 'host-action-error');
+    guestClient.emit('end-meeting-for-all');
+    const nonHostEndErr = await nonHostEndPromise;
+    expect(typeof nonHostEndErr === 'string' ? nonHostEndErr : nonHostEndErr?.message).toMatch(/Only the host/i);
+
+    // 6. Host ends meeting for all
+    const endForAllPromise = signaling.waitForEvent(guestClient, 'meeting-ended-by-host');
+    hostClient.emit('end-meeting-for-all');
+    const endEvent = await endForAllPromise;
+    expect(endEvent.hostName).toBe('HostUser');
+
+    hostClient.disconnect();
+    guestClient.disconnect();
+  });
+
+  it('enforces host screen-share permissions and releases presenter lock when host kicks presenter', async () => {
+    const roomCode = 'perm-pres-2345';
+    const hostClient = await signaling.createClient();
+    const guestClient = await signaling.createClient();
+
+    const hostJoin = signaling.waitForEvent(hostClient, 'user-joined');
+    hostClient.emit('join-call', roomCode, 'HostUser', null, null);
+    await hostJoin;
+
+    const guestJoin = signaling.waitForEvent(guestClient, 'user-joined');
+    guestClient.emit('join-call', roomCode, 'GuestUser', null, null);
+    await guestJoin;
+
+    // 1. Host disables screen share for participants
+    hostClient.emit('toggle-screen-share-permission', false);
+
+    // 2. Guest attempts screen share -> rejected
+    const rejectedPromise = signaling.waitForEvent(guestClient, 'screen-share-rejected');
+    guestClient.emit('start-screen-share');
+    const rejEvent = await rejectedPromise;
+    expect(rejEvent.message).toMatch(/disabled by the meeting host/i);
+
+    // 3. Host re-enables screen share
+    hostClient.emit('toggle-screen-share-permission', true);
+
+    // 4. Guest starts screen share -> approved
+    const approvedPromise = signaling.waitForEvent(guestClient, 'screen-share-approved');
+    guestClient.emit('start-screen-share');
+    await approvedPromise;
+
+    // 5. Host removes guest who is actively presenting -> screen lock is released immediately
+    const presenterReleasePromise = signaling.waitForEvent(hostClient, 'screen-presenter-changed');
+    hostClient.emit('remove-participant', guestClient.id);
+    const releaseEvent = await presenterReleasePromise;
+    expect(releaseEvent.presenterId).toBeNull();
+
+    hostClient.disconnect();
+    guestClient.disconnect();
+  });
 });
