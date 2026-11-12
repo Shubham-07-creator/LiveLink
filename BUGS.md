@@ -10,8 +10,8 @@ This document records all functional, security, stability, or boundary bugs unco
 | **BUG-002** | High | Fixed | Missing `shadow` fallback property in `tokens.js` caused `Toast.jsx` crash on theme read | `frontend/src/tokens.js:215` | `tests/unit/themeAndTokens.test.js` | `9497e97` |
 | **BUG-003** | Medium | Fixed | Hardcoded IP-based join rate limiter blocked automated concurrency and load test suites | `backend/src/controllers/socketManager.js:26` | `tests/signaling/raceCondition.test.js` | `875405d` |
 | **BUG-004** | High | Fixed | `Toast.jsx` crashes with `TypeError: Cannot read properties of undefined (reading 'shadow')` when theme preference is 'system' or uninitialized | `frontend/src/tokens.js:215`, `frontend/src/components/ui/Toast.jsx:91` | `tests/unit/themeAndTokens.test.js` | `f46e7ec` |
-| **BUG-005** | Medium | Fixed | Static frontend host response missing OWASP recommended security headers (`nosniff`, `SAMEORIGIN`) | `frontend/public/_headers`, `tests/e2e/serveFrontend.js:52` | `scripts/runZapBaselineScan.js` | Pending |
-| **BUG-006** | Medium | Fixed | WCAG 2 AA accessibility violations: `meta-viewport` disabled zooming (`user-scalable=no`) and `textMuted` color contrast ratio (<4.5:1) | `frontend/public/index.html:6`, `frontend/src/tokens.js:13`, `frontend/src/components/ui/Badge.jsx:28` | `scripts/runLighthouseAudit.js`, `tests/e2e/a11y.spec.js` | Pending |
+| **BUG-005** | Medium | Fixed | Static frontend host response missing OWASP recommended security headers (`nosniff`, `SAMEORIGIN`) | `frontend/public/_headers`, `tests/e2e/serveFrontend.js:52` | `scripts/runZapBaselineScan.js` | `d8197e6` |
+| **BUG-006** | Medium | Fixed | WCAG 2 AA accessibility violations: `meta-viewport` disabled zooming (`user-scalable=no`) and `textMuted` color contrast ratio (<4.5:1) | `frontend/public/index.html:6`, `frontend/src/tokens.js:13`, `frontend/src/components/ui/Badge.jsx:28` | `scripts/runLighthouseAudit.js`, `tests/e2e/a11y.spec.js` | `d8197e6` |
 
 **Total Open Blockers**: **0** (All discovered bugs resolved and covered by regression tests).
 
@@ -78,13 +78,14 @@ This document records all functional, security, stability, or boundary bugs unco
 - **Severity**: Medium
 - **Status**: Fixed & Verified
 - **Affected File & Line**: `frontend/public/_headers`, `tests/e2e/serveFrontend.js:52`
+- **Tooling Implementation Disclosure**: Detected via `scripts/runZapBaselineScan.js` (a custom Node.js HTTP baseline vulnerability script implementing OWASP ZAP core checks, used because the official ZAP docker container requires Docker which is not installed on this host environment).
 - **Steps to Reproduce**:
-  1. Perform OWASP ZAP baseline scan against frontend web server (`http://localhost:3000`).
+  1. Perform HTTP security header baseline scan against frontend web server (`http://localhost:3000`).
   2. Inspect response headers for `index.html` and static assets.
 - **Expected Behavior**: Server includes `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, and `Referrer-Policy: strict-origin-when-cross-origin`.
-- **Actual Behavior**: Security headers were missing on static responses, triggering OWASP ZAP medium/low alerts.
+- **Actual Behavior**: Security headers were missing on static responses, triggering OWASP baseline medium/low alerts.
 - **Regression Test**: `scripts/runZapBaselineScan.js`
-- **Fix Commit**: Current
+- **Fix Commit**: `d8197e6`
 
 ---
 
@@ -92,10 +93,11 @@ This document records all functional, security, stability, or boundary bugs unco
 - **Severity**: Medium
 - **Status**: Fixed & Verified
 - **Affected File & Line**: `frontend/public/index.html:6`, `frontend/src/tokens.js:13`, `frontend/src/components/ui/Badge.jsx:28`
+- **Tooling Implementation Disclosure**: Detected via `scripts/runLighthouseAudit.js` (an automated Playwright + Axe-Core + Navigation Timing audit script implementing Lighthouse CI thresholds, used because the standalone Google Lighthouse CLI binary requires external headless shell downloads blocked by network sandbox rules).
 - **Steps to Reproduce**:
   1. Execute automated Axe-Core / Lighthouse CI accessibility audit on landing and authentication pages.
   2. Audit flags `meta-viewport` (`maximum-scale=1, user-scalable=no` preventing pinch-to-zoom) and `color-contrast` (`textMuted` `#627d98` on light surfaces yielding 4.41:1 ratio, below 4.5:1 WCAG AA threshold).
 - **Expected Behavior**: Viewport allows scaling for visually impaired users; text foreground-to-background contrast ratio is >= 4.5:1.
 - **Actual Behavior**: Accessibility score dropped to 94/100 due to viewport restriction and low contrast badges/subtitles.
 - **Regression Test**: `scripts/runLighthouseAudit.js`, `tests/e2e/a11y.spec.js`
-- **Fix Commit**: Current
+- **Fix Commit**: `d8197e6`
